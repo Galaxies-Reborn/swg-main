@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-politician-progression-authority",
+  "status": "ready",
+  "scope": "Make authored Publish 14.1 Politician skill-box progression authoritative by retiring the NGE residence/mayor bulk-grant compatibility helper without revoking legitimately earned skills or changing city and retained-content systems.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "findings": [
+      "The retained PRE-CU skill table defines a complete Politician profession with novice, four four-box branches, master prerequisites, political XP, and authored credit costs.",
+      "The inherited NGE compatibility helper grants all 18 boxes at once to homeowners or mayors and bypasses every authored progression requirement.",
+      "City election and administration code still checks social_politician_novice, so the skill-box profession remains meaningful when automatic grants fail closed."
+    ]
+  },
+  "diagnosis": {
+    "automaticBulkGrantCallSites": 4,
+    "automaticBulkGrantConsumerFiles": 3,
+    "historicallyBulkGrantedSkillBoxes": 18,
+    "politicianSkillRows": 19,
+    "politicianSkillBoxes": 18,
+    "politicianBranchRows": 16,
+    "politicianPoliticalXpRows": 16,
+    "cityNoviceGateSites": 3,
+    "noviceCreditCost": 100,
+    "masterCreditCost": 5000,
+    "branchXpCosts": [1000, 2500, 5000, 10000],
+    "branchCreditCosts": [1000, 2000, 3000, 4000]
+  },
+  "expected": {
+    "residenceBulkGrantReachable": false,
+    "mayorBulkGrantReachable": false,
+    "liveConversionBulkGrantReachable": false,
+    "legacyHelperCreatesSkillOrRespecState": false,
+    "existingEarnedPoliticianSkillsRevoked": false,
+    "politicianSkillRowsPreserved": true,
+    "politicianXpPrerequisitesPreserved": true,
+    "politicianCreditCostsPreserved": true,
+    "genericSkillPurchaseAuthorityPreserved": true,
+    "cityNoviceAdmissionGatesPreserved": true,
+    "citySystemsAndRetainedContentPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "library/skill.java": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7"
+    },
+    "compiledClassSha256": {
+      "library/skill.class": "a44487dd93cf152afe771ea6db661c29761c1978f3231c3f63bac2fd074855f3"
+    },
+    "fullJavaCompile": "passed and reverified in the cumulative M325 Docker build from pushed direct source; completed 2026-08-04",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed for library/skill.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "skillDataSha256": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+    "consumerSourceSha256": {
+      "player/base/base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "player/player_building.java": "4a5fab76a86d74d273704ee3a2cf0fdc5c1b5697ca43fffae3355a7ff45915c1",
+      "player/live_conversions.java": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e"
+    },
+    "cityAdmissionSourceSha256": {
+      "terminal/city_vote.java": "d3a4c5d52e497848c452a12218905d868f2fb5bc9ebd7d537fe0dcdb5871f697",
+      "terminal/terminal_city.java": "210745230b6cbcf3239691c6b373af1df370ccb88cf2d42ea34251e0216786af"
+    },
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 1,
+    "compiledBytecodeProbes": "passed: grantAllPoliticianSkills compiles to an immediate return",
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, ABI, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all four residence, mayor, and conversion call sites routed through the shared bulk-grant helper",
+    "preserved": "legitimately earned Politician skills, authored skill rows, political XP and credit costs, generic training, city novice checks, elections, administration, quests, conversations, and user-verified mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

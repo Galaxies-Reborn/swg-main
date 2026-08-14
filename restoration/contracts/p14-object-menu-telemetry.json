@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-object-menu-telemetry",
+  "status": "ready",
+  "scope": "Observe the authoritative NPC and terminal object-menu request/response lifecycle without changing Publish 14 behavior.",
+  "expected": {
+    "requestTelemetry": true,
+    "emptyResponseTelemetry": true,
+    "authorityRouteTelemetry": true,
+    "scriptCompleteTelemetry": true,
+    "behaviorChange": false,
+    "dedicatedTelemetryCategory": "PreCuObjectMenu",
+    "dedicatedTelemetryPath": "logs/precuObjectMenu.log"
+  },
+  "sourceFiles": {
+    "controller": "src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp",
+    "runtimeConfig": "exe/linux/localOptions.cfg"
+  },
+  "buildEvidence": {
+    "overlayPatches": [
+      {
+        "component": "src",
+        "path": "restoration/patches/src/352-p14-object-menu-telemetry.patch",
+        "bytes": 2977,
+        "sha256": "83338466077d0057bf5bfb398405493ec9ebe57648776d8bf12632bf3a689c4e"
+      },
+      {
+        "component": "exe",
+        "path": "restoration/patches/exe/005-p14-object-menu-log-target.patch",
+        "bytes": 490,
+        "sha256": "ed15f4f70bcb4b59d02dbb94ffd958edde815571e7e34cc14d95795f924f0cfa"
+      }
+    ],
+    "materialization": {
+      "patchesApplied": 383,
+      "acceptanceFiles": 1084,
+      "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b"
+    },
+    "contractTest": "passed",
+    "fullBuild": "passed",
+    "architecture": "ELF 64-bit LSB shared object, x86-64",
+    "serverBinarySha256": "c0fc0e10d62e1706c46de61e6bce13b3b633ce0e8c0b0de104964782db0ff599",
+    "buildId": "006166385c46c66683066b2621c01c2a233f5154",
+    "container": "swg-precu",
+    "containerHealth": "healthy",
+    "result": "passed"
+  },
+  "liveEvidence": {
+    "date": "2026-08-01",
+    "client": {
+      "processId": 77516,
+      "processName": "Galaxies Reborn PRECU",
+      "architecture": "x64",
+      "renderer": "DX11"
+    },
+    "request": "request actor=39008597 target=2329021104 sequence=1 clientItems=2",
+    "response": "response actor=39008597 target=2329021104 sequence=1 items=3 reason=script-complete",
+    "result": "A modeless world double-click completed the x64 DX11 client-to-server object-menu round trip."
+  }
+}

@@ -81,15 +81,64 @@ function Get-TableRow
     }
 }
 
+function Get-BracedBlock
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Signature
+    )
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $open = $Text.IndexOf("{", $start, [StringComparison]::Ordinal)
+    if ($open -lt 0) { return "" }
+    $depth = 0
+    for ($index = $open; $index -lt $Text.Length; ++$index)
+    {
+        if ($Text[$index] -eq '{') { ++$depth }
+        elseif ($Text[$index] -eq '}')
+        {
+            --$depth
+            if ($depth -eq 0)
+            {
+                return $Text.Substring($start, $index - $start + 1)
+            }
+        }
+    }
+    return ""
+}
+
 $consumable = Get-Content -LiteralPath $paths.consumable -Raw
 $healing = Get-Content -LiteralPath $paths.healing -Raw
+$classicStimpack = Get-Content -LiteralPath $paths.classicStimpack -Raw
+$craftedStimpack = Get-Content -LiteralPath $paths.craftedStimpack -Raw
+$otherStimpack = Get-Content -LiteralPath $paths.otherStimpack -Raw
 $handler = Get-Content -LiteralPath $paths.commandHandler -Raw
 $fixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 $commandRow = Get-TableRow -Path $paths.commandTable -Key "healDamage"
 $skillRow =
     Get-TableRow -Path $paths.skillTable -Key "science_medic_novice"
+$classicHealDamageItem = Get-BracedBlock -Text $healing `
+    -Signature "public static boolean useHealDamageItem(obj_id user, obj_id target, obj_id item, int attrib)"
 
 Write-Host "Publish 14.1 healDamage command checks:"
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract -Condition (
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceCommit) `
+    -Name "p14.heal-damage.direct-source-pin"
+foreach ($property in
+    $contract.buildEvidence.currentSourceSha256.psobject.Properties)
+{
+    $actualHash =
+        (Get-FileHash -Algorithm SHA256 `
+            -LiteralPath $paths[[string]$property.Name]).Hash.ToLowerInvariant()
+    Assert-Contract -Condition (
+        [string]$actualHash -ceq [string]$property.Value) `
+        -Name "p14.heal-damage.source.$([string]$property.Name).authenticated"
+}
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq
         "6856f315a80b5250635b2272695caec1d64204ed" -and
@@ -167,6 +216,63 @@ Assert-Contract -Condition (
     $healing.Contains("!isPlayer(target)") -and
     $healing.Contains("xp.grant(player, exp_type, experience);")) `
     -Name "p14.heal-damage.runtime.three-pool-and-xp-boundary"
+
+$stimObserver = $contract.productionContract.campHealingObserver
+$stimObserverPattern =
+    '(?s)healing\.healDamage\s*\(\s*player\s*,\s*target\s*,\s*attrib_mod\.getAttribute\(\)\s*,\s*attrib_mod\.getValue\(\)\s*,\s*notifyCampHealing\s*\)'
+Assert-Contract -Condition (
+    [int]$stimObserver.notificationsPerSuccessfulStimUse -eq 1 -and
+    [string]$stimObserver.notifyingPool -ceq
+        "first authored positive instant MOD_POOL entry (Health)" -and
+    -not [bool]$stimObserver.laterActionAndMindEntriesNotify -and
+    [bool]$stimObserver.clampedHealthDeltaZeroStillNotifies -and
+    -not [bool]$stimObserver.woundBuffAndNonDamageModifiersNotify -and
+    $consumable.Contains("attrib_mod.getValue() > 0") -and
+    $consumable.Contains("attrib_mod.getDuration() <= 0.0f") -and
+    $consumable.Contains(
+        "(int)attrib_mod.getDecay() == (int)MOD_POOL") -and
+    $consumable.Contains(
+        "boolean notifiedMedicinePool = false;") -and
+    [regex]::IsMatch(
+        $consumable,
+        '(?s)revivePack\s*\|\|\s*\(medicine\s*&&\s*!notifiedMedicinePool\)') -and
+    [regex]::Matches($consumable, $stimObserverPattern).Count -eq 1 -and
+    [regex]::IsMatch(
+        $consumable,
+        '(?s)if\s*\(medicine\s*&&\s*!revivePack\)\s*\{\s*notifiedMedicinePool\s*=\s*true;') -and
+    -not [regex]::IsMatch(
+        $consumable,
+        '(?s)if\s*\([^)]*delta\s*>\s*0[^)]*\)\s*\{\s*notifiedMedicinePool\s*=\s*true;')) `
+    -Name "p14.heal-damage.runtime.one-authored-stim-observer-event"
+
+$classicStimObserverPattern =
+    '(?s)healDamage\s*\(\s*user\s*,\s*target\s*,\s*attrib\s*,\s*toHeal\s*,\s*true\s*\)'
+Assert-Contract -Condition (
+    [int]$stimObserver.classicUseHealDamageItemNotificationsPerSuccessfulUse -eq 1 -and
+    [int]$stimObserver.classicUseHealDamageItemBattleFatigueCreditsPerPositiveHeal -eq 1 -and
+    (@($stimObserver.classicProducerScripts) -join ",") -ceq
+        "item.medicine.stimpack,item.medicine.stimpack_crafted,item.medicine.stimpack_other" -and
+    -not [string]::IsNullOrEmpty($classicHealDamageItem) -and
+    [regex]::Matches(
+        $classicHealDamageItem,
+        $classicStimObserverPattern).Count -eq 1 -and
+    [regex]::Matches(
+        $classicHealDamageItem,
+        'pvp\.bfCreditForHealing\s*\(\s*user\s*,\s*delta\s*\)').Count -eq 1 -and
+    [regex]::Matches(
+        $classicHealDamageItem,
+        '(?<!use)healDamage\s*\(').Count -eq 1 -and
+    $classicStimpack.Contains(
+        "healing.useHealDamageItem(player, self, attrib)") -and
+    $classicStimpack.Contains(
+        "healing.useHealDamageItem(player, self)") -and
+    $craftedStimpack.Contains(
+        "healing.useHealDamageItem(player, self, attrib)") -and
+    $craftedStimpack.Contains(
+        "healing.useHealDamageItem(player, self)") -and
+    $otherStimpack.Contains(
+        "healing.useHealDamageItem(player, target, self)")) `
+    -Name "p14.heal-damage.runtime.classic-stim-producer-observer-and-bf"
 
 Assert-Contract -Condition (
     $handler.Contains('"precu.healDamageCommandFixture"') -and

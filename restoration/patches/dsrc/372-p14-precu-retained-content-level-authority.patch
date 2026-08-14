@@ -1,0 +1,929 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+index 3dbf4b4dd..0814b0d3a 100755
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -786,6 +786,64 @@ public class skill extends script.base_script
+         }
+         return Math.min(score, PRECU_COMBAT_SKILL_SCORE_MAX);
+     }
++    public static boolean isPrecuSkillBoxInFamilies(String skillName, String[] prefixes) throws InterruptedException
++    {
++        if (skillName == null || skillName.length() == 0 || skillName.indexOf("_prereq") >= 0 || prefixes == null)
++        {
++            return false;
++        }
++        for (String prefix : prefixes)
++        {
++            if (prefix != null && prefix.length() > 0 && skillName.startsWith(prefix))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++    public static int getPrecuProfessionSkillScore(obj_id player, String[] professionPrefixes, String[] basePrefixes) throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !player.isLoaded() || !isPlayer(player))
++        {
++            return 0;
++        }
++        String[] learnedSkills = getSkillListingForPlayer(player);
++        if (learnedSkills == null || learnedSkills.length == 0)
++        {
++            return 0;
++        }
++        int score = 0;
++        for (String learnedSkill : learnedSkills)
++        {
++            if (!isPrecuSkillBoxInFamilies(learnedSkill, professionPrefixes))
++            {
++                continue;
++            }
++            int points = dataTableGetInt(TBL_SKILL, learnedSkill, "POINTS_REQUIRED");
++            if (points <= 0)
++            {
++                continue;
++            }
++            if (!isPrecuSkillBoxInFamilies(learnedSkill, basePrefixes))
++            {
++                points *= PRECU_ADVANCED_COMBAT_SKILL_WEIGHT;
++            }
++            score += points;
++        }
++        return Math.min(score, PRECU_COMBAT_SKILL_SCORE_MAX);
++    }
++    public static int getPrecuCraftingContentDifficulty(obj_id player) throws InterruptedException
++    {
++        String[] craftingPrefixes = { "crafting_" };
++        String[] basePrefixes = { "crafting_artisan_" };
++        return Math.max(1, getPrecuProfessionSkillScore(player, craftingPrefixes, basePrefixes));
++    }
++    public static int getPrecuEntertainerContentDifficulty(obj_id player) throws InterruptedException
++    {
++        String[] entertainerPrefixes = { "social_entertainer_", "social_dancer_", "social_musician_", "social_imagedesigner_" };
++        String[] basePrefixes = { "social_entertainer_" };
++        return Math.max(1, getPrecuProfessionSkillScore(player, entertainerPrefixes, basePrefixes));
++    }
+     public static int getPrecuEncounterDifficulty(obj_id player) throws InterruptedException
+     {
+         return Math.max(1, getPrecuCombatSkillScore(player));
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/c_newbie_secondchance.java b/sku.0/sys.server/compiled/game/script/conversation/c_newbie_secondchance.java
+index a31d55e00..8bf7399b7 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/c_newbie_secondchance.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/c_newbie_secondchance.java
+@@ -15,7 +15,7 @@ public class c_newbie_secondchance extends script.base_script
+     }
+     public boolean c_newbie_secondchance_condition_combatHigh(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if ((combat.getLevel(player)) > 9)
++        if ((script.library.skill.getPrecuEncounterDifficulty(player)) > 9)
+         {
+             return true;
+         }
+@@ -23,7 +23,7 @@ public class c_newbie_secondchance extends script.base_script
+     }
+     public boolean c_newbie_secondchance_condition_combatLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if ((combat.getLevel(player)) < 10)
++        if ((script.library.skill.getPrecuEncounterDifficulty(player)) < 10)
+         {
+             return true;
+         }
+@@ -164,7 +164,7 @@ public class c_newbie_secondchance extends script.base_script
+     public void c_newbie_secondchance_action_grantStart(obj_id player, obj_id npc) throws InterruptedException
+     {
+         groundquests.sendSignal(player, "tat_eisley_legacy_e2");
+-        if ((combat.getLevel(player)) > 9)
++        if ((script.library.skill.getPrecuEncounterDifficulty(player)) > 9)
+         {
+             int questId = questGetQuestId("quest/tatooine_eisley_gotoniko");
+             groundquests.grantQuest(questId, player, npc, true);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/camp_survivor.java b/sku.0/sys.server/compiled/game/script/conversation/camp_survivor.java
+index e80fb5065..5b5fe150e 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/camp_survivor.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/camp_survivor.java
+@@ -245,7 +245,7 @@ public class camp_survivor extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
+-        int combatLevel = getLevel(player);
++        int combatLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (combatLevel < 0 || combatLevel > 90)
+         {
+             CustomerServiceLog("outbreak_themepark", "camp_survivor.spawnEnemies() Player " + player + " has a level that is invalid. Player level is: " + combatLevel + ". Aborting the camp defense.");
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/collections_collector.java b/sku.0/sys.server/compiled/game/script/conversation/collections_collector.java
+index 0b5ef895a..3f306ee50 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/collections_collector.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/collections_collector.java
+@@ -70,7 +70,7 @@ public class collections_collector extends script.base_script
+     public boolean collections_collector_condition_collectorHintAurilia(obj_id player, obj_id npc) throws InterruptedException
+     {
+         String planetName = getCurrentSceneName();
+-        int playerLevel = getLevel(player);
++        int playerLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (planetName.equals("dathomir") || playerLevel < 70)
+         {
+             return false;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/corellia_coronet_vani_korr.java b/sku.0/sys.server/compiled/game/script/conversation/corellia_coronet_vani_korr.java
+index 704d6f4dd..54b21838f 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/corellia_coronet_vani_korr.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/corellia_coronet_vani_korr.java
+@@ -50,11 +50,11 @@ public class corellia_coronet_vani_korr extends script.base_script
+     }
+     public boolean corellia_coronet_vani_korr_condition_act1_completedAct1(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return groundquests.hasCompletedQuest(player, "corellia_coronet_meatlump_act1_end") && getLevel(player) < 55;
++        return groundquests.hasCompletedQuest(player, "corellia_coronet_meatlump_act1_end") && script.library.skill.getPrecuEncounterDifficulty(player) < 55;
+     }
+     public boolean corellia_coronet_vani_korr_condition_isLevelForMtp(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) >= 55;
++        return script.library.skill.getPrecuEncounterDifficulty(player) >= 55;
+     }
+     public boolean corellia_coronet_vani_korr_condition_returning_mtpHideout02(obj_id player, obj_id npc) throws InterruptedException
+     {
+@@ -62,7 +62,7 @@ public class corellia_coronet_vani_korr extends script.base_script
+     }
+     public boolean corellia_coronet_vani_korr_condition_readyForMtpHideout(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return groundquests.hasCompletedQuest(player, "corellia_coronet_meatlump_act1_end") && getLevel(player) >= 55;
++        return groundquests.hasCompletedQuest(player, "corellia_coronet_meatlump_act1_end") && script.library.skill.getPrecuEncounterDifficulty(player) >= 55;
+     }
+     public boolean corellia_coronet_vani_korr_condition_active_mtpHideout01(obj_id player, obj_id npc) throws InterruptedException
+     {
+@@ -147,7 +147,7 @@ public class corellia_coronet_vani_korr extends script.base_script
+     }
+     public void corellia_coronet_vani_korr_action_grant_mtpHideout01(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (getLevel(player) >= 82)
++        if (script.library.skill.getPrecuEncounterDifficulty(player) >= 82)
+         {
+             groundquests.grantQuest(player, "mtp_hideout_access_high_01");
+         }
+@@ -168,7 +168,7 @@ public class corellia_coronet_vani_korr extends script.base_script
+     }
+     public void corellia_coronet_vani_korr_action_grant_mtpHideout03(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (getLevel(player) >= 82)
++        if (script.library.skill.getPrecuEncounterDifficulty(player) >= 82)
+         {
+             groundquests.grantQuest(player, "mtp_hideout_access_high_03");
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/delivery_chardle.java b/sku.0/sys.server/compiled/game/script/conversation/delivery_chardle.java
+index 22ef6d18a..c8c251265 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/delivery_chardle.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/delivery_chardle.java
+@@ -44,7 +44,7 @@ public class delivery_chardle extends script.base_script
+     }
+     public boolean delivery_chardle_condition_tooLowLevel(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < 60;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < 60;
+     }
+     public void delivery_chardle_action_giveQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/delivery_hassel.java b/sku.0/sys.server/compiled/game/script/conversation/delivery_hassel.java
+index 1563ea00f..1330f3bac 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/delivery_hassel.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/delivery_hassel.java
+@@ -120,7 +120,7 @@ public class delivery_hassel extends script.base_script
+             CustomerServiceLog("outbreak_themepark", "conversation.delivery_hassel() NPC " + npc + " has an invalid creatureName. Aborting the camp defense functionality.");
+             return;
+         }
+-        int combatLevel = getLevel(player);
++        int combatLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (combatLevel < 0 || combatLevel > 90)
+         {
+             CustomerServiceLog("outbreak_themepark", "conversation.delivery_hassel() Player " + player + " has a level that is invalid. Player level is: " + combatLevel + ". Aborting the camp defense.");
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/delivery_pirrohn.java b/sku.0/sys.server/compiled/game/script/conversation/delivery_pirrohn.java
+index c3a2e6d1a..1d5912d39 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/delivery_pirrohn.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/delivery_pirrohn.java
+@@ -44,7 +44,7 @@ public class delivery_pirrohn extends script.base_script
+     }
+     public boolean delivery_pirrohn_condition_tooLowLevel(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < 20;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < 20;
+     }
+     public void delivery_pirrohn_action_giveQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/delivery_sickle.java b/sku.0/sys.server/compiled/game/script/conversation/delivery_sickle.java
+index 3c4134834..39643d764 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/delivery_sickle.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/delivery_sickle.java
+@@ -44,7 +44,7 @@ public class delivery_sickle extends script.base_script
+     }
+     public boolean delivery_sickle_condition_tooLowLevel(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < 40;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < 40;
+     }
+     public void delivery_sickle_action_giveQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/echo_base_launch.java b/sku.0/sys.server/compiled/game/script/conversation/echo_base_launch.java
+index 5e0245fff..88390c810 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/echo_base_launch.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/echo_base_launch.java
+@@ -80,7 +80,7 @@ public class echo_base_launch extends script.base_script
+     }
+     public boolean echo_base_launch_condition_isNotCorrectLevel(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < township.MIN_LEVEL;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < township.MIN_LEVEL;
+     }
+     public void echo_base_launch_action_launchRebel(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/imperial_defensive_supply_terminal.java b/sku.0/sys.server/compiled/game/script/conversation/imperial_defensive_supply_terminal.java
+index c61dab794..4c9b558cd 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/imperial_defensive_supply_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/imperial_defensive_supply_terminal.java
+@@ -15,7 +15,7 @@ public class imperial_defensive_supply_terminal extends script.base_script
+     }
+     public boolean imperial_defensive_supply_terminal_condition_isTrader(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = utils.getLevel(player);
++        int level = script.library.skill.getPrecuCraftingContentDifficulty(player);
+         if (utils.isProfession(player, utils.TRADER) && (level > 45))
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_kaythree.java b/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_kaythree.java
+index 7a4104185..a469297a3 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_kaythree.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_kaythree.java
+@@ -231,7 +231,7 @@ public class imperial_empire_day_kaythree extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("imperial_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_major_tantor.java b/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_major_tantor.java
+index ba2a41103..82e624762 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_major_tantor.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_major_tantor.java
+@@ -280,7 +280,7 @@ public class imperial_empire_day_major_tantor extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("imperial_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_mara_jade.java b/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_mara_jade.java
+index 258e7d0d5..923ef4b55 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_mara_jade.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_mara_jade.java
+@@ -29,7 +29,7 @@ public class imperial_empire_day_mara_jade extends script.base_script
+     }
+     public boolean imperial_empire_day_mara_jade_condition_isBelow60thLevel(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return (60 > getLevel(player));
++        return (60 > script.library.skill.getPrecuEncounterDifficulty(player));
+     }
+     public boolean imperial_empire_day_mara_jade_condition_hasNotCompletedMission1(obj_id player, obj_id npc) throws InterruptedException
+     {
+@@ -147,7 +147,7 @@ public class imperial_empire_day_mara_jade extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("rebel_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/imperial_general.java b/sku.0/sys.server/compiled/game/script/conversation/imperial_general.java
+index 10a120f6a..987736fdc 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/imperial_general.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/imperial_general.java
+@@ -195,7 +195,7 @@ public class imperial_general extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("rebel_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/imperial_offensive_supply_terminal.java b/sku.0/sys.server/compiled/game/script/conversation/imperial_offensive_supply_terminal.java
+index 44bc995b7..2ab313571 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/imperial_offensive_supply_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/imperial_offensive_supply_terminal.java
+@@ -15,7 +15,7 @@ public class imperial_offensive_supply_terminal extends script.base_script
+     }
+     public boolean imperial_offensive_supply_terminal_condition_isTrader(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = utils.getLevel(player);
++        int level = script.library.skill.getPrecuCraftingContentDifficulty(player);
+         if (utils.isProfession(player, utils.TRADER) && (level > 45))
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/itp_kaja_main.java b/sku.0/sys.server/compiled/game/script/conversation/itp_kaja_main.java
+index 61247b2b5..754091e39 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/itp_kaja_main.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/itp_kaja_main.java
+@@ -27,7 +27,7 @@ public class itp_kaja_main extends script.base_script
+     }
+     public boolean itp_kaja_main_condition_playerLevelCheck(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return (getLevel(player) < 80);
++        return (script.library.skill.getPrecuEncounterDifficulty(player) < 80);
+     }
+     public boolean itp_kaja_main_condition_itp_kaja_02_complete(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/jedi_robe_collection_giver.java b/sku.0/sys.server/compiled/game/script/conversation/jedi_robe_collection_giver.java
+index 7aaee8dc1..e9d1b860a 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/jedi_robe_collection_giver.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/jedi_robe_collection_giver.java
+@@ -19,7 +19,7 @@ public class jedi_robe_collection_giver extends script.base_script
+     {
+         if (utils.isProfession(player, utils.FORCE_SENSITIVE))
+         {
+-            if (getLevel(player) >= 85)
++            if (script.library.skill.getPrecuEncounterDifficulty(player) >= 85)
+             {
+                 if (!hasCompletedCollectionSlot(player, "jedi_robe_01_01"))
+                 {
+@@ -37,7 +37,7 @@ public class jedi_robe_collection_giver extends script.base_script
+     {
+         if (utils.isProfession(player, utils.FORCE_SENSITIVE))
+         {
+-            if (getLevel(player) < 85)
++            if (script.library.skill.getPrecuEncounterDifficulty(player) < 85)
+             {
+                 return true;
+             }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/mos_eisley_mayor.java b/sku.0/sys.server/compiled/game/script/conversation/mos_eisley_mayor.java
+index 97258846f..5e14762ee 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/mos_eisley_mayor.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/mos_eisley_mayor.java
+@@ -127,7 +127,7 @@ public class mos_eisley_mayor extends script.base_script
+     }
+     public boolean mos_eisley_mayor_condition_isLevel10(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = getLevel(player);
++        int level = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (level >= 10)
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_lieutenant_kaiya.java b/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_lieutenant_kaiya.java
+index fd60ff1cb..4009de2ac 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_lieutenant_kaiya.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_lieutenant_kaiya.java
+@@ -46,7 +46,7 @@ public class mtp_hideout_access_lieutenant_kaiya extends script.base_script
+     }
+     public void mtp_hideout_access_lieutenant_kaiya_action_grant_mtpHideout06(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (getLevel(player) >= 82)
++        if (script.library.skill.getPrecuEncounterDifficulty(player) >= 82)
+         {
+             groundquests.grantQuest(player, "mtp_hideout_access_high_06");
+         }
+@@ -62,7 +62,7 @@ public class mtp_hideout_access_lieutenant_kaiya extends script.base_script
+     }
+     public void mtp_hideout_access_lieutenant_kaiya_action_grant_mtpHideout07(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (getLevel(player) >= 82)
++        if (script.library.skill.getPrecuEncounterDifficulty(player) >= 82)
+         {
+             groundquests.grantQuest(player, "mtp_hideout_access_high_07");
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_01.java b/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_01.java
+index e709d1046..d426e4f43 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_01.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_01.java
+@@ -38,7 +38,7 @@ public class mtp_hideout_access_strilath_farles_01 extends script.base_script
+     }
+     public void mtp_hideout_access_strilath_farles_01_action_grant_mtpHideout04(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (getLevel(player) >= 82)
++        if (script.library.skill.getPrecuEncounterDifficulty(player) >= 82)
+         {
+             groundquests.grantQuest(player, "mtp_hideout_access_high_04");
+         }
+@@ -51,7 +51,7 @@ public class mtp_hideout_access_strilath_farles_01 extends script.base_script
+     }
+     public void mtp_hideout_access_strilath_farles_01_action_regrant_mtpHideout04(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (getLevel(player) >= 82)
++        if (script.library.skill.getPrecuEncounterDifficulty(player) >= 82)
+         {
+             if (!groundquests.isQuestActiveOrComplete(player, "mtp_hideout_access_high_04"))
+             {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_02.java b/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_02.java
+index 8f32cb710..25ec20745 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_02.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/mtp_hideout_access_strilath_farles_02.java
+@@ -52,7 +52,7 @@ public class mtp_hideout_access_strilath_farles_02 extends script.base_script
+     public void mtp_hideout_access_strilath_farles_02_action_regrant_mtpHideout04(obj_id player, obj_id npc) throws InterruptedException
+     {
+         groundquests.sendSignal(player, "mtp_hideout_access_04_pointer");
+-        if (getLevel(player) >= 82)
++        if (script.library.skill.getPrecuEncounterDifficulty(player) >= 82)
+         {
+             if (!groundquests.isQuestActiveOrComplete(player, "mtp_hideout_access_high_04"))
+             {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/mtp_ragtag_ames_missd.java b/sku.0/sys.server/compiled/game/script/conversation/mtp_ragtag_ames_missd.java
+index 2049de21d..fe7af9465 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/mtp_ragtag_ames_missd.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/mtp_ragtag_ames_missd.java
+@@ -48,7 +48,7 @@ public class mtp_ragtag_ames_missd extends script.base_script
+     {
+         npcEndConversation(player);
+         groundquests.sendSignal(player, "ragTagBeatUp");
+-        int mobLevel = getLevel(player);
++        int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         setLevel(npc, mobLevel + 10);
+         setInvulnerable(npc, false);
+         startCombat(npc, player);
+@@ -59,7 +59,7 @@ public class mtp_ragtag_ames_missd extends script.base_script
+         groundquests.sendSignal(player, "fightAnita");
+         dictionary webster = new dictionary();
+         webster.put("player", player);
+-        webster.put("playerLevel", getLevel(player) - 10);
++        webster.put("playerLevel", script.library.skill.getPrecuEncounterDifficulty(player) - 10);
+         messageTo(npc, "waveEventControllerNPCStart", webster, 1, false);
+         return;
+     }
+@@ -68,7 +68,7 @@ public class mtp_ragtag_ames_missd extends script.base_script
+         groundquests.sendSignal(player, "fightBox");
+         dictionary webster = new dictionary();
+         webster.put("player", player);
+-        webster.put("playerLevel", getLevel(player) - 5);
++        webster.put("playerLevel", script.library.skill.getPrecuEncounterDifficulty(player) - 5);
+         messageTo(npc, "waveEventControllerNPCStart", webster, 1, false);
+         return;
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/mtp_trapped_meatlump_target.java b/sku.0/sys.server/compiled/game/script/conversation/mtp_trapped_meatlump_target.java
+index 85ecd3202..704a96dc9 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/mtp_trapped_meatlump_target.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/mtp_trapped_meatlump_target.java
+@@ -60,7 +60,7 @@ public class mtp_trapped_meatlump_target extends script.base_script
+                 messageTo(building, "triggerFired", dict, 0.0f, false);
+                 dictionary webster = new dictionary();
+                 webster.put("player", player);
+-                webster.put("playerCombatLevel", getLevel(player));
++                webster.put("playerCombatLevel", script.library.skill.getPrecuEncounterDifficulty(player));
+                 messageTo(building, "setMtpInstanceCombatLevel", webster, 1, false);
+             }
+         }
+warning: in the working copy of 'sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_kaythree.java', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/naboo_24_azure_cabal_loruna_01.java b/sku.0/sys.server/compiled/game/script/conversation/naboo_24_azure_cabal_loruna_01.java
+index 9360556e2..e685872eb 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/naboo_24_azure_cabal_loruna_01.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/naboo_24_azure_cabal_loruna_01.java
+@@ -15,7 +15,7 @@ public class naboo_24_azure_cabal_loruna_01 extends script.base_script
+     }
+     public boolean naboo_24_azure_cabal_loruna_01_condition_canTakeQuestAC_01(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if ((combat.getLevel(player)) < 80)
++        if ((script.library.skill.getPrecuEncounterDifficulty(player)) < 80)
+         {
+             return false;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/novicecollector.java b/sku.0/sys.server/compiled/game/script/conversation/novicecollector.java
+index 3dd316d98..1ce465eb8 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/novicecollector.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/novicecollector.java
+@@ -202,7 +202,7 @@ public class novicecollector extends script.base_script
+     public boolean novicecollector_condition_collectorHintAurilia(obj_id player, obj_id npc) throws InterruptedException
+     {
+         String planetName = getCurrentSceneName();
+-        int playerLevel = getLevel(player);
++        int playerLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         sendSystemMessageTestingOnly(player, planetName);
+         if (planetName.equals("dathomir") || playerLevel < 70)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_boba_fett.java b/sku.0/sys.server/compiled/game/script/conversation/npe_boba_fett.java
+index 61d4564f8..b9a9ec4a8 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_boba_fett.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_boba_fett.java
+@@ -15,7 +15,7 @@ public class npe_boba_fett extends script.base_script
+     }
+     public boolean npe_boba_fett_condition_isAtLeastLevel5(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = getLevel(player);
++        int level = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (level >= 5)
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_station_han_solo2.java b/sku.0/sys.server/compiled/game/script/conversation/npe_station_han_solo2.java
+index 60c9aae99..228211969 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_station_han_solo2.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_station_han_solo2.java
+@@ -130,7 +130,7 @@ public class npe_station_han_solo2 extends script.base_script
+     }
+     public boolean npe_station_han_solo2_condition_isAtLeastLevel5(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = getLevel(player);
++        int level = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (npe_station_han_solo2_condition_playerisEntertainer(player, npc) || npe_station_han_solo2_condition_playerisTrader(player, npc))
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_erlem_math_delta.java b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_erlem_math_delta.java
+index 3f20f8423..56b415666 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_erlem_math_delta.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_erlem_math_delta.java
+@@ -36,11 +36,11 @@ public class outbreak_defense_erlem_math_delta extends script.base_script
+     }
+     public boolean outbreak_defense_erlem_math_delta_condition_levelTooHigh(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) >= 80;
++        return script.library.skill.getPrecuEncounterDifficulty(player) >= 80;
+     }
+     public boolean outbreak_defense_erlem_math_delta_condition_levelTooLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < 60;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < 60;
+     }
+     public boolean outbreak_defense_erlem_math_delta_condition_noAntiVirus(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_kyraa_naa.java b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_kyraa_naa.java
+index 0327a49b0..693350e44 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_kyraa_naa.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_kyraa_naa.java
+@@ -36,11 +36,11 @@ public class outbreak_defense_kyraa_naa extends script.base_script
+     }
+     public boolean outbreak_defense_kyraa_naa_condition_levelTooHigh(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) >= 60;
++        return script.library.skill.getPrecuEncounterDifficulty(player) >= 60;
+     }
+     public boolean outbreak_defense_kyraa_naa_condition_levelTooLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < 40;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < 40;
+     }
+     public boolean outbreak_defense_kyraa_naa_condition_noAntiVirus(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_mika_horn_alpha.java b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_mika_horn_alpha.java
+index 65beed8ee..e5b60e350 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_mika_horn_alpha.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_mika_horn_alpha.java
+@@ -36,7 +36,7 @@ public class outbreak_defense_mika_horn_alpha extends script.base_script
+     }
+     public boolean outbreak_defense_mika_horn_alpha_condition_levelTooHigh(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) >= 15;
++        return script.library.skill.getPrecuEncounterDifficulty(player) >= 15;
+     }
+     public boolean outbreak_defense_mika_horn_alpha_condition_hasDefenseQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_stephon_sprocketfire_beta.java b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_stephon_sprocketfire_beta.java
+index b31453ecc..f74b3511c 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_stephon_sprocketfire_beta.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_stephon_sprocketfire_beta.java
+@@ -36,11 +36,11 @@ public class outbreak_defense_stephon_sprocketfire_beta extends script.base_scri
+     }
+     public boolean outbreak_defense_stephon_sprocketfire_beta_condition_levelTooHigh(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) >= 40;
++        return script.library.skill.getPrecuEncounterDifficulty(player) >= 40;
+     }
+     public boolean outbreak_defense_stephon_sprocketfire_beta_condition_levelTooLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < 15;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < 15;
+     }
+     public boolean outbreak_defense_stephon_sprocketfire_beta_condition_noAntiVirus(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_zsu_val_epsilon.java b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_zsu_val_epsilon.java
+index f3c9f9d21..21b47d7fe 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_zsu_val_epsilon.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/outbreak_defense_zsu_val_epsilon.java
+@@ -59,7 +59,7 @@ public class outbreak_defense_zsu_val_epsilon extends script.base_script
+     }
+     public boolean outbreak_defense_zsu_val_epsilon_condition_levelTooLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return getLevel(player) < 80;
++        return script.library.skill.getPrecuEncounterDifficulty(player) < 80;
+     }
+     public boolean outbreak_defense_zsu_val_epsilon_condition_noAntiVirus(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/prof_officer_21.java b/sku.0/sys.server/compiled/game/script/conversation/prof_officer_21.java
+index c9d29534d..5c5567e8c 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/prof_officer_21.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/prof_officer_21.java
+@@ -42,7 +42,7 @@ public class prof_officer_21 extends script.base_script
+     }
+     public boolean prof_officer_21_condition_notOnQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (!utils.isProfession(player, utils.OFFICER) || getLevel(player) < 20)
++        if (!utils.isProfession(player, utils.OFFICER) || script.library.skill.getPrecuEncounterDifficulty(player) < 20)
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/rebel_defensive_supply_terminal.java b/sku.0/sys.server/compiled/game/script/conversation/rebel_defensive_supply_terminal.java
+index fb6bb3d07..90357f3d2 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/rebel_defensive_supply_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/rebel_defensive_supply_terminal.java
+@@ -15,7 +15,7 @@ public class rebel_defensive_supply_terminal extends script.base_script
+     }
+     public boolean rebel_defensive_supply_terminal_condition_isTrader(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = utils.getLevel(player);
++        int level = script.library.skill.getPrecuCraftingContentDifficulty(player);
+         if (utils.isProfession(player, utils.TRADER) && (level > 45))
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/rebel_general.java b/sku.0/sys.server/compiled/game/script/conversation/rebel_general.java
+index aa823e2b1..39f9b9f67 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/rebel_general.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/rebel_general.java
+@@ -207,7 +207,7 @@ public class rebel_general extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("rebel_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/rebel_offensive_supply_terminal.java b/sku.0/sys.server/compiled/game/script/conversation/rebel_offensive_supply_terminal.java
+index 85a160e0c..b17501c54 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/rebel_offensive_supply_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/rebel_offensive_supply_terminal.java
+@@ -15,7 +15,7 @@ public class rebel_offensive_supply_terminal extends script.base_script
+     }
+     public boolean rebel_offensive_supply_terminal_condition_isTrader(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = utils.getLevel(player);
++        int level = script.library.skill.getPrecuCraftingContentDifficulty(player);
+         if (utils.isProfession(player, utils.TRADER) && (level > 45))
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_captain_derlin.java b/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_captain_derlin.java
+index b89353927..b2490a2f1 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_captain_derlin.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_captain_derlin.java
+@@ -284,7 +284,7 @@ public class rebel_remembrance_day_captain_derlin extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("rebel_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge.java b/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge.java
+index 38df31633..d20b9f6cf 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge.java
+@@ -31,7 +31,7 @@ public class rebel_remembrance_day_wedge extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("rebel_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge_antilles.java b/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge_antilles.java
+index 5f75c02d1..bdbd8d761 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge_antilles.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/rebel_remembrance_day_wedge_antilles.java
+@@ -29,7 +29,7 @@ public class rebel_remembrance_day_wedge_antilles extends script.base_script
+     }
+     public boolean rebel_remembrance_day_wedge_antilles_condition_isBelow60thLevel(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return (60 > getLevel(player));
++        return (60 > script.library.skill.getPrecuEncounterDifficulty(player));
+     }
+     public boolean rebel_remembrance_day_wedge_antilles_condition_hasAMisionActive(obj_id player, obj_id npc) throws InterruptedException
+     {
+@@ -159,7 +159,7 @@ public class rebel_remembrance_day_wedge_antilles extends script.base_script
+         for (int i = 0; i < 3; i++)
+         {
+             location guardLocation = groundquests.getRandom2DLocationAroundLocation(npc, 1, 1, 5, 12);
+-            int mobLevel = getLevel(player);
++            int mobLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+             obj_id guard = create.object("rebel_emperorsday_ceremony_sentry", guardLocation, mobLevel);
+             attachScript(guard, "event.emp_day.factional_guard_self_destruct");
+             startCombat(guard, player);
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/rtp_c3po_main.java b/sku.0/sys.server/compiled/game/script/conversation/rtp_c3po_main.java
+index 7c205616e..87d9b3c5d 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/rtp_c3po_main.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/rtp_c3po_main.java
+@@ -31,7 +31,7 @@ public class rtp_c3po_main extends script.base_script
+     }
+     public boolean rtp_c3po_main_condition_playerLevelCheck(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        return (getLevel(player) < 80);
++        return (script.library.skill.getPrecuEncounterDifficulty(player) < 80);
+     }
+     public boolean rtp_c3po_main_condition_questComplete(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_collectors_business_q4p3.java b/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_collectors_business_q4p3.java
+index 9bd901311..8b10be959 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_collectors_business_q4p3.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_collectors_business_q4p3.java
+@@ -18,7 +18,7 @@ public class som_kenobi_collectors_business_q4p3 extends script.base_script
+     }
+     public boolean som_kenobi_collectors_business_q4p3_condition_levelTooLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int playerLevel = getLevel(player);
++        int playerLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (playerLevel > 60)
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_menth_paul.java b/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_menth_paul.java
+index 2c6f4f036..328d01280 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_menth_paul.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_menth_paul.java
+@@ -57,7 +57,7 @@ public class som_kenobi_menth_paul extends script.base_script
+     }
+     public boolean som_kenobi_menth_paul_condition_levelTooLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int playerLevel = getLevel(player);
++        int playerLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (playerLevel > 60)
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_moral_exec.java b/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_moral_exec.java
+index 6dcd6259d..d756f7ea2 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_moral_exec.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/som_kenobi_moral_exec.java
+@@ -30,7 +30,7 @@ public class som_kenobi_moral_exec extends script.base_script
+     }
+     public boolean som_kenobi_moral_exec_condition_levelTooLow(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int playerLevel = getLevel(player);
++        int playerLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (playerLevel > 60)
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/som_pei_yi.java b/sku.0/sys.server/compiled/game/script/conversation/som_pei_yi.java
+index 7275642cd..639651554 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/som_pei_yi.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/som_pei_yi.java
+@@ -17,7 +17,7 @@ public class som_pei_yi extends script.base_script
+     }
+     public boolean som_pei_yi_condition_isEntertainer(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        int level = getLevel(player);
++        int level = script.library.skill.getPrecuEntertainerContentDifficulty(player);
+         return (utils.isProfession(player, utils.ENTERTAINER) && level >= 46);
+     }
+     public boolean som_pei_yi_condition_isDancer(obj_id player, obj_id npc) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/trainer_beast_master.java b/sku.0/sys.server/compiled/game/script/conversation/trainer_beast_master.java
+index 38c1c8368..c7334acfb 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/trainer_beast_master.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/trainer_beast_master.java
+@@ -20,7 +20,7 @@ public class trainer_beast_master extends script.base_script
+         {
+             return false;
+         }
+-        int playerLevel = getLevel(player);
++        int playerLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (playerLevel > 72 && !bestProvoke.equals("bm_provoke_5"))
+         {
+             return true;
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/vana_sage.java b/sku.0/sys.server/compiled/game/script/conversation/vana_sage.java
+index c8149ac08..541d7e46c 100755
+--- a/sku.0/sys.server/compiled/game/script/conversation/vana_sage.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/vana_sage.java
+@@ -34,7 +34,7 @@ public class vana_sage extends script.base_script
+     public boolean vana_sage_condition_playerIsHighLvl(obj_id player, obj_id npc) throws InterruptedException
+     {
+         faceTo(npc, player);
+-        return getLevel(player) >= 56;
++        return script.library.skill.getPrecuEncounterDifficulty(player) >= 56;
+     }
+     public boolean vana_sage_condition_hasMetChoster(obj_id player, obj_id npc) throws InterruptedException
+     {
+warning: in the working copy of 'sku.0/sys.server/compiled/game/script/conversation/imperial_empire_day_kaythree.java', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_guard_trigger_volume.java b/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_guard_trigger_volume.java
+index 8898cb914..63be9a2be 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_guard_trigger_volume.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_guard_trigger_volume.java
+@@ -43,7 +43,7 @@ public class meatlump_guard_trigger_volume extends script.base_script
+         {
+             stealth.checkForAndMakeVisibleNoRecourse(self);
+         }
+-        int mobLevel = getLevel(whoTriggeredMe);
++        int mobLevel = script.library.skill.getPrecuEncounterDifficulty(whoTriggeredMe);
+         location curLoc = getLocation(self);
+         obj_id mob = create.object(MEATLUMP_MOB, curLoc, mobLevel);
+         setObjVar(mob, "player", whoTriggeredMe);
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_spy_trigger_volume.java b/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_spy_trigger_volume.java
+index b58772cc9..dd07ff4de 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_spy_trigger_volume.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/meatlump/meatlump_spy_trigger_volume.java
+@@ -60,7 +60,7 @@ public class meatlump_spy_trigger_volume extends script.base_script
+         blog("Sending Signal!");
+         groundquests.sendSignal(whoTriggeredMe, QUEST_SIGNAL);
+         blog("Signal Sent!");
+-        int mobLevel = getLevel(whoTriggeredMe);
++        int mobLevel = script.library.skill.getPrecuEncounterDifficulty(whoTriggeredMe);
+         location curLoc = getLocation(self);
+         blog("Creating Mob");
+         obj_id mob = create.object(ENEMY_MOB, curLoc, mobLevel);
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/outbreak/camp_defense.java b/sku.0/sys.server/compiled/game/script/theme_park/outbreak/camp_defense.java
+index 2c73fb25c..13c102d62 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/outbreak/camp_defense.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/outbreak/camp_defense.java
+@@ -80,7 +80,7 @@ public class camp_defense extends script.base_script
+             return SCRIPT_CONTINUE;
+         }
+         CustomerServiceLog("outbreak_themepark", "camp_defense.OnTriggerVolumeEntered() Player: " + getPlayerName(whoTriggeredMe) + " (" + whoTriggeredMe + ") has triggered the volume and is ready to defend camp.");
+-        int combatLevel = getLevel(whoTriggeredMe);
++        int combatLevel = script.library.skill.getPrecuEncounterDifficulty(whoTriggeredMe);
+         if (combatLevel < 0 || combatLevel > 90)
+         {
+             CustomerServiceLog("outbreak_themepark", "camp_defense.OnTriggerVolumeEntered() Player " + whoTriggeredMe + " has a level that is invalid. Player level is: " + combatLevel + ". Aborting the camp defense.");
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/outbreak_prolog/dead_npc_script.java b/sku.0/sys.server/compiled/game/script/theme_park/outbreak_prolog/dead_npc_script.java
+index fd3367539..c79af3d71 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/outbreak_prolog/dead_npc_script.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/outbreak_prolog/dead_npc_script.java
+@@ -159,7 +159,7 @@ public class dead_npc_script extends script.base_script
+             spawnCount = getIntObjVar(self, "spawnCount");
+             return false;
+         }
+-        int combatLevel = getLevel(player);
++        int combatLevel = script.library.skill.getPrecuEncounterDifficulty(player);
+         if (combatLevel < 0 || combatLevel > 90)
+         {
+             CustomerServiceLog("outbreak_themepark", "dead_npc_script.spawnEnemy()  Player " + player + " has a level that is invalid. Player level is: " + combatLevel + ". Aborting the camp defense.");
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_01_convo.java b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_01_convo.java
+index ef8c28be5..5473262c6 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_01_convo.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_01_convo.java
+@@ -117,7 +117,7 @@ public class npc_mission_01_convo extends script.systems.missions.base.mission_d
+                 npcEndConversation(player);
+                 return SCRIPT_CONTINUE;
+             }
+-            int intPlayerDifficulty = getLevel(player);
++            int intPlayerDifficulty = script.library.skill.getPrecuEncounterDifficulty(player);
+             if (intPlayerDifficulty <= getIntObjVar(self, "intMinDifficulty"))
+             {
+                 string_id strResponse = new string_id("mission/mission_generic", "npc_job_request_wrong_difficulty");
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_02_convo.java b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_02_convo.java
+index 0a112df48..74ba5460a 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_02_convo.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_02_convo.java
+@@ -117,7 +117,7 @@ public class npc_mission_02_convo extends script.systems.missions.base.mission_d
+                 npcEndConversation(player);
+                 return SCRIPT_CONTINUE;
+             }
+-            int intPlayerDifficulty = getLevel(player);
++            int intPlayerDifficulty = script.library.skill.getPrecuEncounterDifficulty(player);
+             if (intPlayerDifficulty <= getIntObjVar(self, "intMinDifficulty"))
+             {
+                 string_id strResponse = new string_id("mission/mission_generic", "npc_job_request_wrong_difficulty");
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_03_convo.java b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_03_convo.java
+index 4802487d3..d7d97e07d 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_03_convo.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_03_convo.java
+@@ -125,7 +125,7 @@ public class npc_mission_03_convo extends script.systems.missions.base.mission_d
+                 npcEndConversation(player);
+                 return SCRIPT_CONTINUE;
+             }
+-            int intPlayerDifficulty = getLevel(player);
++            int intPlayerDifficulty = script.library.skill.getPrecuEncounterDifficulty(player);
+             if (intPlayerDifficulty <= getIntObjVar(self, "intMinDifficulty"))
+             {
+                 string_id strResponse = new string_id("mission/mission_generic", "npc_job_request_wrong_difficulty");
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_04_convo.java b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_04_convo.java
+index 84b1ce74b..84e291fb4 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_04_convo.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_04_convo.java
+@@ -124,7 +124,7 @@ public class npc_mission_04_convo extends script.systems.missions.base.mission_d
+                 npcEndConversation(player);
+                 return SCRIPT_CONTINUE;
+             }
+-            int intPlayerDifficulty = getLevel(player);
++            int intPlayerDifficulty = script.library.skill.getPrecuEncounterDifficulty(player);
+             if (intPlayerDifficulty <= getIntObjVar(self, "intMinDifficulty"))
+             {
+                 string_id strResponse = new string_id("mission/mission_generic", "npc_job_request_wrong_difficulty");
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_05_convo.java b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_05_convo.java
+index 8647ec99a..21b8d9fda 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_05_convo.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_05_convo.java
+@@ -124,7 +124,7 @@ public class npc_mission_05_convo extends script.systems.missions.base.mission_d
+                 npcEndConversation(player);
+                 return SCRIPT_CONTINUE;
+             }
+-            int intPlayerDifficulty = getLevel(player);
++            int intPlayerDifficulty = script.library.skill.getPrecuEncounterDifficulty(player);
+             if (intPlayerDifficulty <= getIntObjVar(self, "intMinDifficulty"))
+             {
+                 string_id strResponse = new string_id("mission/mission_generic", "npc_job_request_wrong_difficulty");
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_convo.java b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_convo.java
+index 46dc7b177..f541b7151 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_convo.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_convo.java
+@@ -129,7 +129,7 @@ public class npc_mission_convo extends script.systems.missions.base.mission_dyna
+                 npcEndConversation(player);
+                 return SCRIPT_CONTINUE;
+             }
+-            int intPlayerDifficulty = getLevel(player);
++            int intPlayerDifficulty = script.library.skill.getPrecuEncounterDifficulty(player);
+             if (intPlayerDifficulty <= getIntObjVar(self, "intMinDifficulty"))
+             {
+                 string_id strResponse = new string_id("mission/mission_generic", "npc_job_request_wrong_difficulty");
+
+

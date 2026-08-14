@@ -8,6 +8,7 @@
     "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
     "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
     "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_heal_mind_command_fixture.java"
   },
   "eraEvidence": {
@@ -56,7 +57,17 @@
     "healerWoundPools": ["Mind", "Focus", "Willpower"],
     "battleFatiguePercent": 5,
     "effect": "clienteffect/healing_healenhance.cef",
-    "animation": "heal_other"
+    "animation": "heal_other",
+    "campHealingObserver": {
+      "notificationsPerSuccessfulUse": 1,
+      "notifyingPool": "Mind",
+      "transitiveFourArgumentSourceAwareDefault": true,
+      "redundantFiveArgumentCallRequired": false,
+      "battleFatigueCreditsPerPositiveHeal": 1,
+      "clampedAppliedDeltaZeroStillCountsAsAuthoredEvent": true,
+      "rejectedOrNoDamageNotifications": 0,
+      "payload": "target receives healer object id plus native authoritative applied Mind delta"
+    }
   },
   "liveFixture": {
     "playerOid": 44003778,
@@ -77,26 +88,48 @@
     "cleanupPolicy": "destroy the fixture pet, source, and durable PCD; restore Mind maximum/current, Mind/Focus/Willpower wounds, battle fatigue, skill points, fixture-granted skills, and prior pet-master attachment; then prove repeated cleanup idempotence"
   },
   "buildEvidence": {
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
     "result": "passed",
     "targets": ["ant compile_java", "ant compile_tab"],
     "patch": "restoration/patches/dsrc/242-p14-heal-mind-command.patch",
     "patchBytes": 35342,
     "patchSha256": "dad920585cf2e557de4c4c6c4db028a129723f0d6d828cbad8204ec0fb168f22",
-    "runtimeRunnerSha256": "03f85ea7f3028b96efd6eb73c052be63ac0ae30f8f097745cea41960fd0c80a4",
+    "runtimeRunnerSha256": "604c69be5f6cb2a4e5dd87b6e9540f9b462d0936ff8144d196ea460385a00c60",
     "sourceSha256": {
-      "command_table.tab": "db3d428a6033ad07d6356320bd4219efc4cf62e847480f86bb60752c9fbcac43",
-      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
-      "base_player.java": "811b694e136f6b6754e70b621ee372c27fb3f1e3a4018b509c4b289b85829fdf",
-      "precu_heal_mind_command_fixture.java": "8a5e931dd9a72f3fe074fc99cad347fde69385b2e937cea0711f2e152130dcc9"
+      "command_table.tab": "2349ca3f4db04568e4d57d34d5512a440fe74f6a5072f14f485a980ba95fc7de",
+      "skills.tab": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+      "base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "healing.java": "c2a5c827e1755e61d4ff22b209d0445e01cec05a0ea44e34eda224849b8a6f66",
+      "precu_heal_mind_command_fixture.java": "3e6f76f04bd65ab36147e4ff51e8f334cf8e851718c91a13faae11faaed669fe"
     },
     "compiledSha256": {
-      "base_player.class": "af45ea64e9d478921db8a0bccd075158e8b1527c377252c02c758d4be8f7aefd",
+      "base_player.class": "ddc9b56f176b6505f9b65d96b32dcafb541fd099fa0c046d54bfef6075f4af23",
       "precu_heal_mind_command_fixture.class": "d57983b3e8db86e21418de2016ecbb6d83761104bbe69fd0ae545035d897f663",
-      "command_table.iff": "fbc14ae84e4cc7be1a1f1542ab63fbb4f9a6f0f308e4b44bd5a9531c06f16cbc"
+      "command_table.iff": "b025729c5f2fd7d817e6619c3d8ac8079e0dd049365a94acdf320f61702dc342"
     },
     "cleanMaterializationPatches": 248,
     "cleanMaterializationAcceptanceFiles": 716,
-    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "canonicalDeployment": {
+      "parentCommit": "27e20c54313b66a2c163bcf6dc3f9258f555f145",
+      "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+      "durationSeconds": 708.8,
+      "javaSourcesCompiled": 5717,
+      "javaClassesEmitted": 5751,
+      "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+      "serverBinaryBytes": 22587656,
+      "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+      "serverGameArchiveSha256": "9981b9fa6556c67cfb3b848968472e660223f2389d77504c79f95fa8d31c390e",
+      "serverScriptArchiveSha256": "7c1d6836f8c765406fb5d35cc94a5c5146d07623284d9a07089d01eca0493808",
+      "serverNetworkMessagesArchiveSha256": "781767c89b1e6e641566c367dedffe77b3d2d3e79e3ae51eb950b9c1e8d1968b",
+      "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+      "containerHealth": "healthy",
+      "clusterReadyForPlayers": true,
+      "liveGameProcessesMappedBuiltBinary": "15/15",
+      "liveBinaryInode": 12141822,
+      "liveBinaryMapEntries": 30,
+      "postStartLogAudit": "321 lines; one exact player-ready marker; all prohibited fatal/error/ABI/JNI/Oracle/crash patterns zero"
+    }
   },
   "liveEvidence": {
     "result": "passed",

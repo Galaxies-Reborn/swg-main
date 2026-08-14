@@ -1,0 +1,136 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -3882,6 +3882,20 @@ public class base_player extends script.base_script
+                 PRECU_HEAL_MIND_FIXTURE_ROOT + ".outcome", outcome);
+         }
+     }
++    public int handlePrecuCenterOfBeingExpired(obj_id self,
++        dictionary params) throws InterruptedException
++    {
++        if (!isIdValid(self) || !exists(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        sendSystemMessage(self,
++            new string_id("combat_effects", "center_stop"));
++        showFlyText(self,
++            new string_id("combat_effects", "center_stop_fly"),
++            1.0f, colors.RED);
++        return SCRIPT_CONTINUE;
++    }
+     public int berserk1(obj_id self, obj_id target, String params,
+         float defaultTime) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -9672,11 +9672,89 @@ public class combat_actions extends script.systems.combat.combat_base
+         return SCRIPT_CONTINUE;
+     }
+     public int centerOfBeing(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+-        if (!combatStandardAction("centerOfBeing", self, target, params, "", ""))
++        if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
++            isDead(self) || isIncapacitated(self) ||
++            !hasSkill(self, "combat_brawler_novice"))
+         {
+-            return SCRIPT_OVERRIDE;
++            return SCRIPT_CONTINUE;
+         }
++        if (buff.hasBuff(self, "centerofbeing"))
++        {
++            sendSystemMessage(self,
++                new string_id("combat_effects", "already_centered"));
++            return SCRIPT_CONTINUE;
++        }
++
++        obj_id weapon = getCurrentWeapon(self);
++        if (!isIdValid(weapon))
++        {
++            return SCRIPT_CONTINUE;
++        }
++
++        String durationModifier = null;
++        String efficacyModifier = null;
++        switch (getWeaponType(weapon))
++        {
++            case WEAPON_TYPE_UNARMED:
++                durationModifier = "center_of_being_duration_unarmed";
++                efficacyModifier = "unarmed_center_of_being_efficacy";
++                break;
++            case WEAPON_TYPE_1HAND_MELEE:
++                durationModifier = "center_of_being_duration_onehandmelee";
++                efficacyModifier = "onehandmelee_center_of_being_efficacy";
++                break;
++            case WEAPON_TYPE_2HAND_MELEE:
++                durationModifier = "center_of_being_duration_twohandmelee";
++                efficacyModifier = "twohandmelee_center_of_being_efficacy";
++                break;
++            case WEAPON_TYPE_POLEARM:
++                durationModifier = "center_of_being_duration_polearm";
++                efficacyModifier = "polearm_center_of_being_efficacy";
++                break;
++            default:
++                return SCRIPT_CONTINUE;
++        }
++
++        int duration = getEnhancedSkillStatisticModifierUncapped(
++            self, durationModifier);
++        int efficacy = getEnhancedSkillStatisticModifierUncapped(
++            self, efficacyModifier);
++        combat_data actionData = combat_engine.getCombatData("centerOfBeing");
++        weapon_data weaponData = getWeaponData(weapon);
++        if (duration <= 0 || efficacy <= 0 || actionData == null ||
++            weaponData == null || !isIdValid(weaponData.id))
++        {
++            return SCRIPT_CONTINUE;
++        }
++
++        int[] actionCost = combat.getActionCost(self, weaponData, actionData);
++        boolean usePrecuHam = actionData.precuHamCostModel > 0;
++        if (!combat.canDrainCombatActionAttributes(
++            self, actionCost, usePrecuHam))
++        {
++            showFlyTextPrivate(self, self,
++                new string_id("combat_effects", "action_too_tired"),
++                1.5f, colors.GOLDENROD);
++            return SCRIPT_CONTINUE;
++        }
++        if (!buff.applyBuff(
++            self, self, "centerofbeing", duration, efficacy))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        if (!combat.drainCombatActionAttributes(
++            self, actionCost, usePrecuHam))
++        {
++            buff.removeBuff(self, "centerofbeing");
++            return SCRIPT_CONTINUE;
++        }
++
++        sendSystemMessage(self,
++            new string_id("combat_effects", "center_start"));
++        showFlyText(self,
++            new string_id("combat_effects", "center_start_fly"),
++            1.0f, colors.GREEN);
+         return SCRIPT_CONTINUE;
+     }
+     public int forceFocus(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+diff --git a/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab b/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
+@@ -1990,3 +1990,4 @@ event_halloween_costume_skeleton1	shapechange	halloween_shapechange		1	buffs.c
+ event_halloween_costume_skeleton1	shapechange	halloween_shapechange		1	buffs.costume	1800	movement	0	event_halloween_costume	51		0		0		0	STATE_NONE	none			1	0		0	1	1	1	1	1	0	1	1	1
+ costume_hutt_female	shapechange	halloween_shapechange		1	buffs.costume	1800	movement	0	event_halloween_costume	3		0		0		0	STATE_NONE	none			1	0		0	1	1	1	1	1	0	1	1	1
+ gcw_rocket_turret	gcw_mini_turret			1		1	gcw_mini_turret	1		0		0		0		0	STATE_NONE	none			0	0		1	1	1	0	1	1	0	1	1	1
++centerofbeing	centerOfBeing			1	command.centerOfBeing	0	private_center_of_being	0		0		0		0		0	STATE_NONE	handlePrecuCenterOfBeingExpired			1	0		0	1	1	0	1	0	0	1	1	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab b/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab
+@@ -700,4 +700,5 @@ expertise_undiminished_critical_melee	skill	expertise_undiminished_critical_m
+ expertise_action_weapon_melee	skill	expertise_action_weapon_melee	
+ expertise_undiminished_critical_melee	skill	expertise_undiminished_critical_melee	
+ en_action_regen	commandGrant	en_action_regen	
+ expertise_resource_quality_increase	skill	expertise_resource_quality_increase	
++private_center_of_being	skill	private_center_of_being	

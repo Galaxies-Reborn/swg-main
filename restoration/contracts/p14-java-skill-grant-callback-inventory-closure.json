@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-skill-lifecycle-callback-inventory-closure",
+  "status": "ready",
+  "scope": "Close every exact Java public-int OnSkill* event callback so Publish 14.1 skill-box and skill-modifier changes cannot wake inherited NGE progression, reward, profession, Beast Master, level, or template authority while retained Force-sensitive, Jedi trial, Force Rank, Creature Handler/familiar cosmetic, Tansarii, badge, JTL, novice-quest, Squad Leader, HAM-pool, defensive-mod presentation, movement-immunity, Aim, Tumble, and command behavior continues to work.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 skill awards may legitimately update commands, badges, Jedi Force Rank titles, Creature Handler state, JTL pilot setup, and tutorial presentation.",
+      "NGE skill families, passive class runtimes, Spy runtime, and Beast Master player state must be rejected or cleaned before any normal skill-grant effect executes.",
+      "Publish 14.1 skill revocation legitimately recalculates Force power, retires lost JTL and Squad Leader state, refreshes certification, and maintains Jedi trial and Force Rank eligibility.",
+      "A complete lifecycle inventory is required because a listener can bypass otherwise-correct centralized skill admission or surrender through grant, revoke, pre-grant, pre-revoke, modifier-expiry, modifier-change, or template-change side effects.",
+      "The Force-sensitive kickoff listener must detach with the canonical quest.force_sensitive.fs_kickoff script identifier on initialize, attach, login, and full Force-sensitive cleanup."
+    ]
+  },
+  "inventory": {
+    "patterns": {
+      "aboutToBeGranted": "\\bpublic\\s+int\\s+OnSkillAboutToBeGranted\\s*\\(",
+      "granted": "\\bpublic\\s+int\\s+OnSkillGranted\\s*\\(",
+      "revoked": "\\bpublic\\s+int\\s+OnSkillRevoked\\s*\\(",
+      "aboutToBeRevoked": "\\bpublic\\s+int\\s+OnSkillAboutToBeRevoked\\s*\\(",
+      "modDone": "\\bpublic\\s+int\\s+OnSkillModDone\\s*\\(",
+      "modsChanged": "\\bpublic\\s+int\\s+OnSkillModsChanged\\s*\\(",
+      "templateChanged": "\\bpublic\\s+int\\s+OnSkillTemplateChanged\\s*\\("
+    },
+    "canonicalRecord": "callbackKind|relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "javaSources": 5717,
+    "handlers": 22,
+    "aboutToBeGrantedHandlers": 1,
+    "grantedHandlers": 6,
+    "revokedHandlers": 7,
+    "aboutToBeRevokedHandlers": 3,
+    "modDoneHandlers": 2,
+    "modsChangedHandlers": 2,
+    "templateChangedHandlers": 1,
+    "sourceFiles": 12,
+    "productionHandlers": 17,
+    "dormantWorkingHandlers": 5,
+    "inventorySha256": "46681c103258fcca87c2ddbca356118367227e31c17b58047adde7c443f319e5",
+    "aboutToBeGrantedInventorySha256": "01a95a203d79b0e646ef3b8b5c9990aa3ad89674d696e4819136be0ba3505ef6",
+    "grantedInventorySha256": "bcdccbaac9e7f210cede1da194918e4cf35e4accd0e38fc8a6f7cd340597cdb7",
+    "revokedInventorySha256": "7801c8d2859e1a246bd6f7b7359a118c6e59979e57eac1bc76cb5dafaeb768b6",
+    "aboutToBeRevokedInventorySha256": "8f020e355b38c368a0f1a5e9e1cf4b1dad124898e72861a487b70b0c6485ed8b",
+    "modDoneInventorySha256": "f1a56554d93be1d34b8dbaf0093bdf87dbd00a6934bf4c1f0eccd8dad200608d",
+    "modsChangedInventorySha256": "406a315e17e4cd81928feaf27fef4f01416e99f121cfd9dda513eb251f7f736d",
+    "templateChangedInventorySha256": "2f2dfeba130792da1430cff80438fc3388350cf2fe71b9119e8896dbc50f9c7b",
+    "sourceSetSha256": "dcf9a70f757deb340d14d9da4664b98cacfaadca1a4f2bcd73db7585a916794c",
+    "sourceContentSha256": "717f6c879ce727bf41a00839981f6cd9c214765670798d7edb622dfc5aea7205"
+  },
+  "sourceFiles": {
+    "petMaster": "ai/pet_master.java",
+    "npeJournal": "npe/trigger_journal.java",
+    "basePlayer": "player/base/base_player.java",
+    "playerBeastmaster": "player/player_beastmaster.java",
+    "forceSensitiveKickoff": "quest/force_sensitive/fs_kickoff.java",
+    "combatActions": "systems/combat/combat_actions.java",
+    "playerForceRank": "systems/gcw/player_force_rank.java",
+    "knightTrials": "theme_park/jedi_trials/knight_trials.java",
+    "padawanTrials": "theme_park/jedi_trials/padawan_trials.java",
+    "newPlayer": "theme_park/new_player/new_player.java",
+    "workingTriggerTest": "working/cmayer/trigtest.java",
+    "workingSteveDiagnostic": "working/steve/myscript.java"
+  },
+  "sourceSha256": {
+    "petMaster": "09e385857c7d429bdc5a638d52afdfbf03e03c1f1e1238a5874cf1a4d7ba07be",
+    "npeJournal": "2c7c253fda9b491ed27f8927a70708eed47beadde84aa2996b51608d64d4b37d",
+    "basePlayer": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+    "playerBeastmaster": "9581e344be2d5ea1d2c42cbd511503eb0688976c97de83d17c1fedd9799580cf",
+    "forceSensitiveKickoff": "058d5ee62a5a679bdf80628437e3e701117d20ca5b730341c0925a9c2fe1b399",
+    "combatActions": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+    "playerForceRank": "4502e1ccf6d3778fc7cfd5f17060402b8fa06a23a7fdd49fff90574c82518413",
+    "knightTrials": "ecae8510f5923e11d071c1bd6202bb616805d62f283acb7c91f2b90bffe11dfc",
+    "padawanTrials": "aaff392b8917473f92fd5fabcbcda0506553412255cd43aa961fbf9d292cef0c",
+    "newPlayer": "3d2523fbf426f45f8b3d5f9be2947770269c4dbe25aec9feddccdf56fe28689f",
+    "workingTriggerTest": "07499b620de779d9080459b4adbd35dd8de3deaf0548dbc314c92b625e7be41b",
+    "workingSteveDiagnostic": "532e755c8bb2175e59d3fe68d7aef8953125256984a8b622443406daf0140e9d"
+  },
+  "supportingSourceFiles": {
+    "forceSensitiveQuestLibrary": "library/fs_quests.java"
+  },
+  "supportingSourceSha256": {
+    "forceSensitiveQuestLibrary": "3dbf1d957a459cf7e6c2d2c632c57ded48bf7ebc0b98169bcb407b64569db824"
+  },
+  "classification": {
+    "basePlayerPrecuAuthority": {
+      "handlers": 6,
+      "authority": "Grant rejects retired NGE state before effects; pre-revoke protects authenticated JTL retirement; revoke retains only PRE-CU cleanup; modifier expiry/change updates classic food, HAM-pool, movement-immunity, and defensive-mod presentation; template change only clears stale NGE respec state."
+    },
+    "retainedPrecuAndContentCallbacks": {
+      "handlers": 7,
+      "authority": "Creature Handler/familiar cosmetics, Tansarii guidance, classic novice quest cleanup, Jedi trial eligibility warnings, and PRE-CU Force Rank title/demotion ownership are retained without player combat-level, expertise, class-template, or automatic reward authority."
+    },
+    "forceSensitiveKickoffLifecycle": {
+      "handlers": 1,
+      "authority": "The retained pre-revoke guard protects Force titles outside click-respec, while every initialization, attachment, login, and library cleanup path uses the canonical quest.force_sensitive.fs_kickoff identifier so no stale listener survives lifecycle cleanup."
+    },
+    "retiredBeastMasterCallback": {
+      "handlers": 2,
+      "authority": "The player Beast Master grant and revoke callbacks perform only centralized player-state retirement and override further dispatch."
+    },
+    "precuCombatModifierLifecycle": {
+      "handlers": 1,
+      "authority": "The combat callback clears only the temporary Publish 14.1 Aim and Tumble states when their owned skill modifiers expire."
+    },
+    "dormantWorkingDiagnostic": {
+      "handlers": 5,
+      "authority": "The historical pre-grant, grant, revoke, pre-revoke, and modifier-change diagnostics have no production attachment; the Steve diagnostic also self-detaches from non-GM50 players. They only emit debug text or return an objvar-controlled test override."
+    },
+    "unclassifiedHandlers": 0
+  },
+  "requiredReadyContractKeys": [
+    "p14PersistedNgeSkillRetirement",
+    "p14PostNgePassiveProfessionRuntimeRetirement",
+    "p14PostNgeSpyPlayerRuntimeRetirement",
+    "p14PostNgeBeastMasterPlayerRuntimeRetirement",
+    "p14PrecuCosmeticFamiliarAuthority",
+    "p14NpeClassProgressionRetirement",
+    "p14PrecuGcwRatingRetirement",
+    "p14PrecuAdminSkillAuthority",
+    "p14ForceSensitiveEligibility",
+    "p14ForceSensitiveSurrender",
+    "p14Core3AimCommand",
+    "p14PrecuCombatExpertiseIsolation",
+    "p14RespecAutolevelEntrypointRetirement"
+  ],
+  "expected": {
+    "allHandlersClassified": true,
+    "retiredNgeSkillSideEffectsBeforeRevocation": 0,
+    "retiredBeastMasterCallbackMutations": 0,
+    "retainedForceRankTitleGrantRules": 2,
+    "retainedFamiliarTrickCallbacks": 1,
+    "npeGuidanceProgressionMutations": 0,
+    "dormantWorkingProductionAttachments": 0,
+    "basePlayerRevocationNgeProgressionMutations": 0,
+    "retainedCallbackCombatLevelMutations": 0,
+    "retainedCallbackAutomaticRewards": 0,
+    "forceSensitiveCanonicalDetachCalls": 3,
+    "forceSensitiveIncorrectDetachCalls": 0,
+    "precuCombatModifierCompletionCallbacks": 1,
+    "skillTemplateProgressionMutations": 0,
+    "skillModifierNgeProgressionMutations": 0,
+    "dormantWorkingSelfDetachGuards": 1,
+    "gameplaySourceFilesChanged": 1,
+    "laterZonesQuestsConversationsNpcsJtlAndForceRankPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "parentSourceCommit": "6b0c43bc313343f33f6e14161f7f615a1cf809e1",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceAudit": "passed; all 22 exact public-int OnSkill* handlers across 5,717 Java sources are exactly fingerprinted and classified with no NGE grant, revoke, modifier, or template authority",
+    "javaCompile": "passed",
+    "javaCompileDetail": "canonical zero-class rebuild compiled 5,717 Java sources into 5,751 classes",
+    "fullBuild": "passed; canonical direct-source x64 preflight, source/work parity, Java/data/native build, controlled restart, and readiness gates completed in 952.4 seconds",
+    "fsKickoffClassSha256": "064621d1afd178e358b0c71533564d547a20e5cd8b604100b375bb97e714fda0",
+    "fsKickoffClassBytes": 12995,
+    "fsKickoffBytecode": "five canonical quest.force_sensitive.fs_kickoff constant references and zero quest.force_sensitive_fs_kickoff references",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T08:26:56.1317977-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "representativeGameProcessId": 373,
+    "transferServerProcessId": 355,
+    "liveBinaryInode": 12141822,
+    "liveBinaryBytes": 22587656,
+    "liveBinaryMapEntries": 2,
+    "freshLogLines": 321,
+    "exactReadyMarkers": 1,
+    "fatalSevereExceptionErrorEmptyMessageAbiOracleMatches": 0,
+    "clientProcessId": 52252,
+    "clientProcessName": "Galaxies Reborn PRECU",
+    "clientResponsive": true,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all 22 exact Java public-int OnSkill* callbacks across pre-grant, grant, pre-revoke, revoke, modifier-expiry, modifier-change, and template-change event families plus their production/dormant authority boundaries",
+    "preserved": "Publish 14.1 skill boxes, Force-sensitive and Jedi trial rules, badges, commands, Force Rank titles/demotion, Creature Handler and cosmetic familiar behavior, JTL pilot lifecycle, classic novice quest cleanup, HAM-pool recalculation, defensive-mod display, movement-immunity checks, Aim/Tumble expiration, retained NPE guidance, and later content",
+    "notClaimedComplete": "other event callback families remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

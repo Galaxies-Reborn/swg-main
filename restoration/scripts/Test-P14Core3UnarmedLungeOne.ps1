@@ -29,7 +29,7 @@ Assert ($combat.Count -eq 1 -and $combat[0].percentAddFromWeapon -ceq "2.0" -and
 $override = @(Rows $paths.override | Where-Object actionName -ceq "unarmedLunge1")
 Assert ($override.Count -eq 1 -and $override[0].healthCostMultiplier -ceq "1.0" -and $override[0].actionCostMultiplier -ceq "1.0" -and $override[0].mindCostMultiplier -ceq "1.0" -and $override[0].targetPool -ceq "RANDOM" -and $override[0].speedMultiplier -ceq "1.5" -and $override[0].accuracyBonus -ceq "15" -and $override[0].animationType -ceq "NONE" -and $override[0].postureDownChance -ceq "100") "unarmedLunge1 overrides drifted"
 $spam = @(Rows $paths.spam | Where-Object actionName -ceq "unarmedLunge1")
-Assert ($spam.Count -eq 1 -and $spam[0].combatSpam -ceq "ridingbantha") "unarmedLunge1 spam drifted"
+Assert ($spam.Count -eq 1 -and $spam[0].combatSpam -ceq "lungeshiak") "unarmedLunge1 spam drifted"
 $actions = Get-Content -LiteralPath $paths.actions -Raw
 $fixture = Get-Content -LiteralPath $paths.fixture -Raw
 Assert ($actions.Contains('public int unarmedLunge1(') -and $actions.Contains('"unarmedLunge1", self, target')) "unarmedLunge1 dispatcher missing"

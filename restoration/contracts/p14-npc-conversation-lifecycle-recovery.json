@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-npc-conversation-lifecycle-recovery",
+  "status": "ready",
+  "scope": "Keep retained PRE-CU and expansion NPC conversations usable after a client stop is lost or an OnEndNpcConversation script requests an override.",
+  "diagnosis": {
+    "date": "2026-08-01",
+    "liveCharacter": "Icai Darkwave",
+    "characterObject": 39008597,
+    "symptom": "NPC converse actions stopped producing a conversation window and later NPC attempts also did nothing.",
+    "cause": "The native conversation start path silently rejected every request while m_npcConversation was non-null, and the native end path returned before proxy removal and deletion whenever an end trigger returned SCRIPT_OVERRIDE. Release builds compiled out the only rejection warnings."
+  },
+  "expected": {
+    "freshPlayerRequestRecoversOlderSession": true,
+    "scriptEndTriggersStillRun": true,
+    "scriptOverrideCannotVetoNativeCleanup": true,
+    "conversationProxiesRemoved": true,
+    "clientReceivesStopFromConversationDestructor": true,
+    "newConversationStartsAfterRecovery": true,
+    "dedicatedTelemetryCategory": "PreCuConversation",
+    "dedicatedTelemetryPath": "logs/precuNpcConversation.log"
+  },
+  "sourceFiles": {
+    "commandDispatch": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp",
+    "conversationLifecycle": "src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp",
+    "runtimeConfig": "exe/linux/localOptions.cfg"
+  },
+  "buildEvidence": {
+    "overlayPatches": [
+      {
+        "component": "src",
+        "path": "restoration/patches/src/351-p14-npc-conversation-lifecycle-recovery.patch",
+        "bytes": 7875,
+        "sha256": "cb3e147a0d16aeba84199d06a1e5d1b34acec4c898734a3c3dd0fefdaa001227"
+      },
+      {
+        "component": "exe",
+        "path": "restoration/patches/exe/004-p14-npc-conversation-log-target.patch",
+        "bytes": 455,
+        "sha256": "895ba4647b5b710d652dac3cf28e2a04f3a21283b044ba59645c13d4c9b42832"
+      }
+    ],
+    "materialization": {
+      "patchesApplied": 381,
+      "acceptanceFiles": 1082,
+      "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+      "overlayReverseApplyCheck": "passed"
+    },
+    "contractTest": "passed",
+    "cppCompile": "passed",
+    "fullBuild": "passed",
+    "architecture": "ELF 64-bit LSB shared object, x86-64",
+    "serverBinarySha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
+    "serverGameArchiveSha256": "db86201560944ce97864f3010c7abd7f74eb771e2908ddd10a76802ec42aad52",
+    "buildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-09T15:14:46.370747928Z",
+    "containerHealth": "healthy",
+    "deployProbe": "passed",
+    "result": "passed"
+  },
+  "liveEvidence": {
+    "date": "2026-08-09",
+    "client": {
+      "processId": 66220,
+      "processName": "Galaxies Reborn PRECU",
+      "windowTitle": "Galaxies Reborn PRECU",
+      "responding": true
+    },
+    "target": {
+      "object": 6404043775,
+      "script": "npc.skillteacher.skillteacher",
+      "conversation": "skill_teacher"
+    },
+    "conversationAttempt": "A fresh player radial converse request on the current x64 deployment opened the skill-teacher ground conversation at 15:33:20 UTC, produced successful player-trigger and command-start records, remained active for 14 seconds, and ended normally at 15:33:34 UTC.",
+    "telemetry": [
+      "session-started player=1433054682 npc=6404043775 conversation=skill_teacher",
+      "player-trigger player=1433054682 npc=6404043775 result=1",
+      "command-start actor=1433054682 target=6404043775 starter=0 result=1",
+      "session-ended player=1433054682 npc=6404043775"
+    ],
+    "temporaryQaScriptsRemoved": true,
+    "playerLocationRestored": "(3439.7246,4.9963436,-4913.978,tatooine)",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}

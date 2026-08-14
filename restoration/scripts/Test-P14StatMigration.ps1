@@ -42,6 +42,30 @@ function Assert-Contract
     }
 }
 
+function Get-BracedBlock
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Signature
+    )
+
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $openBrace = $Text.IndexOf("{", $start, [StringComparison]::Ordinal)
+    if ($openBrace -lt 0) { return "" }
+    $depth = 0
+    for ($index = $openBrace; $index -lt $Text.Length; $index++)
+    {
+        if ($Text[$index] -eq '{') { $depth++ }
+        elseif ($Text[$index] -eq '}')
+        {
+            $depth--
+            if ($depth -eq 0) { return $Text.Substring($start, $index - $start + 1) }
+        }
+    }
+    return ""
+}
+
 function Read-TabTable
 {
     param([Parameter(Mandatory = $true)][string]$Value)
@@ -177,17 +201,28 @@ $controllerAuthenticationReady = `
     $text.playerController.Contains("cancelSession(session.designerId, session.recipientId)")
 Assert-Contract -Condition $controllerAuthenticationReady -Name "p14.stat-migration.image-designer.controller-session-identity"
 
-$salonTransactionReady = `
+$venueTransactionReady = `
     $text.imageDesignerManager.Contains("session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION") -and `
     $text.imageDesignerManager.Contains("designer != recipient") -and `
     $text.imageDesignerManager.Contains('designer->hasCommand("imagedesign")') -and `
     $text.imageDesignerManager.Contains("!recipient->isInTutorial()") -and `
-    $text.imageDesignerManager.Contains('statMigrationSalon->getObjVars().hasItem("salon")') -and `
+    $text.imageDesignerManager.Contains('statMigrationVenue->getObjVars().hasItem("salon")') -and `
+    $text.imageDesignerManager.Contains('statMigrationVenue->getObjVars().hasItem("modules.entertainer")') -and `
+    $text.imageDesignerManager.Contains('statMigrationVenue->getTriggerVolume("campsite")') -and `
+    $text.imageDesignerManager.Contains("entertainmentCampVolume->hasObject(*designer)") -and `
+    $text.imageDesignerManager.Contains("entertainmentCampVolume->hasObject(*recipient)") -and `
     $text.imageDesignerManager.Contains("designerTopmost->getNetworkId() == session.terminalId") -and `
     $text.imageDesignerManager.Contains("recipientTopmost->getNetworkId() == session.terminalId") -and `
+    $text.playerImageDesigner.Contains("import script.library.camping;") -and `
+    $text.playerImageDesigner.Contains("camping.getCurrentAdvancedCamp(self)") -and `
+    $text.playerImageDesigner.Contains("camping.isInEntertainmentCamp(design_target, entertainmentCamp)") -and `
+    $text.imageDesignerScript.Contains("import script.library.camping;") -and `
+    $text.imageDesignerScript.Contains("boolean validEntertainmentCamp") -and `
+    $text.imageDesignerScript.Contains("camping.isInEntertainmentCamp(target, entertainmentCamp)") -and `
+    $text.imageDesignerScript.Contains("designType == 2 && !validSalon && !validEntertainmentCamp") -and `
     $text.imageDesignerManager.Contains("CommandCppFuncs::canCommitStatMigration(recipient->getNetworkId())") -and `
     $text.imageDesignerManager.Contains("CommandCppFuncs::commitStatMigration(recipient->getNetworkId())")
-Assert-Contract -Condition $salonTransactionReady -Name "p14.stat-migration.image-designer.normal-world-entertainer-salon-transaction"
+Assert-Contract -Condition $venueTransactionReady -Name "p14.stat-migration.image-designer.normal-world-entertainer-salon-or-camp-transaction"
 
 $nativeCallbackReady = `
     $text.imageDesignerNative.Contains("SharedImageDesignerManager::getSession(session.designerId, authenticatedSession)") -and `
@@ -224,6 +259,81 @@ $persistentSessionReady = `
     $text.commandCpp.Contains("beginPersistentStatMigrationCommit(*creature)") -and `
     $text.commandCpp.Contains("clearPersistentStatMigration(*creature)")
 Assert-Contract -Condition $persistentSessionReady -Name "p14.stat-migration.session.restart-persistent-fail-closed"
+
+$ctsGetter = Get-BracedBlock -Text $text.commandCpp -Signature "bool CommandCppFuncs::getPrecuCtsStatAllocation("
+$ctsApplier = Get-BracedBlock -Text $text.commandCpp -Signature "bool CommandCppFuncs::applyPrecuCtsStatAllocation("
+$sharedApply = Get-BracedBlock -Text $text.commandCpp -Signature "void applyStatMigration(CreatureObject & creature, std::vector<int> const & targets)"
+$jniGetter = Get-BracedBlock -Text $text.scriptMethodsAttributes -Signature "jintArray JNICALL ScriptMethodsAttributesNamespace::getPrecuCtsStatAllocation("
+$jniApplier = Get-BracedBlock -Text $text.scriptMethodsAttributes -Signature "jboolean JNICALL ScriptMethodsAttributesNamespace::applyPrecuCtsStatAllocation("
+$ctsUpload = Get-BracedBlock -Text $text.basePlayer -Signature "public int OnUploadCharacter("
+$ctsDownload = Get-BracedBlock -Text $text.basePlayer -Signature "public int OnDownloadCharacter("
+$ctsObjVarList = [regex]::Match($ctsUpload, '(?s)final\s+String\[\]\s+strObjVarLists\s*=\s*\{(?<body>.*?)\};')
+
+$ctsContractReady = `
+    [int]$contract.ctsAllocation.version -eq 1 -and `
+    [string]$contract.ctsAllocation.versionKey -ceq "precuCtsStatAllocationVersion" -and `
+    [string]$contract.ctsAllocation.allocationKey -ceq "precuCtsStatAllocation" -and `
+    [int]$contract.ctsAllocation.attributeCount -eq 9 -and `
+    [string]$contract.ctsAllocation.pendingMigrationPolicy -ceq "reject-transfer"
+Assert-Contract -Condition $ctsContractReady -Name "p14.stat-migration.cts.versioned-nine-attribute-contract"
+
+$ctsNativeReady = `
+    $text.commandHeader.Contains("getPrecuCtsStatAllocation(NetworkId const & actor, std::vector<int> & allocation)") -and `
+    $text.commandHeader.Contains("applyPrecuCtsStatAllocation(NetworkId const & actor, std::vector<int> const & allocation)") -and `
+    $ctsGetter.Contains("Attributes::NumberOfAttributes") -and `
+    $ctsGetter.Contains("getUnmodifiedMaxAttribute(attribute)") -and `
+    $ctsGetter.Contains("validateStatMigrationTargets(*creature, currentAllocation)") -and `
+    $ctsGetter.Contains("cms_statMigrationObjVarRoot") -and `
+    $ctsGetter.Contains("isAuthoritative()") -and `
+    $ctsGetter.Contains("isPlayerControlled()") -and `
+    $ctsApplier.Contains("validateStatMigrationTargets(*creature, allocation)") -and `
+    $ctsApplier.Contains("cms_statMigrationObjVarRoot") -and `
+    $ctsApplier.Contains("isAuthoritative()") -and `
+    $ctsApplier.Contains("isPlayerControlled()") -and `
+    ([regex]::Matches($ctsApplier, [regex]::Escape("applyStatMigration(*creature, allocation)")).Count -eq 1) -and `
+    $sharedApply.Contains("int const delta = targets[attribute] - oldMaximum;") -and `
+    $sharedApply.Contains("std::max(0, oldCurrent + delta)")
+Assert-Contract -Condition $ctsNativeReady -Name "p14.stat-migration.cts.shared-validation-and-atomic-application"
+
+$ctsJniReady = `
+    $text.scriptMethodsAttributes.Contains('JF("_getPrecuCtsStatAllocation", "(J)[I", getPrecuCtsStatAllocation)') -and `
+    $text.scriptMethodsAttributes.Contains('JF("_applyPrecuCtsStatAllocation", "(J[I)Z", applyPrecuCtsStatAllocation)') -and `
+    $jniGetter.Contains("allocation.size()) != Attributes::NumberOfAttributes") -and `
+    $jniGetter.Contains("createNewIntArray(Attributes::NumberOfAttributes)") -and `
+    $jniGetter.Contains("CommandCppFuncs::getPrecuCtsStatAllocation") -and `
+    $jniApplier.Contains("GetArrayLength(allocation) != Attributes::NumberOfAttributes") -and `
+    $jniApplier.Contains("GetIntArrayRegion(allocation, 0, Attributes::NumberOfAttributes, values)") -and `
+    ([regex]::Matches($jniApplier, [regex]::Escape("CommandCppFuncs::applyPrecuCtsStatAllocation")).Count -eq 1) -and `
+    $text.baseClass.Contains("private static native int[] _getPrecuCtsStatAllocation(long target);") -and `
+    $text.baseClass.Contains("private static native boolean _applyPrecuCtsStatAllocation(long target, int[] allocation);") -and `
+    $text.baseClass.Contains("public static int[] getPrecuCtsStatAllocation(obj_id target)") -and `
+    $text.baseClass.Contains("public static boolean applyPrecuCtsStatAllocation(obj_id target, int[] allocation)")
+Assert-Contract -Condition $ctsJniReady -Name "p14.stat-migration.cts.exact-native-int-array-bridge"
+
+$uploadPendingAt = $ctsUpload.IndexOf("hasObjVar(self, PRECU_STAT_MIGRATION_OBJVAR_ROOT)", [StringComparison]::Ordinal)
+$uploadGetterAt = $ctsUpload.IndexOf("getPrecuCtsStatAllocation(self)", [StringComparison]::Ordinal)
+$uploadVersionAt = $ctsUpload.IndexOf("characterData.put(PRECU_CTS_STAT_ALLOCATION_VERSION_KEY", [StringComparison]::Ordinal)
+$uploadAllocationAt = $ctsUpload.IndexOf("characterData.put(PRECU_CTS_STAT_ALLOCATION_KEY", [StringComparison]::Ordinal)
+$uploadSkillsAt = $ctsUpload.IndexOf('characterData.put("skills"', [StringComparison]::Ordinal)
+$downloadUnpackAt = $ctsDownload.IndexOf("dictionary.unpack(packedData)", [StringComparison]::Ordinal)
+$downloadTypeAt = $ctsDownload.IndexOf("characterData.isInt(PRECU_CTS_STAT_ALLOCATION_VERSION_KEY)", [StringComparison]::Ordinal)
+$downloadArrayAt = $ctsDownload.IndexOf("characterData.getIntArray(PRECU_CTS_STAT_ALLOCATION_KEY)", [StringComparison]::Ordinal)
+$downloadApplyAt = $ctsDownload.IndexOf("applyPrecuCtsStatAllocation(self, precuStatAllocation)", [StringComparison]::Ordinal)
+$downloadLocalAt = $ctsDownload.IndexOf('utils.setLocalVar(self, "ctsBeingUnpacked", true)', [StringComparison]::Ordinal)
+$downloadTransferredAt = $ctsDownload.IndexOf('setObjVar(self, "hasTransferred", 1)', [StringComparison]::Ordinal)
+$downloadSkillsAt = $ctsDownload.IndexOf('characterData.getStringArray("skills")', [StringComparison]::Ordinal)
+$ctsScriptReady = `
+    $text.basePlayer.Contains('PRECU_CTS_STAT_ALLOCATION_VERSION_KEY = "precuCtsStatAllocationVersion"') -and `
+    $text.basePlayer.Contains('PRECU_CTS_STAT_ALLOCATION_KEY = "precuCtsStatAllocation"') -and `
+    $text.basePlayer.Contains("PRECU_CTS_STAT_ALLOCATION_VERSION = 1") -and `
+    $uploadPendingAt -ge 0 -and $uploadPendingAt -lt $uploadGetterAt -and `
+    $uploadGetterAt -lt $uploadVersionAt -and $uploadVersionAt -lt $uploadAllocationAt -and $uploadAllocationAt -lt $uploadSkillsAt -and `
+    $ctsObjVarList.Success -and -not $ctsObjVarList.Groups["body"].Value.Contains("precu.statMigration") -and `
+    $downloadUnpackAt -ge 0 -and $downloadUnpackAt -lt $downloadTypeAt -and `
+    $downloadTypeAt -lt $downloadArrayAt -and $downloadArrayAt -lt $downloadApplyAt -and `
+    $downloadApplyAt -lt $downloadLocalAt -and $downloadLocalAt -lt $downloadTransferredAt -and $downloadTransferredAt -lt $downloadSkillsAt -and `
+    $ctsDownload.Contains("precuStatAllocation.length != NUM_ATTRIBUTES")
+Assert-Contract -Condition $ctsScriptReady -Name "p14.stat-migration.cts.pending-session-rejected-and-allocation-precedes-replay"
 
 $persistenceFixtureReady = `
     $text.persistenceFixture.Contains("private static final long RECIPIENT_OID = 39008597L") -and `

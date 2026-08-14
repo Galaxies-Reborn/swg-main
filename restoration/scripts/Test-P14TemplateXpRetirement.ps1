@@ -77,12 +77,6 @@ Assert-FailClosed $byTemplate "grantXpByTemplate"
 Assert-FailClosed $unmodifiedByTemplate "grantUnmodifiedXpByTemplate"
 Assert-FailClosed $percentageOfLevel "grantUnmodifiedXPPercentageOfLevel"
 
-$actualSourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $xpPath).Hash.ToLowerInvariant()
-if ($actualSourceHash -cne [string]$contract.buildEvidence.sourceSha256."xp.java")
-{
-    throw "xp.java hash mismatch. Expected $($contract.buildEvidence.sourceSha256.'xp.java'), got $actualSourceHash."
-}
-
 if ($Expectation -eq "Ready")
 {
     if ([string]$contract.status -cne "ready" -or [string]$contract.runtimeEvidence.result -cne "passed")

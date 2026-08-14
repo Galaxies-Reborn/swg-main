@@ -89,3 +89,60 @@ authoritative full-or-skipped fresh-character tutorial lifecycle rather than a
 nonexistent scene name. After first-planet handoff, the native commit boundary
 requires a distinct entertainer who still owns `imagedesign`, plus both players
 inside the same server-verified `salon` structure.
+
+`332-p14-stat-migration-entertainer-camps.patch` extends that normal-world
+boundary to crafted camps carrying `modules.entertainer`. The authenticated
+session terminal must be the exact camp object, and its `campsite` trigger
+volume must still contain both players when the server commits the allocation.
+Permanent saloons retain their stricter shared-topmost-container check.
+
+`333-precu-radial-menu-recovery.patch` guarantees a terminal or NPC radial
+request receives an empty authoritative response when its buildout target is
+temporarily unavailable, intentionally menu-less, or lacks a script object.
+This prevents one unanswered world-snapshot object from blocking every later
+interaction while authority transfer requests retain their normal retry path.
+
+`334-precu-creature-attack-timing.patch` keeps AI default attacks on the
+authoritative weapon attack time (with the Pre-CU one-second floor) instead of
+the retained NGE command-table execute time. Player commands continue through
+their existing explicit Pre-CU override/profile timing path.
+
+`338-precu-combat-cadence.patch` unifies player and creature primary attacks
+with the Publish 14 weapon-speed calculation already used by restored specials:
+weapon attack time, weapon-family speed mods, melee/ranged speed bonuses,
+positive combat haste, and a one-second floor. Primary cooldown is zero because
+the full interval is now counted once in execute time. Player-controlled queues
+remain unlimited, while non-player combat queues regain a two-action admission
+ceiling so AI cannot stack attacks faster than its weapon cadence.
+
+`349-p14-core3-cadence-and-harvest-execution-authority.patch` revalidates
+Novice Scout when `harvestCorpse` actually executes, before Java dispatch. It
+also records attack classification, weapon-family and private speed modifiers,
+combat haste, and any unclassified player combat-queue command so live cadence
+can be proven against the pinned Core3 formula rather than inferred from client
+animation.
+
+`350-p14-persisted-nge-skill-retirement.patch` removes retained NGE
+`class_*`, `expertise`, `expertise_*`, and `internal_expertise_*` skills from
+authoritative player persistence during database load. The removal happens
+before `setupSkillData()` reconstructs commands, modifiers, schematics, and
+level, so relogging cannot reactivate NGE progression authority. Quest,
+conversation, zone, and independent quest/object-variable state remain intact.
+
+`351-p14-npc-conversation-lifecycle-recovery.patch` makes a fresh player
+converse request recover an older native conversation session before starting
+the requested NPC. End triggers still run, but their `SCRIPT_OVERRIDE` result
+can no longer skip proxy removal, object deletion, and the client's stop
+message. Dedicated result and rejection telemetry makes every live request
+observable in release builds.
+
+`352-p14-object-menu-telemetry.patch` records the authoritative request,
+cross-server route, empty response, and script-complete response boundaries for
+NPC and terminal object menus. The category is diagnostic only: it does not
+change menu admission, menu contents, authority routing, or response timing.
+
+`354-p14-precu-faction-rank-authority.patch` reactivates the persisted/shared
+`CreatureObject::m_rank` value and routes the script rank getter and a new
+validated setter through it. NGE weekly GCW rating no longer supplies gameplay
+faction rank, while the existing shared package continues to replicate the
+PRE-CU rank byte to clients.

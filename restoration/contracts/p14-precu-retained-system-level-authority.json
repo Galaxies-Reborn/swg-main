@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-retained-system-level-authority",
+  "status": "ready",
+  "scope": "Replace direct NGE player-level authority in retained system libraries, static quests, expansion events, city scans, and tutorial compatibility with hidden PRE-CU skill-box progression, and route space-to-ground combat XP through the PRE-CU style adapter.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/player/PlayerObject.idl"
+    ],
+    "findings": [
+      "Publish 14.1 characters progress through independently learned skill boxes and a 250-point skill budget, not an NGE class or visible player combat level.",
+      "The authenticated retained-content bridge maps learned PRE-CU combat-box point costs to a hidden 1-90 encounter scale without exposing a player combat level.",
+      "Entertainer-only unlocks require the separate social skill-box adapter so combat progression cannot unlock entertainer content.",
+      "The PRE-CU combat XP adapter preserves style-specific XP and its authenticated difficulty cap instead of granting the later generic combat pool directly.",
+      "Core3's internal defender-level seed remains authenticated combat-engine behavior and is outside this retained-content player-gating boundary."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 13,
+    "retiredDirectPlayerLevelReads": 14,
+    "remainingDirectPlayerLevelReads": 0,
+    "encounterDifficultyConsumers": 10,
+    "encounterDifficultyCalls": 11,
+    "entertainerDifficultyConsumers": 2,
+    "retiredDirectCombatGeneralGrants": 1,
+    "precuCombatStyleXpConsumers": 1,
+    "preservedCreatureLevelReads": 1,
+    "visiblePlayerCombatLevel": false,
+    "authoredThresholdsPreserved": true,
+    "authoredQuestConversationAndEventFlowPreserved": true,
+    "authoredCreatureLevelsPreserved": true,
+    "missionCoreChanged": false,
+    "professionAdapters": {
+      "combatAndGenericContent": "skill.getPrecuEncounterDifficulty",
+      "entertainer": "skill.getPrecuEntertainerContentDifficulty",
+      "spaceToGroundCombatXp": "xp.grantCombatStyleXp"
+    }
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/375-p14-precu-retained-system-level-authority.patch",
+      "bytes": 7922,
+      "sha256": "c6491c7e13d24095a66717c4f9a090abd71a5ccf4417f04f7381b4ef34973938"
+    },
+    "sourceSetSha256": "d7e013c0cfef61296fe8024e7f32b3dd739257ea4e7f2665ce059f18c393a7fa",
+    "sourceContentSha256": "ff2e65f3797be6918b9efb5eb4d3fbad49e66cd0f9971f4bc669f0e610d37a32",
+    "sourceSha256": {
+      "script.ai.imperial_presence.harass": "4fde466b530d99f22ccaed8e977df87a54c5f136f0c499f6223826a1f00bc288",
+      "script.city.imperial_crackdown.imperial_trouble": "9a861143947b18ec1914a7abc8fb9a7d3ae8ed20e8d1b34c0cd06ba2c2ec38fd",
+      "script.event.ewok_festival.loveday_reward_crossbow": "2ea9d2605d9232936777e7e023bc7bb48f51fe163fb22da09917875ff7eaffea",
+      "script.event.halloween.song_book": "615b2928ae8b30c375c517c7b1d374f4012887e0a6d6fea62705565c8844432d",
+      "script.event.lost_squadron.stolen_fighter": "e24b6bb068b51b3687d6c2afc0cf44f10f2e24139e2147dc17a8762e0d159c0c",
+      "script.library.collection": "a4da8b416f8aaed91e3c8953fb925a6525f6c421c269ff0254a48c2be5393172",
+      "script.library.groundquests": "17ea0ee5bbd198cf5769c00bc7834045333cce7b2435e87fa4daa6103d3fbc3f",
+      "script.library.npe": "88f2b4d45df70c2adaaa46b512a0ca2bba1eb3279cb3f17fdd4b1454d7111ab9",
+      "script.library.performance": "d3d5f8569c7b3b9451b572b62421a89360212eab372823b614f2026b0879c256",
+      "script.library.smuggler": "895092ca34897c3e81f51679b8a4c24bddc3d7e7f08531344a260d33db4978a6",
+      "script.library.space_combat": "d536ce0c27803b06ff08f72c9b5afe0576609b3ad4a7a30653fac34382bc9db7",
+      "script.library.township": "75fb3195109a95270aa366ce4c42dbaaae44934eb9a00ee4295a6c9f942fea81",
+      "script.npc.static_quest.quest_convo": "fc3d5eae9e1b8b7e6fc4b1667428e38b81649f41fc4447ccc3e73130d7cc1eab"
+    },
+    "compiledClassSha256": {
+      "script.ai.imperial_presence.harass": "78e9900de873b9d40607f09b7be28dee6e5f9228542d7a144958631f11617788",
+      "script.city.imperial_crackdown.imperial_trouble": "8a3e71516479cab2817eb1285d3b84fea15c5fb12319eeda05f50593379e3333",
+      "script.event.ewok_festival.loveday_reward_crossbow": "92a795af45a0e87d45f05f9b898a7e169a76da4c9997f538f7d467d2d7b25c3b",
+      "script.event.halloween.song_book": "6d5fb96d07087774c8b32867b8ae6220a57a4a1d820db77af8f48c2debe7fce9",
+      "script.event.lost_squadron.stolen_fighter": "16d60427838bd8e9d59c079970e05333c7c65d2cc3916ff9614a4c8b00a5b588",
+      "script.library.collection": "22f068a0d0d34da4726a8ef738f7df9c44562c418af2d157adf93470d34b2953",
+      "script.library.groundquests": "6a1ac2f33edf31af724edb38e4db42d194c0afbccb753a79b2b9c78eecd7bedc",
+      "script.library.npe": "0417ab5daf413a8128ce6c7c9204185e5c7fad5aff295cadc559384e2cf8b268",
+      "script.library.performance": "8f256802f4e3c88d53d0f57c59fee964fbce0b8b1fb84f15d3b4c282a8a6023e",
+      "script.library.smuggler": "bb5464eaaae58b2917749deddb9785e631f2774077b191c5d9c55c486193f606",
+      "script.library.space_combat": "e6101d53008081c78c1399310dd64e5a8ef59f7708f082a51ae5e8ffd59fcd8e",
+      "script.library.township": "be212a7043996e0e51a0468f7618d89fb89c8ac30a93665edef21d84c8d979b8",
+      "script.npc.static_quest.quest_convo": "e9cee2ba909041af3b8e46da9e867b2f3c118f4d9c6f5345a9d49870a1db59f4"
+    },
+    "staticContract": "passed",
+    "fullJavaCompile": "passed (5713 Java sources, 5747 compiled classes, OpenJDK 11)",
+    "cleanMaterializationPatches": 407,
+    "cleanMaterializationAcceptanceFiles": 1152,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedBuild": "passed",
+    "architecture": "ELF 64-bit x86-64",
+    "serverBinarySha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
+    "serverBinaryBuildId": "186028aec5352e367a12a74626984a4a5a7aeeb1",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "missionTerminalUserVerification": "working in-world immediately before this milestone",
+    "missionSourceSha256": {
+      "mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-03",
+    "deployedAtUtc": "2026-08-03T10:26:52.55431487Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-level305-final-a",
+    "sourceMountReadOnly": true,
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "SwgGameServer": 15
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "representativeSourceWorkParity": true,
+    "bytecodeProbes": [
+      "retained ground quests use authored quest level/tier rewards without an NGE player-level cap; static quest gates call getPrecuEncounterDifficulty",
+      "collection, space combat, and retained city/event consumers call getPrecuEncounterDifficulty",
+      "performance and song-book entertainer gates call getPrecuEntertainerContentDifficulty",
+      "space-to-ground combat XP calls grantCombatStyleXp"
+    ],
+    "postStartLogAudit": {
+      "lines": 345,
+      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
+    },
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "direct NGE player-level authority in selected retained system libraries, static quest gating, expansion events, city scanning, and tutorial compatibility, plus the direct space-to-ground generic combat XP grant",
+    "notClaimedComplete": "post-Publish-14 player invisibility is closed separately; dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

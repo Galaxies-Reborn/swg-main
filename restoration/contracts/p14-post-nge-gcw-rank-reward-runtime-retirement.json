@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-gcw-rank-reward-runtime-retirement",
+  "status": "ready",
+  "scope": "Retire post-NGE GCW rank ability skills, buffs, all direct combat-action handlers, the direct aura effect add writer, and player aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, retained battle content, remove-side cleanup, and non-player compatibility; close the complete Java OnPvpRankingChanged callback inventory so no alternate listener restores later rank rewards.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 faction rank is persisted independently and promoted through authored faction-point costs; it is not an NGE profession or expertise reward tree.",
+      "The inherited pvp_imperial_* and pvp_rebel_* skill rows grant six later GCW combat ability tiers per faction, including an expertise-protection aura and airstrike.",
+      "Faction rank, badges/titles, recruiters, bases, battles, quests, zones, and compatibility data can remain active without granting those later combat abilities.",
+      "The retained 12 command rows fan into 20 command/effect handlers, and the aura controller can reschedule itself independently of skill grants; both runtime surfaces require player-only fail-closed gates in addition to persisted-skill cleanup.",
+      "Two retained aura effect mappings route both faction self-buffs through pvpAuraBuffSelfAddBuffHandler. Generic admission and all controller callbacks were already player-inert, but this direct add-side handler could still attach the later aura controller before those downstream guards ran. It now performs central player reward cleanup and returns before attachment; the remove-side handler remains available for cleanup and non-player behavior is unchanged.",
+      "The complete Java source tree contains exactly two OnPvpRankingChanged callbacks: the authenticated player callback that clears later GCW rewards while retaining rank badges, and one unattached developer diagnostic callback with no progression mutation."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnPvpRankingChanged\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 2,
+    "productionHandlers": 1,
+    "dormantDeveloperHandlers": 1,
+    "inventorySha256": "086a2866204e1adeea2ca730ed22bfa12797c18e7a65e0da8e2cd7b85bad9626",
+    "sourceSetSha256": "36a99c55c34a7ffec2cadcd529be4853a28dfcd129c2d08c8b994335f9bc33c4",
+    "sourcePaths": [
+      "hnguyen/cwdm_test.java",
+      "player/base/base_player.java"
+    ]
+  },
+  "expected": {
+    "retiredRewardSkills": 12,
+    "retiredActiveBuffs": 12,
+    "retiredPlayerCombatActions": 20,
+    "retainedAuraControllerCallbacks": 3,
+    "authoritativeSourceFiles": 8,
+    "retiredRankGrantSites": 6,
+    "genericRetiredSkillAdmissionDominates": true,
+    "genericRetiredBuffAdmissionDominates": true,
+    "genericRetiredCombatActionAdmissionDominates": true,
+    "auraPlayerCallbacksFailClosed": true,
+    "retainedAuraEffectMappings": 2,
+    "directAuraEffectAddWriters": 1,
+    "auraEffectAddWriterPlayerReachable": false,
+    "auraEffectRemoveCleanupPreserved": true,
+    "nonPlayerCompatibilityPreserved": true,
+    "persistedRewardCleanupOnInitializeLoginAndRecap": true,
+    "auraControllerDetached": true,
+    "auraFactionStateRemoved": true,
+    "precuFactionRankPreserved": true,
+    "rankBadgePresentationPreserved": true,
+    "pvpRankCallbacks": 2,
+    "pvpRankProductionCallbacks": 1,
+    "pvpRankDormantDeveloperCallbacks": 1,
+    "pvpRankDormantDeveloperProductionAttachments": 0,
+    "pvpRankDormantDeveloperProgressionMutations": 0,
+    "rewardCompatibilityRowsPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceContentSha256": "e8f3d65a86f6761015da612a7ea593e8c5fa2b0e7bc43d85c12c7525d2c89e16",
+    "sourceSha256": {
+      "library/buff.java": "c05ffc14396a3991e45feae1ce32fbb0d89f921a4e9a014a43646cb88e8fd418",
+      "library/factions.java": "0407778e49051f2668e75cafa4e477f3aee3930eb6ed19acea5939c1932a897d",
+      "library/skill.java": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+      "player/base/base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "player/gcw/pvp_aura_buff_controller.java": "33d4732f239bc81a7ad5541bcc87f706ee55df58316b1d8aed57f3d640744ced",
+      "systems/buff/buff_handler.java": "83acdb0173e3c543035961ea1a6a12bcc2090e1c5ef76cdcdeaacc8b4fd9e1d0",
+      "systems/combat/combat_actions.java": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+      "systems/combat/combat_base.java": "153647766c1aa03beeeaa351e83a7b4ec3c9295fe1ca6afd261fa2f03877500a"
+    },
+    "supportingSourceSha256": {
+      "hnguyen/cwdm_test.java": "4c1e4121337db392fcdda9c4a95dbd1e38406094296d711d2e042f8777818b3d"
+    },
+    "focusedJavaCompile": "passed focused OpenJDK compilation of systems/buff/buff_handler.java from pushed direct dsrc 4ce9fbea352a58009f53ebdd978f512081a03504 against the production package root; one class emitted in /dev/shm/precu-pvp-aura-handler-check and /dev/shm was verified empty afterward",
+    "focusedBuffHandlerClassSha256": "0a3f3c33e942686579325685bf1872bc8dc5f95fd121ce09c7873531c21d12fa",
+    "focusedBuffHandlerClassBytes": 105086,
+    "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct dsrc 42533bb539296806c701239384595f2df03a9b32; 5713 Java sources produced 5747 classes under OpenJDK 11",
+    "fullServerBuild": "passed an exact x64 rebuild in 381.9 seconds and the canonical mandatory artifact-probe/restart deployment in 692.6 seconds from pushed parent 16861db4067a956abca48b480a6564b1061b2f49 and direct dsrc 42533bb539296806c701239384595f2df03a9b32 with synchronized source, bytecode, native-binary, restart, readiness, topology, and fresh-log gates",
+    "compiledClassSha256": {
+      "library/buff.class": "20806671e0065958d24bf8923764c80c618cd6554c87cb12a3864f3ed47eae1c",
+      "library/factions.class": "7a98acbf36b8ebb0e3962b8ec743856d258ee5029e6a39594ecc9a851483fa1c",
+      "library/skill.class": "a44487dd93cf152afe771ea6db661c29761c1978f3231c3f63bac2fd074855f3",
+      "player/base/base_player.class": "ddc9b56f176b6505f9b65d96b32dcafb541fd099fa0c046d54bfef6075f4af23",
+      "player/gcw/pvp_aura_buff_controller.class": "ab77cae234e6846da1bcf3766fc2d34beb60efadf213e7b7239e2f43d0d26e5d",
+      "systems/buff/buff_handler.class": "d4969a365926d09ae40bc84352edd200445c21fa9ce74b18967de30b54293a91",
+      "systems/combat/combat_actions.class": "88ebbe46ddd4ec0848345f7a3dfdd686b9a2dd3f5acbb28010b28744099746b8",
+      "systems/combat/combat_base.class": "6fc1d8faaf1b9eaef43fca7747f69562adb5751d3d4192e517634c5ac0b22005"
+    },
+    "architecture": "ELF 64-bit LSB shared object, x86-64; all 15 live SwgGameServer processes map the authenticated build binary",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "live parity passed byte-for-byte for all eight authoritative source files at direct dsrc 42533bb539296806c701239384595f2df03a9b32, including buff.java at a24ae3a307dfc9c735687ecbb6b06c6294874fb6d0a6ebdc9cc921d93ab40848 and buff_handler.java at 471d1cfa3dad3414af75981f67687ec53b564835787f0f2e195802560ccbaa3f",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "skillDataSha256": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+    "combatDataSha256": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
+    "buffDataSha256": "ba786e08cafac4f027d5cb93102eaaeb3b66e2bd59543187ef5fb55ba50cce2d",
+    "effectMappingDataSha256": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-08",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 8,
+    "compiledBytecodeProbes": "passed exact 12-buff GCW generic player admission, exact 20-action central player admission, all three player aura callbacks, persisted skill/buff cleanup, aura controller detachment, player lifecycle dispatch, direct aura and Last Words add-side cleanup, and the direct Officer/Spy heal-effect cleanup returns before either heal writer; the exact queued-battlefield runner buff now also fails closed at generic player admission and lifecycle cleanup, and its add handler invokes central cleanup and returns before the first invisibility mutation, with preserved remove-side cleanup and non-player compatibility",
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveGameProcessCount": 15,
+    "liveGameProcessesMappedBuiltBinary": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "LogServer": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "ChatServer": 1,
+      "CommoditiesServer": 1,
+      "CentralServer": 1,
+      "TransferServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "liveBinaryMapEntries": 30,
+    "transferServerEndpoint": "one stable TransferServer process exclusively owns 172.26.0.2:50005 and remained on PID 355 across the independent stability window",
+    "devShmResidueEntries": 0,
+    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, core-dump, segmentation-fault, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}

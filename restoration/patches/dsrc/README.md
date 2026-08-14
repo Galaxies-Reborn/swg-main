@@ -1,8 +1,9 @@
-# dsrc overlays
+# Archived dsrc overlay provenance
 
-Store ordered, component-relative Git patches here. Use numeric names such as
-001-phase-a-skill-training.patch. The materializer applies files by name to an
-isolated clone pinned by restoration/manifest.json.
+These ordered patches document the one-time import into the persistent
+`Galaxies-Reborn/dsrc` `pre-cu-reborn-x64` branch. They are archival evidence,
+not an active editing or build path. Future work changes and commits the real
+dsrc files directly.
 
 Phase A is registered as `001-phase-a-training-and-surrender.patch`. It owns
 the table-derived trainer/skill-point path, the authentic surrenderSkill
@@ -220,6 +221,11 @@ pool and redirects rewards through the active expertise template.
 identity-bound ServerConsole probe for the recipient's durable migration
 record. It reports the state marker, nine targets, and sum but exposes no
 mutation action; production client commands remain the only writers.
+
+`332-p14-stat-migration-entertainer-camps.patch` records the exact active
+entertainment-module camp as the Image Designer terminal only when both players
+are inside its `campsite` trigger volume. Validation rechecks the same camp
+before forwarding a stat-migration commit to the native server boundary.
 
 `014-p14-headshot1-vertical-slice.patch` activates the first authenticated
 Publish 14.1 combat command. Marksman Rifle I grants the queued `headShot1`
@@ -1292,3 +1298,158 @@ animation, `sapblast` spam, and posture-down chance are table-driven. The
 existing identity-bound fixture adds reversible ownership and cost/status
 evidence while reusing the proven CDEF carbine, posture resolver, recovery,
 and exact cleanup lifecycle.
+
+`328-p14-center-of-being-lifecycle.patch` replaces the NGE combat-data
+execution of `centerOfBeing` with the pinned Core3 lifecycle. Brawler novices
+receive a weapon-family duration and efficacy driven `private_center_of_being`
+modifier, a replicated `command.centerOfBeing` status icon, and green/red
+start and expiry feedback. The existing Pre-CU secondary-defense resolver
+consumes the modifier, native buff expiry removes it, and the obsolete NGE
+combat execution path is not entered. The handler instead admits and drains
+the row's authentic 50-point Action cost as one transaction.
+
+`329-p14-berserk-status-replication.patch` mirrors the existing durable
+`berserk1` and `berserk2` timed state into a visible `command.berserk` status
+row. The row is presentation-only: it has no effect parameters and owns no
+state, avoiding the retained later-era melee-damage bonuses. Both command
+transactions roll the icon back on a failed debit, expiry removes it, relog
+reapplies the exact remaining interval, and both fixtures clean it up.
+
+`330-p14-status-catalog-integrity.patch` closes the retained status-table
+display gaps exposed by the DX11 panel audit. It assigns a safe authored icon
+to the one visible blank-icon row and adds the three missing user-facing effect
+mappings, while retaining internal handler-only parameters as nonlocalized
+metadata.
+
+`334-precu-combat-presentation.patch` maps default creature attacks to the
+retail Pre-CU `creature_*` combat-spam family and replaces the incorrect
+Unarmed Lunge 1 `ridingbantha_*` label with the retained unarmed lunge family.
+
+`337-precu-equipment-certification.patch` removes NGE combat-level equipment
+gates and attributes from weapons and armor. Legacy CL1 weapons are treated as
+starter-certified, while other uncertified weapons remain equippable and take
+a 50-point miss-chance penalty without changing weapon damage, speed, or
+elemental damage.
+
+`338-precu-scout-harvest-and-cadence.patch` requires the exact Publish 14
+`outdoors_scout_novice` skill at every player creature-harvest boundary: radial
+menu construction, menu selection, command dispatch, and final extraction. It
+also removes the retained AI script override that zeroed the native command
+cooldown, leaving combat cadence under one authoritative native timer.
+
+`350-p14-core3-action-preparation-authority.patch` prevents authenticated
+PRE-CU commands from being replaced or modified by retained NGE buff,
+expertise, kill-meter, cybernetic range, overload, elemental-doubling, and
+killing-spree systems. Command range follows the pinned Core3 fallback and
+authored delays and cone/area values remain authoritative.
+
+`351-p14-core3-combat-admission-lifecycle-authority.patch` keeps authenticated
+PRE-CU attacks out of retained NGE stealth, expertise lifecycle, hate-transfer,
+beast-hate, and post-result proc paths. It restores Core3 prone-ranged range,
+miss combat-state, and base-hate behavior, removes three player expertise
+callbacks, and revalidates Novice Scout at the final corpse script callback.
+
+`352-p14-precu-conversation-profession-gates.patch` converts the remaining
+generated conversation checks for impossible NGE `class_*` skills to exact
+Publish-era profession boxes. Kashyyyk, Mustafar, space bounty-hunter, holiday,
+crafting, and entertainer content remains available without restoring NGE
+progression authority. The NGE Chronicles profession offer is retired instead
+of granting a forbidden class skill.
+
+`353-p14-precu-mission-slicing-profession-gates.patch` restores exact PRE-CU
+profession admission for retained bounty missions and slicing content. Novice
+Bounty Hunter owns mission terminals and informants, Novice Smuggler owns locked
+containers, Slicing I owns terminals and keypads, and the Corvette computer
+weights the four slicing boxes plus Smuggler Master to the retained seven-point
+maximum.
+
+`354-p14-precu-retained-crafting-content-gates.patch` replaces impossible NGE
+class checks in retained Death Watch Bunker, Mustafar, and armorsmith quest
+content with exact PRE-CU crafting boxes. Mandalorian armor, jetpack, tailor,
+droid-engineer, and mining-droid interactions remain available without
+restoring NGE profession progression.
+
+`362-p14-precu-faction-cloning-authority.patch` restores Publish 14.1 ground
+faction-standing rewards to one highest-damage player using the defeated
+creature's authored level and faction combat factor. Opposing non-duel player
+kills use fixed historical standing changes, while NGE GCW kill score,
+player-level/rank/class/Luck multipliers, and cloning-sickness pricing no
+longer take precedence. PRE-CU clone wounds and item decay remain intact, and
+the residual free-trial/tutorial level and Luck gates are removed from the XP
+callback so clean Java builds cannot depend on a deleted NGE level constant.
+
+`363-p14-precu-faction-rank-authority.patch` adds the validated Java bridge to
+the persistent shared PRE-CU faction-rank field. Recruiter promotion now keeps
+the 200-point membership reserve, uses the authored rank-table cost, refunds a
+failed native rank write, and resets rank when a player joins or resigns.
+
+`364-p14-precu-faction-perk-authority.patch` restores the faction-specific
+Publish 14 recruiter categories and faction-point purchase transaction. It
+keeps the 200-point membership reserve, rank-scaled standing caps, declared
+item gates, species prejudice, schematics, and NPC hireling control devices.
+The reachable NGE global credit catalog, class/combat-level gates, expertise
+and population price modifiers, recruiter vendor surface, and camp field
+requisition surface no longer take precedence.
+
+`371-p14-precu-weapon-combat-level-authority.patch` consolidates the pinned
+Core3 equipped-weapon combat-level formula in the XP library and routes the
+restored state-application and taunt calculations through it. Player combat
+math uses `private_<weapon>_combat_difficulty / 100 + 1`, capped at 25, with
+the historical Jedi lightsaber addition; authored NPC levels remain intact.
+This internal value is kept separate from the retained-content skill-box
+difficulty adapter and does not restore an NGE visible combat level.
+
+`372-p14-precu-retained-content-level-authority.patch` closes direct NGE
+player-level reads across the retained conversation and theme-park packages.
+Combat encounters, dynamic spawns, and general quest bands consume the hidden
+PRE-CU combat-skill difficulty adapter. Four Trader supply-terminal gates use
+learned crafting boxes, while the retained Pei Yi Entertainer gate uses learned
+social boxes, so noncombat progression remains usable without raising creature
+combat difficulty. Authored thresholds, conversations, quests, and creature
+levels remain intact.
+
+`373-p14-precu-player-equipment-level-authority.patch` removes the remaining
+NGE player-level and expertise mutations from the weapon equip lifecycle.
+Weapons retain their authored minimum damage, maximum damage, and maximum
+range; stale generic NGE damage skill modifiers are cleared during initialize,
+conversion, and transfer. The generic retained-item `levelRequired` helper is
+now inert because Publish 14.1 characters have no player combat level, while
+class, skill, and ability requirements plus compatibility metadata remain.
+`374-p14-precu-retained-device-authority.patch` keeps retained expansion scout
+devices while translating their later Spy class slot to the PRE-CU Ranger
+profession only for item admission and presentation. It also replaces player
+level plus `ranger_trap` scaling with the Publish 14.1 `trapping` modifier and
+uses `camouflage` alone for device concealment. The global Spy identity and all
+retained template metadata remain unchanged.
+
+379-p14-post-nge-spy-player-runtime-retirement.patch closes stale player-side
+NGE Spy skill grants, stealth buffs, theft callbacks, and sp_* combat
+execution. The gate is player-only so retained later-content NPC behavior keeps
+loading, and it explicitly preserves Ranger conceal/mask scent/trapping,
+Rifleman Conceal Shot, HEP urban stealth, and the retained trap hide/disarm
+device commands.
+
+380-p14-post-nge-beast-master-player-runtime-retirement.patch makes the pinned
+Publish 14.1 Creature Handler pet system authoritative over the retained NGE
+Beast Master runtime. Persisted active NGE beasts are safely stored, invalid
+links are cleared, player Beast Master scripts and presentation state are
+removed, Beast Control Device menus fail closed, and all bm_* standard combat
+actions plus the one direct recourse callback are rejected for players. The
+gate is player-only: Creature Handler tame/control/emboldenpets behavior,
+later-content NPC creatures, templates, and compatibility data remain intact.
+
+381-p14-post-nge-beast-master-creation-player-runtime-retirement.patch retires
+the remaining player-facing NGE Beast Master creation pipeline: incubator
+sessions, enzyme processing, egg/holopet and old-pet conversion, Beast
+consumables, and Beast DNA collection awards. Persisted links and process
+markers are cleaned without destroying station or machine contents, so stored
+items remain recoverable. Authentic Publish 14.1 Bio-Engineer DNA/creature
+crafting and Creature Handler pet control remain authoritative, while retained
+later-content templates, data, NPCs, quests, and zones continue to load.
+
+382-p14-post-nge-player-migration-authority-retirement.patch makes PRE-CU
+skill boxes and XP authoritative across login and character transfer. It
+retires automatic NGE live conversions, Combat Upgrade rewards, roadmap and
+combat-level restoration, stale respec state, retired class/expertise skill
+imports, and raw command injection. Expansion quests, collections, zones,
+items, credits, waypoints, space state, and mission behavior remain intact.

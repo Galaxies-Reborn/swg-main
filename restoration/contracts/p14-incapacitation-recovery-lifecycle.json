@@ -6,7 +6,8 @@
   "sourceFiles": {
     "playerLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java",
     "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
-    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_incapacitation_recovery_fixture.java"
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_incapacitation_recovery_fixture.java",
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java"
   },
   "semanticReference": {
     "repository": "swgemu/Core3",
@@ -39,6 +40,9 @@
     "legacyNgeBuffRetired": "incapWeaken",
     "legacyNgeCounterRetired": "combat.intIncapacitationCount",
     "staleRecoveryGuard": "message recoveryTime must equal the current incap.timeStamp scriptvar",
+    "legacyCombatHealthRegenScriptVar": "fltNonCombatHealthRegen",
+    "legacyCombatHealthRegenPolicy": "doCombatDebuffs and clearCombatDebuffs remove stale instances only and never write or restore a Health regeneration override",
+    "timerReadiness": "clearCombatDebuffs returns current game time greater than the current incap.timeStamp without conditioning readiness on presence of the retired regeneration scriptvar",
     "primaryPools": [
       "Health",
       "Action",
@@ -84,6 +88,27 @@
   },
   "buildEvidence": {
     "result": "passed",
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "sourceSha256": {
+      "combatLibrary": "afe1fdf9e37767bff9cde61faa31e109c79759e917a89b74d9d770ceea8b3dbb"
+    },
+    "sourceWorkParity": {
+      "result": "passed",
+      "checkedFiles": 1,
+      "matchedFiles": 1
+    },
+    "currentCompiledSha256": {
+      "combat.class": "9da67775009c4d759787a18c42b81284f2678f9192b0f9ec5b333758f691c2e0"
+    },
+    "delegatedDeploymentEvidence": {
+      "contract": "contracts/p14-nine-attribute-runtime.json",
+      "expectation": "Build",
+      "authenticatedArtifacts": ["combat.class", "CreatureObject.cpp.o", "libserverGame.a", "SwgGameServer"],
+      "includesExactLiveProcessAndPostStartLogAudit": true,
+      "result": "passed"
+    },
+    "evidenceState": "The current combat.class identity and source/work parity are authenticated by the canonical zero-class deployment; the delegated nine-attribute Build verifier independently authenticates CreatureObject.cpp.o, libserverGame.a, SwgGameServer, all fifteen live mappings, and clean post-start logs.",
     "sourceCommit": "b9e9986d6",
     "isolatedBuildVolume": "swg-precu-incapacitation-clean-build-146",
     "targets": [
@@ -98,6 +123,7 @@
   },
   "liveEvidence": {
     "result": "passed",
+    "evidenceState": "Historical controlled lifecycle evidence remains valid for timer boundaries and recovery callbacks; the current deployment independently authenticates the retired combat Health-regeneration override without rerunning or mutating the player fixture.",
     "verifiedAt": "2026-07-18T16:35:44-04:00",
     "clientProtocolVersion": 29,
     "lifecycle": "5ba71f9676a7477587cbe1580e49e299",

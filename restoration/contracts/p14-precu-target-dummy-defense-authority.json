@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-target-dummy-defense-authority",
+  "status": "ready",
+  "scope": "Keep the retained target simulator while replacing its inert NGE expertise controls with the armor rating, typed resistances, and defense skill modifiers consumed by the authoritative Publish 14.1 combat route.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "findings": [
+      "Publish 14.1 primary hit resolution uses the attacking weapon profile's ranged_defense or melee_defense statistic on the defender rather than an NGE expertise defense family.",
+      "The retained simulator's default creature weapon uses unarmed_passive_defense for its secondary defense result, matching the current authenticated PRE-CU weapon profile.",
+      "Publish 14.1 creature armor is an armor rating from 0 through 3 plus raw typed resistances from -1 through 200, where -1 is vulnerability and values over 100 mark special protection.",
+      "The retired expertise dodge, parry, block-chance, glancing-blow, evasion, and innate-protection controls were not read by the authoritative PRE-CU route and therefore could not configure the target being tested."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 2,
+    "targetDefenseControls": 13,
+    "armorControls": 10,
+    "skillDefenseControls": 3,
+    "armorRatingMinimum": 0,
+    "armorRatingMaximum": 3,
+    "rawResistanceMinimum": -1,
+    "rawResistanceMaximum": 200,
+    "defenseSkillMinimum": 0,
+    "defenseSkillMaximum": 125,
+    "ngeExpertiseControls": 0,
+    "persistedValuesRestoredAfterReinitialization": true,
+    "malformedInputRejected": true,
+    "retainedSimulatorContentPreserved": true
+  },
+  "sourceFiles": {
+    "targetDummyLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/target_dummy.java",
+    "targetSimulator": "dsrc/sku.0/sys.server/compiled/game/script/systems/tcg/target_creature.java",
+    "createLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/create.java",
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "creatureProfiles": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "lineEndingPolicy": "the touched legacy target_dummy.java blob was normalized to the repository's declared LF policy",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "targetDummyLibrary": "9a0e41284d8b6c5e2183567f0145bf40f15ad248ce37c4df681afff06c7b92e2",
+      "targetSimulator": "1b19b98c094e635e1096a303576393470d65225e98b8b0ece448da8e069966bb",
+      "createLibrary": "1b74dbd9d17f4c0aaf23152c9008a5ac4da86d9853225ea540eb20e59247e8be",
+      "combatLibrary": "afe1fdf9e37767bff9cde61faa31e109c79759e917a89b74d9d770ceea8b3dbb",
+      "combatBase": "153647766c1aa03beeeaa351e83a7b4ec3c9295fe1ca6afd261fa2f03877500a",
+      "weaponProfiles": "a0a3dfe105f57d034d7063580a9969f16adf7e9ee99200fa20e4d2ee78fc5892",
+      "creatureProfiles": "75aae001495d359b6f32586541533e56cbf32cf12830785570de1abd1ea5b005",
+      "skillTable": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0"
+    },
+    "compiledClassSha256": {
+      "targetDummyLibrary": "ea883272e635fc7df8bfbd7782dc06459dd74d6707902b67cbfd8ac57b03ae40",
+      "targetSimulator": "90858793d1c7469f7d7e442c5cb4a8826b0e4186385027eb0ce6de7c79e43eee"
+    },
+    "sourceTest": "passed; the exact PRE-CU armor and defense control set, authentic profile ranges, hit-resolution consumers, persistence flow, and absence of NGE expertise authority were authenticated",
+    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 827.7 seconds from pushed parent 75d9a1c and direct dsrc 45e5aa7",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for target simulator sources and the changed combat dependency against the read-only direct-source mount",
+    "bytecodeAudit": "passed; target simulator bytecode retains PRE-CU armor/defense controls and no NGE expertise authority; shared combat retains all player-only profession retirement boundaries",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory parity and bytecode gates, x64 architecture, restart/readiness, mapped-binary verification, and clean log audit",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-05",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "targetDummyLibrary": 36475,
+      "targetSimulator": 14937
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "NGE expertise modifiers can no longer masquerade as target-simulator defenses; every exposed control now changes a value consumed by PRE-CU hit or armor resolution.",
+    "preserved": "Both retained TCG target-controller items, ownership and placement, manual encounter difficulty, combat reporting, animations, and simulator combat flow remain available.",
+    "notClaimedComplete": "Other retained content libraries and compatibility handlers remain subject to the wider PRE-CU precedence audit."
+  },
+  "requiredBeforeReady": []
+}

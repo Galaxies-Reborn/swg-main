@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-native-precu-player-difficulty-authority",
+  "status": "ready",
+  "scope": "Replace the inherited NGE XP/skill player-level pipeline with Publish 14.1 weapon-skill combat difficulty while preserving named skill XP, authored skill mods, NPC levels, and the separate retained-content encounter score.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3References": {
+      "playerDifficulty": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "skillProgression": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp"
+    },
+    "findings": [
+      "Core3 derives the hidden player combat/con difficulty from the readied weapon family's private combat-difficulty skill mod divided by 100 plus one, capped at 25.",
+      "Core3 adds private_jedi_difficulty only for a readied lightsaber family.",
+      "Publish 14.1 skill grants and surrender operate through skill points, prerequisites, named XP pools, credits, and authored skill mods; they do not create NGE player level XP or level-derived Health."
+    ]
+  },
+  "diagnosis": {
+    "retiredLevelTable": "datatables/player/player_level.iff",
+    "historicalNativeLevelManagerReferencesInCreatureObject": 10,
+    "expectedNativeLevelManagerReferencesInCreatureObject": 0,
+    "historicalPlayerLevelXpSources": [
+      "named experience grants",
+      "skill grants",
+      "skill surrender",
+      "database-load reconstruction",
+      "script-forced level",
+      "level recalculation"
+    ],
+    "historicalPlayerLevelHealthGrant": true
+  },
+  "expected": {
+    "playerDifficultyMinimum": 1,
+    "playerDifficultyMaximum": 25,
+    "playerDifficultyFormula": "clamp(private weapon-family combat difficulty / 100 + 1, 1, 25)",
+    "weaponDifficultyMods": {
+      "WT_rifle": "private_rifle_combat_difficulty",
+      "WT_lightRifle": "private_carbine_combat_difficulty",
+      "WT_pistol": "private_pistol_combat_difficulty",
+      "WT_heavyWeapon": "private_heavyweapon_combat_difficulty",
+      "WT_1handMelee": "private_onehandmelee_combat_difficulty",
+      "WT_2handMelee": "private_twohandmelee_combat_difficulty",
+      "WT_unarmed": "private_unarmed_combat_difficulty",
+      "WT_polearm": "private_polearm_combat_difficulty",
+      "WT_1handLightsaber": "private_onehandlightsaber_combat_difficulty",
+      "WT_2handLightsaber": "private_twohandlightsaber_combat_difficulty",
+      "WT_polearmLightsaber": "private_polearmlightsaber_combat_difficulty"
+    },
+    "lightsaberJediDifficultyMod": "private_jedi_difficulty",
+    "namedSkillXpPreserved": true,
+    "playerLevelXp": 0,
+    "playerLevelHealthGranted": 0,
+    "weaponChangeRefreshesDifficulty": true,
+    "skillGrantAndSurrenderRefreshDifficulty": true,
+    "databaseLoadRefreshesDifficultyWithoutLevelScripts": true,
+    "scriptForcedPlayerLevelRejected": true,
+    "npcAuthoredLevelsPreserved": true,
+    "retainedEncounterDifficultyPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "CreatureObject.cpp": "488ba73664d20262d027b1191b37497071adf632eff5abe0f49c5274ee0a8be8",
+      "CreatureObject.h": "0ce57e5a1eccbe5dae444fe2c896e3b19c47726d6b227dbc5ff046815ae97747"
+    },
+    "cppCompile": "passed from pushed direct native source revision",
+    "fullServerBuild": "passed again in the canonical clean Docker x86-64 Release deployment from pushed parent f870c6d8e9131424af24c8ede010c8de1f27d47b, native source 3f530f88a1b904d349cc08bced37e84d57df1e4d, and direct dsrc f94b43ee626204dd3b4a21fe1c209709b59a7288; 5,713 Java sources compiled and 5,747 classes emitted",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
+    "serverBinaryBuildId": "186028aec5352e367a12a74626984a4a5a7aeeb1",
+    "sourceWorkParity": "passed for CreatureObject.cpp and CreatureObject.h",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "basePlayerSha256": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+    "skillLibrarySha256": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+    "skillDataSha256": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-09",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-11T12:54:35.817975127Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 2,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 371,
+    "liveBinaryInode": 12141854,
+    "liveBinarySize": 22587592,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "native NGE player level XP, level-derived Health, level-table recalculation, and forced player-level authority",
+    "preserved": "named skill XP, skill points, prerequisites, trainers, skill surrender, authored PRE-CU skill mods, weapon-family con difficulty, NPC authored levels, retained-content encounter scoring, expansion quests, conversations, zones, and mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

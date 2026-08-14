@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-complex-level-callsite-inventory-closure",
+  "status": "ready",
+  "scope": "Close the final Java getLevel complex-expression callsite and prove that the player/self/owner, residual simple-object, and complex-expression inventories account for the complete Java level-read surface without restoring NGE player combat-level authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 authenticated combat does not use the NGE critical-result and combat-level elemental-critical tier system.",
+      "The sole complex-expression level read selects one of four NGE fire critical DOT tiers inside a compatibility helper.",
+      "The helper has one caller, dominated by the explicit non-PRE-CU attack guard, so later scripted combat compatibility remains available without player PRE-CU authority."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bgetLevel\\s*\\(\\s*attackerData\\.id\\s*\\)",
+    "javaSources": 5717,
+    "callSites": 1,
+    "sourceFiles": 1,
+    "inventorySha256": "b56c7cc845b682ce5ab8da7f82ccc00f972e5bfc95b0b9c6a4c49dc12bd82b23",
+    "sourceSetSha256": "9cd5b3ad6c6b08566d4fbf18a275bcfce2385a5873fc04ac1d23dee90e1a4666",
+    "sourceContentSha256": "c3454d15b35ebb36300bf562e69496cb5403fc039760ce91af0ed9b078257d13",
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/library/combat.java": 1
+    }
+  },
+  "completeJavaGetLevelSurface": {
+    "totalCallSites": 125,
+    "playerSelfOwnerCallSites": 56,
+    "residualSimpleObjectCallSites": 68,
+    "complexExpressionCallSites": 1,
+    "unclassifiedCallSites": 0
+  },
+  "classification": {
+    "retainedNgeCriticalCompatibility": {
+      "callSites": 1,
+      "inventorySha256": "b56c7cc845b682ce5ab8da7f82ccc00f972e5bfc95b0b9c6a4c49dc12bd82b23",
+      "authority": "The sole level read selects retained NGE heat-critical DOT data only after runHitEngine proves the attack is not PRE-CU authoritative and the compatibility result is critical."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-java-player-level-callsite-inventory-closure.json",
+    "p14-java-residual-object-level-callsite-inventory-closure.json",
+    "p14-core3-hit-resolution-closure.json",
+    "p14-core3-damage-authority.json",
+    "p14-precu-combat-expertise-isolation.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 0,
+    "playerCombatLevelGameplayAuthorityCallSites": 0,
+    "criticalCompatibilityCallers": 1,
+    "criticalCompatibilityGuardedByNonPrecuRoute": true,
+    "retainedLaterCombatContentPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceSha256": {
+      "combat.java": "afe1fdf9e37767bff9cde61faa31e109c79759e917a89b74d9d770ceea8b3dbb",
+      "combat_base.java": "153647766c1aa03beeeaa351e83a7b4ec3c9295fe1ca6afd261fa2f03877500a"
+    },
+    "sourceAudit": "passed; all 126 Java getLevel calls are partitioned into 56 player/self/owner, 69 residual simple-object, and one guarded complex-expression call with zero unclassified calls",
+    "gameplayBuildReused": "No gameplay source or data changed; the authenticated 5,717-source x64 deployment at the pinned dsrc/native revisions remains authoritative.",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T03:20:10.6470740-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinaryBytes": 22587656,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the sole complex-expression Java getLevel call plus the aggregate completeness proof for all 126 Java getLevel callsites",
+    "preserved": "authenticated PRE-CU Core3 hit/damage authority and retained NGE elemental-critical compatibility for explicitly non-PRE-CU scripted attacks",
+    "notClaimedComplete": "unrelated later-era APIs and gameplay systems outside the now-complete Java getLevel surface remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

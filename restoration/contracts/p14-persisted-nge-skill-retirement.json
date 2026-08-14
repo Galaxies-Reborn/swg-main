@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-persisted-nge-progression-retirement",
+  "status": "ready",
+  "scope": "Retire persisted NGE class, expertise, Bounty Hunter title-skill, and Chronicles XP progression authority when an authoritative player creature loads, reject future player admission through native, shared-script, Chronicles, or character-transfer entrypoints, and clear a stale selected retired title while retaining expansion quests, conversations, zones, and their independent state.",
+  "diagnosis": {
+    "date": "2026-08-01",
+    "liveCharacter": "Icai Darkwave",
+    "characterObject": 39008597,
+    "persistedRetiredSkills": [
+      "class_chronicles_novice",
+      "class_forcesensitive_phase1_novice",
+      "expertise"
+    ],
+    "persistedRetiredExperienceTypes": [
+      "chronicles"
+    ],
+    "cause": "The PRE-CU skill and expertise guards prevented new NGE skills, but existing property-list skills and Chronicles XP survived database reload; positive Chronicles XP could also enter through shared grants, delayed messages, or character transfer. A later underworld quest callback could additionally grant the post-P14 bh_title family through the raw native skill surface, and a selected title persisted separately from the skill list."
+  },
+  "retainedContent": [
+    "NGE and expansion quests",
+    "NGE and expansion conversations",
+    "Mustafar, Kashyyyk, Tansarii, and other expansion zones",
+    "Smuggler PvP quests, title and reward checks, and faction.underworld standing",
+    "quest and object-variable state independent of the retired skill list"
+  ],
+  "sourceFiles": {
+    "creatureObject": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp",
+    "creatureObjectHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
+    "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "pgcLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pgc_quests.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "skillLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "skillsTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "expected": {
+    "retiredPrefixes": [
+      "class_",
+      "bh_title",
+      "expertise_",
+      "internal_expertise_"
+    ],
+    "retiredExactNames": [
+      "expertise"
+    ],
+    "retiredExactExperienceTypes": [
+      "chronicles"
+    ],
+    "authoritativePlayersOnly": true,
+    "databaseLoadCleanup": true,
+    "databaseLoadExperienceCleanup": true,
+    "idempotent": true,
+    "rebuildsSkillDerivedStateFromCleanSet": true,
+    "newRetiredSkillGrantsRejected": true,
+    "newExpertiseRequestsRejected": true,
+    "newPositiveRetiredExperienceRejected": true,
+    "negativeRetiredExperienceCleanupAllowed": true,
+    "sharedXpEntryPointsRejected": true,
+    "chroniclesXpAndLevelEntryPointsRejected": true,
+    "characterTransferImportRejected": true,
+    "retiredSelectedTitleCleared": true,
+    "bountyTitleCompatibilitySkills": [
+      "bh_titleinformant",
+      "bh_title_inspector",
+      "bh_title_agent"
+    ],
+    "retainedPreCuXpTypesAffected": false
+  },
+  "liveEvidence": {
+    "priorSuccessfulSkillCleanup": {
+      "date": "2026-08-01",
+      "character": "Icai Darkwave",
+      "characterObject": 39008597,
+      "clientProcessId": 12892,
+      "clientInWorld": true,
+      "oracleAfterReload": {
+        "retiredClassOrExpertiseRows": 0,
+        "noviceScoutRows": 0
+      },
+      "result": "passed"
+    },
+    "currentBuildDatabaseSnapshot": {
+      "capturedAtUtc": "2026-08-06T12:11:56.037Z",
+      "characters": [
+        {
+          "character": "Icai Darkwave",
+          "characterObject": 39008597,
+          "lastLoginAt": "2026-08-02T01:31:10",
+          "retiredClassOrExpertiseRows": 0,
+          "chroniclesExperienceRows": 0,
+          "positiveChroniclesExperiencePoints": 0,
+          "currentBuildReloadObserved": false
+        },
+        {
+          "character": "PrecuRuntime",
+          "characterObject": 44003778,
+          "lastLoginAt": "2026-07-28T19:37:59",
+          "retiredClassOrExpertiseRows": 1,
+          "retiredSkills": [
+            "class_chronicles_novice"
+          ],
+          "chroniclesExperienceRows": 0,
+          "positiveChroniclesExperiencePoints": 0,
+          "currentBuildReloadObserved": false,
+          "disposition": "dirty persisted fixture available for the next authoritative current-build reload"
+        }
+      ]
+    },
+    "currentBuildAuthoritativeReload": {
+      "capturedAtUtc": "2026-08-10T01:45:13.616Z",
+      "character": "PrecuRuntime",
+      "characterObject": 44003778,
+      "stationId": 91001,
+      "clientProcessId": 52252,
+      "clientExecutable": "E:/SWG/PRE-CU-Reborn/PreCU-Client/Galaxies Reborn PRECU.exe",
+      "clientInWorld": true,
+      "serverContainer": "swg-precu",
+      "serverStartedAtUtc": "2026-08-10T01:15:44.621868871Z",
+      "serverHealth": "healthy",
+      "processCounts": {
+        "SwgGameServer": 15,
+        "PlanetServer": 15
+      },
+      "lastLoginAt": "2026-08-10T01:37:52",
+      "oracleAfterReload": {
+        "skillPropertyListId": 11,
+        "retiredClassOrExpertiseRows": 0,
+        "retiredSkills": [],
+        "chroniclesExperienceRows": 0,
+        "positiveChroniclesExperiencePoints": 0
+      },
+      "result": "passed"
+    },
+    "currentCanonicalDeployment": {
+      "capturedAtUtc": "2026-08-11T03:42:40.396Z",
+      "parentCommit": "e04741fa5564270376436487916095c5564dd90b",
+      "dsrcCommit": "c7aa3324d2f0450848a8beea8a6e179b24559dfc",
+      "srcCommit": "c5698b7737d012ac3b75f6d37b170e3d0320781c",
+      "serverContainer": "swg-precu",
+      "serverStartedAtUtc": "2026-08-11T03:40:43.480573272Z",
+      "serverHealth": "healthy",
+      "clusterReadyForPlayers": true,
+      "liveGameProcessCount": 15,
+      "liveGameProcessesMappedBuiltBinary": 15,
+      "postStartLogLines": 357,
+      "playerReadyMarkers": 1,
+      "fatalSevereExceptionErrorCount": 0,
+      "emptyConGenericMessageCount": 0,
+      "result": "passed"
+    },
+    "result": "passed-prior-authoritative-reload-and-current-canonical-deployment"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "overlayPatches": [
+      {
+        "component": "src",
+        "path": "restoration/patches/src/350-p14-persisted-nge-skill-retirement.patch",
+        "bytes": 2598,
+        "sha256": "498d84419567bbc56e7fc2c330fbcd257cb07ef2616363ff7e7646799acf7b50"
+      }
+    ],
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "sourceSha256": {
+      "CreatureObject.cpp": "488ba73664d20262d027b1191b37497071adf632eff5abe0f49c5274ee0a8be8",
+      "CreatureObject.h": "0ce57e5a1eccbe5dae444fe2c896e3b19c47726d6b227dbc5ff046815ae97747",
+      "xp.java": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a",
+      "pgc_quests.java": "114ae751e742f71c5887b922aed91485af9ed2be95d75ccf0df4fcf86e44d423",
+      "base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "skill.java": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+      "skills.tab": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0"
+    },
+    "cppCompile": "passed",
+    "cppCompileEvidence": "passed in the canonical Docker x86-64 Release serverGame library; CreatureObject.cpp.o is 1,682,760 bytes with SHA-256 1e0827a7c67cc40989329d923979360778d451416f5bd886c72cc1bcea90f379",
+    "javaCompile": "passed the canonical exact zero-class Java 8-target rebuild: 5,717 source files produced 5,751 classes",
+    "focusedClassSha256": {
+      "xp.class": "95c4eb02a2c622022e545af4f67196bc88dab8c062a137abfbae4f61a603c3cc",
+      "pgc_quests.class": "6d3845a394afd8b8f0fc3302b02b50599034afc26d7df5a66d65fac6dd694420",
+      "base_player.class": "2eff0b7c86e537df8be361a4cceabdd93c0fbe0b16bc506fe984f82bdaf85f8b",
+      "skill.class": "886ff11f74bbe06244c3cf61dd382dc063ecb0e82fdb8139640431ccdef81055"
+    },
+    "deployedClassSha256": {
+      "xp.class": "96c9b0f4fbc669d91362945b8d1535665d138c495776d14feb4b8abed1c5eae8",
+      "pgc_quests.class": "e49beb9c3d4cd88a77891b16ba5e67d8ff9a0ded0abad39f01defe0f66b4e8f4",
+      "base_player.class": "ddc9b56f176b6505f9b65d96b32dcafb541fd099fa0c046d54bfef6075f4af23",
+      "skill.class": "098eb4dee95e3fc5d5e8f9541eeef32fd47ce55b9479c27cdf1fe2387f4d5822"
+    },
+    "deployedClassBytes": {
+      "xp.class": 52329,
+      "pgc_quests.class": 60746,
+      "base_player.class": 323427,
+      "skill.class": 32427
+    },
+    "javaSourcesCompiled": 5717,
+    "javaClassesEmitted": 5751,
+    "fullServerBuild": "passed the 1,421.8-second canonical Deploy-PrecuServer exact zero-class Java/native build, cumulative artifact probe, controlled x64 restart, and player-readiness validation from parent e04741fa5564270376436487916095c5564dd90b, dsrc c7aa3324d2f0450848a8beea8a6e179b24559dfc, and src c5698b7737d012ac3b75f6d37b170e3d0320781c",
+    "serverGameArchiveSha256": "9981b9fa6556c67cfb3b848968472e660223f2389d77504c79f95fa8d31c390e",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "buildIdSha1": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealthy": true,
+    "clusterReady": true,
+    "sourceAndBuildVolumeMatch": true,
+    "liveProcessMatchesBinary": true,
+    "nativeArtifactAudit": "passed byte-for-byte source/work parity, bh_title native predicate and exact three-row compatibility inventory, selected-title cleanup source shape, archive symbols for CreatureObject::grantSkill and CreatureObject::clearRetiredNgeProgressionSkills, and linked bh_title/cleanup markers",
+    "javaBytecodeAudit": "passed deployed skill.class bh_title predicate, XP/Chronicles guards, character-transfer guard, and exact deployed class hashes",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}

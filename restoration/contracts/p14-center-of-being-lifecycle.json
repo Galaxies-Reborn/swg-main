@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-center-of-being-lifecycle",
+  "status": "ready",
+  "scope": "Restore Center of Being as a timed Publish 14 defense buff with weapon-family skill modifiers, visible status replication, start/stop player feedback, and the command's authentic Action cost without applying the NGE buff.",
+  "eraEvidence": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/CenterOfBeingCommand.h",
+    "buffName": "centerofbeing",
+    "skillModifier": "private_center_of_being",
+    "startMessage": "combat_effects:center_start",
+    "stopMessage": "combat_effects:center_stop",
+    "startFlyText": "combat_effects:center_start_fly",
+    "stopFlyText": "combat_effects:center_stop_fly"
+  },
+  "sourceFiles": {
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "player": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "effectMapping": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+  },
+  "weaponFamilies": [
+    {
+      "type": "WEAPON_TYPE_UNARMED",
+      "durationModifier": "center_of_being_duration_unarmed",
+      "efficacyModifier": "unarmed_center_of_being_efficacy"
+    },
+    {
+      "type": "WEAPON_TYPE_1HAND_MELEE",
+      "durationModifier": "center_of_being_duration_onehandmelee",
+      "efficacyModifier": "onehandmelee_center_of_being_efficacy"
+    },
+    {
+      "type": "WEAPON_TYPE_2HAND_MELEE",
+      "durationModifier": "center_of_being_duration_twohandmelee",
+      "efficacyModifier": "twohandmelee_center_of_being_efficacy"
+    },
+    {
+      "type": "WEAPON_TYPE_POLEARM",
+      "durationModifier": "center_of_being_duration_polearm",
+      "efficacyModifier": "polearm_center_of_being_efficacy"
+    }
+  ],
+  "lifecycle": {
+    "ownership": "combat_brawler_novice grants centerOfBeing and all four novice duration/efficacy modifier pairs",
+    "commandCategory": "combat",
+    "duplicatePolicy": "reject while centerofbeing is already active and send combat_effects:already_centered",
+    "application": "apply visible centerofbeing buff with runtime duration and runtime private_center_of_being value",
+    "defenseConsumer": "the Pre-CU secondary-defense resolver adds private_center_of_being to evade total",
+    "expiry": "native buff removal clears the skill modifier and calls handlePrecuCenterOfBeingExpired",
+    "resourcePolicy": "calculate, admit, and drain the centerOfBeing row's 50-point Action cost directly, without invoking combatStandardAction or applying its NGE fsCenterOfBeing buff"
+  },
+  "clientAssetRequirement": {
+    "buffTable": "datatables/buff/buff.iff",
+    "effectMapping": "datatables/buff/effect_mapping.iff",
+    "iconStyle": "command.centerOfBeing"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlay": "restoration/patches/dsrc/328-p14-center-of-being-lifecycle.patch",
+    "cleanApplyCheck": "passed against a reverse-materialized clean Publish 14 source tree",
+    "reverseApplyCheck": "passed",
+    "javaCompile": "passed; combat_actions.class SHA256 689F6DFCC7FEFDE3820A7CD47C57B601FC7A4998471B836BD55C1C392312A98",
+    "tabCompile": "passed; client buff/effect IFF tests and runtime TRE packaging passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "observedAt": "2026-07-30",
+    "character": "Eteb Eso",
+    "clientExecutableSha256": "00ED2D177CF428316DE1A07317EDD2A7F58686380574DF557EA89C3286F17CA0",
+    "serverClassSha256": "689F6DFCC7FEFDE3820A7CD47C57B601FC7A4998471B836BD55C1C392312A98",
+    "observations": [
+      "Center start system text and green +Centered fly text appeared.",
+      "Only Action drained: the full-width Action fill changed from 229 to 201 pixels while Health and Mind were unchanged, matching the table-driven 50-point cost on the test character.",
+      "The player HAM frame remained 229 pixels wide while Center was active.",
+      "One command.centerOfBeing icon appeared in the dedicated attribute-modifier panel and remained visible for the five-second novice duration.",
+      "Expiry emitted stop text and removed the icon panel cleanly."
+    ]
+  },
+  "commandBrowserDeploymentEvidence": {
+    "capturedAt": "2026-08-09T16:48:34.1172403-04:00",
+    "parentSourceCommit": "33ef3ea71dcc9b5a259388cc61587ba3bcb738c9",
+    "directSourceCommit": "7dab96a595ee5f24166da6241f603e238116d226",
+    "sourceCommandTableSha256": "d8ed8cbb286f5bd7ef698fecb44ca297d93fb4c2e5c7d198bb6de5f73b119c8d",
+    "compiledCommandTableSha256": "15915100ed6eed6de2b05c8c9e3b7e98ce66ce0888daa7a37631230d40c91adb",
+    "compiledCommandTableBytes": 878635,
+    "compiledColumns": 94,
+    "compiledRows": 2096,
+    "compiledParseExact": true,
+    "commandRows": 1,
+    "commandCategory": "combat",
+    "displayGroupCrc": -2083233742,
+    "addToCombatQueue": true,
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-09T20:44:48.985690312Z",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "freshLogLines": 321,
+    "readyMarkers": 1,
+    "suspiciousLogLines": 0,
+    "liveCommandBrowserObservation": "pending user smoke verification",
+    "result": "compiled-and-deployed"
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-combat-routing-closure",
+  "status": "ready",
+  "scope": "Fail closed if any combat action granted by a retained PRE-CU profession family, or referenced by a current NPC combat table, can fall through to the post-NGE combat path instead of the authoritative PRE-CU combat override path.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 combat commands and NPC special attacks are skill- and action-authored; player level and post-NGE profession packages are not their gameplay authority.",
+      "The current server routes PRE-CU attack rows through precu_combat_overrides.tab, whose values feed the restored HAM cost, weapon cadence, primary hit, secondary defense, state, and pool-damage handling.",
+      "Center of Being is the only retained profession command that intersects combat_data.tab without an override row; its authenticated lifecycle is intentionally a direct NON_ATTACK handler with a 50-point Action drain and a visible PRE-CU buff."
+    ]
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 4,
+    "gameplaySourceFiles": 0,
+    "retainedProfessionRoots": 51,
+    "retainedProfessionRows": 945,
+    "retainedUniqueCommands": 773,
+    "retainedCombatActions": 160,
+    "combatOverrideRows": 166,
+    "directLifecycleExceptions": [
+      "centerOfBeing"
+    ],
+    "uncoveredRetainedCombatActions": 0,
+    "npcCombatTables": 14,
+    "npcCombatActions": 111,
+    "uncoveredNpcCombatActions": 0,
+    "centerOfBeingCombatDataHitType": "NON_ATTACK",
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "npcCombatDirectory": "dsrc/sku.0/sys.server/compiled/game/datatables/combat"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "skills": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+      "combatData": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
+      "combatOverrides": "ed4d713f9902f7f3775ef90f6173e0b09b5a35b104d4d9d581b9e942f48cccba",
+      "combatActions": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+      "npcCombatTableSet": "5769a3344b57d53464306230e38394689090d4047df1c8e4912f8d8660a738e2"
+    },
+    "compiledDataSha256": {
+      "skills": "ef6483cd810df8abc837d1b2a3fc39cea968e5ded3d91312b8ae9ec7d08b1dc2",
+      "combatData": "14bb8b3cecb1bc8cd4cb74936cbdf3ac8acae442ad754794a1ac4f1fe8e4d991",
+      "combatOverrides": "fc002fe002096253a497f395f0898e23896c2fe893bdb61e0297ba4d05b695ab",
+      "npcCombatTableSet": "44fafc926294d8a39928dd35b363b3f1ddcfe40980add99271207bf349e0a384"
+    },
+    "compiledClassSha256": {
+      "combatActions": "a50d4207df6b1924f43c01802833133329bfa943e80f7ad4cea99bf43c50f5c2"
+    },
+    "sourceTest": "passed; all 160 retained profession combat actions are covered after the authenticated Center of Being direct-lifecycle exception, and all 111 NPC combat actions are covered",
+    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 1018.5 seconds from pushed parent c2ec662 and direct dsrc b0ee5aa",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for combat routing source/data dependencies between the read-only direct-source mount and Docker work volume",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory parity and bytecode gates, x64 architecture, restart/readiness, mapped-binary verification, and clean log audit",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-09",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledDataPresent": true,
+    "compiledNpcCombatTables": 14,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "combat-path routing coverage for every action currently granted by the 51 retained PRE-CU profession families and every action currently referenced by the 14 NPC combat tables",
+    "preserved": "the authenticated direct Center of Being lifecycle, restored PRE-CU combat math, all retained profession skills, NPC attack selections, later quests, conversations, zones, and content",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-droid-detonation-authority",
+  "status": "ready",
+  "scope": "Make crafted droid detonation use Publish 14.1 module-rating damage, a fixed blast radius, and fixed PvP reduction while removing the victim's NGE combat level from live damage authority.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU crafted droid detonation",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3References": {
+      "detonationModule": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/tangible/components/droid/DroidDetonationModuleDataComponent.cpp",
+      "detonationTask": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/creature/events/DroidDetonationTask.h",
+      "combatManager": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+      "command": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/creature/commands/DetonateDroidCommand.h"
+    },
+    "findings": [
+      "Publish 14.1 computes each detonation from the crafted module rating using a 150 through 200 damage roll per rating point.",
+      "The Publish 14.1 blast searches a fixed 17 meter radius and applies a fixed 25 percent PvP damage multiplier to player defenders.",
+      "Publish 14.1 admission requires the owner to hold Novice Smuggler or Novice Bounty Hunter; the defender's combat level never participates in damage."
+    ]
+  },
+  "diagnosis": {
+    "historicalDirectPlayerLevelReads": 1,
+    "historicalVictimLevelFormula": "getLevel(target) / 90.0",
+    "historicalSharedRangeMutationAcrossTargets": true,
+    "historicalLevelScaledRadiusFormula": "20 + floor(0.3 * bomb level)",
+    "historicalDisplayedDamageRangePerRating": [65, 97]
+  },
+  "expected": {
+    "changedSourceFiles": 4,
+    "directPlayerLevelReads": 0,
+    "moduleDamageMinPerRating": 150,
+    "moduleDamageMaxPerRating": 200,
+    "blastRadiusMeters": 17,
+    "playerDamageMultiplier": 0.25,
+    "displayedDamageMinPerRating": 150,
+    "displayedDamageMaxPerRating": 200,
+    "liveExamineSurfaces": 3,
+    "damageRangeIndependentPerTarget": true,
+    "moduleRatingAndMseBonusRemainAuthoritative": true,
+    "noviceSmugglerOrBountyHunterAdmission": true,
+    "retainedDetonationSchematicTiers": 5,
+    "droidConsumptionAndCombatCreditPreserved": true
+  },
+  "sourceFiles": {
+    "droidBomb": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/droid_bomb.java",
+    "pet": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet.java",
+    "petMaster": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_master.java",
+    "petControlDevice": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java",
+    "droidDeed": "dsrc/sku.0/sys.server/compiled/game/script/npc/pet_deed/droid_deed.java",
+    "petLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pet_lib.java",
+    "detonationModule1": "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/droid/component/shared_detonation_module.tpf",
+    "detonationModule2": "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/droid/component/shared_detonation_module_2.tpf",
+    "detonationModule3": "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/droid/component/shared_detonation_module_3.tpf",
+    "detonationModule4": "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/droid/component/shared_detonation_module_4.tpf",
+    "detonationModule5": "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/droid/component/shared_detonation_module_5.tpf"
+  },
+  "authoredModuleRatingMaxima": [10, 15, 20, 25, 30],
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "droidBomb": "bf497b3aabb3de7d4b81f2a63b75e17008f87712a35f375a5847c89241309a9d",
+      "petControlDevice": "705beb8369583614f29dcc4c5066468537b83f816610957c74871b5f4a8edfbf",
+      "droidDeed": "332ab9fa0a999597c3db52b4da4d39adef4e396589d8e94132a3a0c3002b1810",
+      "petLibrary": "d0b6a03365ed081075590dddb947d29b85ce9bffdad2712e66ef98727b51574b"
+    },
+    "fullJavaCompile": "passed after deleting every compiled Java class and rebuilding the complete dependency closure from pushed direct source; droid_bomb.class emitted 2026-08-04T13:27:19Z",
+    "compiledClassSha256": "9cf0375c0e750916533cc4817eca91be7f51dab579f81b5423d50752c0e3fc65",
+    "compiledDisplayClassSha256": {
+      "pet": "9159523291fe0fdbaadc7c72f48d5a1e2841cafb06315b994809c031276d1ed7",
+      "petControlDevice": "8ebc2be0b7785490041fb0f541f7d31c5bd73d940b3faadd7f90a2e76c64b7f1",
+      "droidDeed": "92e1bbcfb74b36b7543cf7c79ded6fada9b500377bb7f940e22981cfdb054197",
+      "petLibrary": "cf1784c0a9eee69356480766349d5ad5073ff83cbf9afe659bb79a7fe1cb6cce"
+    },
+    "bytecodeAudit": "droid_bomb exposes exact 150/200, 17-meter, and 0.25 PvP constants with zero getLevel; pet has one exact sipush 150 and 200 and zero 65 or 97; control-device and deed bytecode invoke the dependency-safe pet_lib accessors",
+    "fullServerBuild": "passed the canonical mandatory source/data/bytecode/native artifact gates, clean x64 rebuild, controlled restart, and readiness deployment in 1173.1 seconds from pushed direct source 6193173a6e96d395ec3aa43413ab67cde64d8a3a and parent d6c73c8327c80c13959c4569a8f4bbfbd9336dfc",
+    "architecture": "ELF 64-bit LSB x86-64; LoginServer, CentralServer, PlanetServer, SwgDatabaseServer, SwgGameServer, and ConnectionServer verified",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed for droid_bomb.java, pet.java, pet_control_device.java, droid_deed.java, and pet_lib.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "petSha256": "9b241cdb4ea433f0a41999664dc35ff2f3bd0b8996cdb42b9ae1154b28563def",
+    "petMasterSha256": "09e385857c7d429bdc5a638d52afdfbf03e03c1f1e1238a5874cf1a4d7ba07be",
+    "petControlDeviceSha256": "705beb8369583614f29dcc4c5066468537b83f816610957c74871b5f4a8edfbf",
+    "droidDeedSha256": "332ab9fa0a999597c3db52b4da4d39adef4e396589d8e94132a3a0c3002b1810",
+    "petLibrarySha256": "d0b6a03365ed081075590dddb947d29b85ce9bffdad2712e66ef98727b51574b",
+    "detonationModule1Sha256": "5d639b847e3316f9f98ee8e9f3735625f825aea992872536f5bb10f724610d0d",
+    "detonationModule2Sha256": "7395de4bef0cad33bd896209c75b1b37ad1277cd608ef554db9a6cb0cc2220ae",
+    "detonationModule3Sha256": "e17b5809c40c1edab31a701eef62711327bfb1c9cd89597dfd7fced0d805f496",
+    "detonationModule4Sha256": "a9619952dff7dd3903be0296b6f8258d5181058379c162359f1d567bcdfc758e",
+    "detonationModule5Sha256": "634074aaea87be5fa382eb5ef02fc2d841d96283b30e7c22b90f72f267f1163d"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-09",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 5,
+    "compiledClassPresent": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, database-conversion, segmentation-fault, or core-dump matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "live crafted-droid explosion damage, radius, and examine-display authority, including victim-level scaling, cross-target range mutation, and the stale 65-97 display range",
+    "preserved": "crafted module ratings and bonuses, PRE-CU Novice Smuggler/Bounty Hunter admission, ownership and warmup checks, countdown, armor processing, PvP notification, hate, XP and damage credit, control-device consumption, and all five retained module schematics",
+    "notClaimedComplete": "other dormant later combat mechanics and remaining non-player creature-level compatibility code remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

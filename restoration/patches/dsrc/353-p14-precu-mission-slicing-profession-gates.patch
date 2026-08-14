@@ -1,0 +1,171 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java
+@@ -32,7 +32,7 @@ public class mission_terminal extends script.base_script
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+     {
+         int mnu = -1;
+-        if (hasSkill(player, "class_smuggler_phase1_novice"))
++        if (hasSkill(player, "combat_smuggler_slicing_01"))
+         {
+             mi.addRootMenu(menu_info_types.SERVER_MENU2, SID_SLICE);
+         }
+@@ -54,7 +54,7 @@ public class mission_terminal extends script.base_script
+         }
+         else if (item == menu_info_types.SERVER_MENU2)
+         {
+-            if (!hasSkill(player, "class_smuggler_phase1_novice"))
++            if (!hasSkill(player, "combat_smuggler_slicing_01"))
+             {
+                 return SCRIPT_CONTINUE;
+             }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
+@@ -70,7 +70,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+         }
+         if (hasObjVar(objMissionTerminal, "intBounty"))
+         {
+-            if (!hasSkill(self, "class_bountyhunter_phase1_novice"))
++            if (!hasSkill(self, "combat_bountyhunter_novice"))
+             {
+                 string_id strSpam = new string_id("mission/mission_generic", "not_bounty_hunter_terminal");
+                 sendSystemMessage(self, strSpam);
+@@ -817,7 +817,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+     public int informantComm(obj_id self, dictionary params) throws InterruptedException
+     {
+         obj_id player = self;
+-        if (!hasSkill(player, "class_bountyhunter_phase1_novice"))
++        if (!hasSkill(player, "combat_bountyhunter_novice"))
+         {
+             return SCRIPT_CONTINUE;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_droid_terminal.java b/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_droid_terminal.java
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_droid_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_droid_terminal.java
+@@ -20,7 +20,7 @@ public class mission_bounty_droid_terminal extends script.systems.missions.base.
+     {
+         if (item == menu_info_types.SERVER_PROBE_DROID_BUY)
+         {
+-            if (!hasSkill(player, "class_bountyhunter_phase1_novice"))
++            if (!hasSkill(player, "combat_bountyhunter_novice"))
+             {
+                 string_id strSpam = new string_id("mission/mission_generic", "not_bounty_hunter_terminal");
+                 sendSystemMessage(self, strSpam);
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_informant.java b/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_informant.java
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_informant.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_bounty_informant.java
+@@ -31,7 +31,7 @@ public class mission_bounty_informant extends script.systems.missions.base.missi
+     }
+     public int OnStartNpcConversation(obj_id self, obj_id speaker) throws InterruptedException
+     {
+-        if (!hasSkill(speaker, "class_bountyhunter_phase1_novice"))
++        if (!hasSkill(speaker, "combat_bountyhunter_novice"))
+         {
+             doAnimationAction(self, anims.PLAYER_RUB_CHIN_THOUGHTFUL);
+             string_id strResponse = new string_id("mission/mission_generic", "informant_not_bounty_hunter");
+diff --git a/sku.0/sys.server/compiled/game/script/library/slicing.java b/sku.0/sys.server/compiled/game/script/library/slicing.java
+--- a/sku.0/sys.server/compiled/game/script/library/slicing.java
++++ b/sku.0/sys.server/compiled/game/script/library/slicing.java
+@@ -95,7 +95,7 @@ public class slicing extends script.base_script
+         int skillMod = getSkillStatisticModifier(player, "slice_" + query);
+         if (skillMod == 0)
+         {
+-            if (hasSkill(player, "class_smuggler_phase1_novice"))
++            if (hasSkill(player, "combat_smuggler_novice"))
+             {
+                 successSlicing(player, item, 0);
+                 return;
+diff --git a/sku.0/sys.server/compiled/game/script/item/container/locked_slicable.java b/sku.0/sys.server/compiled/game/script/item/container/locked_slicable.java
+--- a/sku.0/sys.server/compiled/game/script/item/container/locked_slicable.java
++++ b/sku.0/sys.server/compiled/game/script/item/container/locked_slicable.java
+@@ -28,7 +28,7 @@ public class locked_slicable extends script.base_script
+     }
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+     {
+-        if (hasSkill(player, "class_smuggler_phase1_novice") && hasObjVar(self, "slicing.locked"))
++        if (hasSkill(player, "combat_smuggler_novice") && hasObjVar(self, "slicing.locked"))
+         {
+             if (!hasObjVar(self, "loot_crate"))
+             {
+@@ -62,7 +62,7 @@ public class locked_slicable extends script.base_script
+                     return SCRIPT_CONTINUE;
+                 }
+             }
+-            if (!hasSkill(player, "class_smuggler_phase1_novice") || !hasObjVar(self, "slicing.locked"))
++            if (!hasSkill(player, "combat_smuggler_novice") || !hasObjVar(self, "slicing.locked"))
+             {
+                 return SCRIPT_CONTINUE;
+             }
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/keypad_handler.java b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/keypad_handler.java
+--- a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/keypad_handler.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/keypad_handler.java
+@@ -132,7 +132,7 @@ public class keypad_handler extends script.base_script
+     public boolean hasSlicingSkill(obj_id player) throws InterruptedException
+     {
+         boolean hadIt = false;
+-        if (hasSkill(player, "class_smuggler_phase1_novice"))
++        if (hasSkill(player, "combat_smuggler_slicing_01"))
+         {
+             hadIt = true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/geonosian_madbio_bunker/office_keypad.java b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/geonosian_madbio_bunker/office_keypad.java
+--- a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/geonosian_madbio_bunker/office_keypad.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/geonosian_madbio_bunker/office_keypad.java
+@@ -130,7 +130,7 @@ public class office_keypad extends script.base_script
+     public boolean hasSlicingSkill(obj_id player) throws InterruptedException
+     {
+         boolean hadIt = false;
+-        if (hasSkill(player, "class_smuggler_phase1_novice"))
++        if (hasSkill(player, "combat_smuggler_slicing_01"))
+         {
+             hadIt = true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/corvette/computer.java b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/corvette/computer.java
+--- a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/corvette/computer.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/corvette/computer.java
+@@ -256,36 +256,32 @@ public class computer extends script.terminal.base.base_terminal
+     public int checkForSlicing(obj_id player) throws InterruptedException
+     {
+         int slicability = 0;
+-        if (!hasSkill(player, "class_smuggler_phase1_novice"))
++        if (!hasSkill(player, "combat_smuggler_slicing_01"))
+         {
+             return slicability;
+         }
+         else 
+         {
+-            if (hasSkill(player, "class_smuggler_phase1_novice"))
++            if (hasSkill(player, "combat_smuggler_slicing_01"))
+             {
+                 slicability = slicability + 1;
+             }
+-            if (hasSkill(player, "class_smuggler_phase1_master"))
++            if (hasSkill(player, "combat_smuggler_slicing_02"))
+             {
+                 slicability = slicability + 1;
+             }
+-            if (hasSkill(player, "class_smuggler_phase2_novice"))
++            if (hasSkill(player, "combat_smuggler_slicing_03"))
+             {
+-                slicability = slicability + 1;
++                slicability = slicability + 2;
+             }
+-            if (hasSkill(player, "class_smuggler_phase3_novice"))
++            if (hasSkill(player, "combat_smuggler_slicing_04"))
+             {
+-                slicability = slicability + 1;
++                slicability = slicability + 2;
+             }
+-            if (hasSkill(player, "class_smuggler_phase3_novice"))
++            if (hasSkill(player, "combat_smuggler_master"))
+             {
+                 slicability = slicability + 1;
+             }
+-            if (hasSkill(player, "class_smuggler_phase4_novice"))
+-            {
+-                slicability = slicability + 2;
+-            }
+         }
+         return slicability;
+     }

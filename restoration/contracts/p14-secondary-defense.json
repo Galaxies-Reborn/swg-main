@@ -3,6 +3,15 @@
   "feature": "precu-secondary-defense",
   "status": "ready",
   "scope": "Fail-closed Core3 block, dodge, counter, and lightsaber ricochet resolution for authenticated Pre-CU rifle attacks against exact CDEF-rifle, player-unarmed, and standardized lightsaber defender paths.",
+  "supersededBy": "p14-core3-hit-resolution-closure",
+  "currentAuthority": {
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "weaponCatalog": "342 exact profiles plus 13 deterministic weapon-family profiles",
+    "missingHeldWeapon": "resolve the current weapon or default unarmed weapon",
+    "profileLookup": "exact template, then deterministic weapon-family profile",
+    "playerLevelContribution": 0,
+    "fallback": "Authenticated PRE-CU attacks fail closed to a normal hit for an impossible missing family/profile or unknown secondary result; only non-authenticated later-content actions use the inherited result tables."
+  },
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
@@ -49,7 +58,7 @@
   ],
   "equation": {
     "precondition": "authenticated Core3 primary result is HIT",
-    "evadeSkill": "min(defender level + secondary skill + private secondary skill, 125)",
+    "evadeSkill": "min(secondary skill + private secondary skill, 125); player and NPC level contribute zero",
     "evadeTotal": "evadeSkill + private_center_of_being + target posture defense",
     "success": "attacker accuracy total + random(1..500) <= evadeTotal + random(1..200)",
     "suppressedWhen": [
@@ -74,9 +83,9 @@
     "eachUnarmedOutcomeChance": 0.031053333333333334
   },
   "fallbackPolicy": {
-    "missingDefenderWeapon": "complete NGE attacker and defender result path",
-    "missingExactDefenderProfile": "complete NGE attacker and defender result path when the authenticated primary roll hits",
-    "unknownSecondaryResult": "complete NGE attacker and defender result path",
+    "missingDefenderWeapon": "resolve current/default unarmed weapon and deterministic family profile; authenticated attacks fail closed to hit if profile data is unavailable",
+    "missingExactDefenderProfile": "use deterministic family profile; authenticated attacks fail closed to hit if profile data is unavailable",
+    "unknownSecondaryResult": "authenticated attacks fail closed to hit",
     "primaryMiss": "retain the authenticated Core3 miss without consulting a secondary profile",
     "reason": "A Core3 primary hit must never be blended with the NGE defender table."
   },

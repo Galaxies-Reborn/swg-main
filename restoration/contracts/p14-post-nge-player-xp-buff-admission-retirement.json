@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-player-xp-buff-admission-retirement",
+  "status": "ready",
+  "scope": "Retire the complete seven-row retained post-NGE player XP-bonus buff family at generic admission, refresh, persistence, and login cleanup so later reward chips, holiday food, and ordinary food cannot create effectless status icons or consume themselves for a retired progression modifier, while retaining every item, reward, quest, food, vendor, template, appearance, string, and non-player compatibility asset.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "The pinned Publish 14.1 Core3 tree contains none of the seven retained XP-bonus buff names, the xp_bonus_general effect, the xpBonusGeneral handler, cybernetic or buddy XP chips, Love Day Camby berries, Empire Day faction foods, Corellian fried-ice-cream XP bonus, or Meatlump wine XP bonus. These rows use later generic combat-level/class-era progression authority rather than explicit PRE-CU skill XP pools.",
+    "retainedBoundary": "All seven buff rows and their item, reward, food, quest, event, vendor, template, appearance, animation, client-effect, and string data remain loadable. Player admission returns false before buff persistence, item decrement, status-icon creation, movement bonus, or refresh; stale instances are removed on the existing login cleanup path."
+  },
+  "inventory": {
+    "retiredBuffs": [
+      "buddy_xp_buff",
+      "event_ewok_berry",
+      "event_imperial_cookies",
+      "event_rebel_drink",
+      "ice_cream_xp_bonus",
+      "mtp_meatlump_wine_xp_buff",
+      "vet_exp_buff_item_buff"
+    ],
+    "effect": "xp_bonus_general",
+    "handler": "xpBonusGeneral",
+    "retainedItemStatConsumers": [
+      "item_cs_exp_buff_item_03_01",
+      "item_event_ewok_berry_01_02",
+      "item_event_imperial_cookies_01_01",
+      "item_event_rebel_drink_01_01",
+      "item_ice_cream_buff_xp_bonus_01_01",
+      "item_reward_buddy_xp_chip_06_01",
+      "item_vet_exp_buff_item_03_01"
+    ],
+    "retainedVendorConsumers": [
+      "datatables/item/vendor/imperial_emperorsday_stuff.tab:item_event_imperial_cookies_01_01",
+      "datatables/item/vendor/loveday_stuff.tab:item_event_ewok_berry_01_01",
+      "datatables/item/vendor/rebel_emperorsday_stuff.tab:item_event_rebel_drink_01_01"
+    ],
+    "retainedTemplateConsumer": "object/tangible/food/mtp_meatlump_xp_wine.iff"
+  },
+  "expected": {
+    "retiredBuffRows": 7,
+    "retiredEffectMappings": 1,
+    "retainedItemStatConsumers": 7,
+    "retainedMasterItemConsumers": 8,
+    "retainedVendorConsumers": 3,
+    "retainedVeteranRewardRows": 1,
+    "retainedTemplateConsumers": 1,
+    "genericPlayerAdmissionReachable": false,
+    "refreshReadmissionReachable": false,
+    "persistedPlayerBuffStateRemoved": true,
+    "emptyStatusIconReachable": false,
+    "itemConsumptionAfterRejectedAdmission": false,
+    "preCuExplicitSkillXpAffected": false,
+    "retainedExpansionContentAffected": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; no host artifact, staging, generated overlay, or duplicate source tree",
+    "sourceSha256": {
+      "library/buff.java": "c05ffc14396a3991e45feae1ce32fbb0d89f921a4e9a014a43646cb88e8fd418",
+      "datatables/buff/buff.tab": "ba786e08cafac4f027d5cb93102eaaeb3b66e2bd59543187ef5fb55ba50cce2d",
+      "datatables/buff/effect_mapping.tab": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
+      "datatables/item/master_item/item_stats.tab": "e83dc1529cafd1a3fb0b4f1d8aa6be6090374cd2a632779e41b460a037ea0a93",
+      "datatables/item/master_item/master_item.tab": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+      "datatables/veteran_rewards/items.tab": "1e2831edfa1473b4647067c75ba2fa765e44bbb400188d5888a76c193b84063b",
+      "datatables/item/vendor/imperial_emperorsday_stuff.tab": "d71780a79b0aa8600b70d9d5056e8d404482c3f5ae59a6aab07b9f810e36c38a",
+      "datatables/item/vendor/loveday_stuff.tab": "cede274d2eec41d41a4858dd6eef5882fe6f25e22804df51d20fd2a6fc4278a1",
+      "datatables/item/vendor/rebel_emperorsday_stuff.tab": "57871506ba7c20b61a918b941e86c3b0532246c22f829616010a99e93e606a16",
+      "object/tangible/food/mtp_meatlump_xp_wine.tpf": "0e79bd903fd4547ff1ac6bb80bbc156556a30d81db1db81f3b2f42f05010783b"
+    },
+    "focusedJavaCompile": "passed for library.buff with Java 8 source/target against the canonical deployed x64 classpath in an ephemeral /dev/shm directory removed immediately",
+    "focusedClassSha256": {
+      "library/buff.class": "8d2f5bf2de4648d8243bd093c2b9c99afd358fd693b1c189c49db0a20dd09316"
+    },
+    "focusedClassBytes": {
+      "library/buff.class": 93767
+    },
+    "fullServerBuild": "passed: canonical clean x86-64 deployment completed in 938.5 seconds from parent f870c6d8e9131424af24c8ede010c8de1f27d47b and dsrc f94b43ee626204dd3b4a21fe1c209709b59a7288",
+    "deployedParentCommit": "947369e56bb65d50793e4b3df9af1e7fe439a928",
+    "deployedDsrcCommit": "93878e4b3350f1e9391cd2bde25b3727243b6608",
+    "deployedJavaSources": 5717,
+    "deployedJavaClasses": 5751,
+    "sourceWorkParity": "passed byte-for-byte for library/buff.java between the read-only direct-source mount and canonical Docker work tree at SHA-256 c05ffc14396a3991e45feae1ce32fbb0d89f921a4e9a014a43646cb88e8fd418",
+    "deployedClassSha256": {
+      "library/buff.class": "dfd025a330cb282f01baa6e5c43692c9a5f26adfe1780f470f1902b13a9e3e63"
+    },
+    "deployedClassBytes": {
+      "library/buff.class": 94771
+    },
+    "deployedBytecodeAudit": "passed: deployed bytecode contains the exact seven retired xp_bonus_general rows and the separate exact seven-name retained TCG XP-bonus family; both player-only predicates delegate to exact-name inventories, stale-state cleanup removes matching buffs and state, central login cleanup invokes both, and generic admission rejects both before hasBuff and mutation",
+    "serverBinary": {
+      "path": "/swg-precu/build/bin/SwgGameServer",
+      "format": "ELF 64-bit LSB x86-64",
+      "sha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
+      "bytes": 22587592,
+      "inode": 12141854,
+      "buildId": "186028aec5352e367a12a74626984a4a5a7aeeb1"
+    },
+    "serverGameArchive": {
+      "path": "/swg-precu/build/engine/server/library/serverGame/src/libserverGame.a",
+      "sha256": "db86201560944ce97864f3010c7abd7f74eb771e2908ddd10a76802ec42aad52",
+      "bytes": 32651496,
+      "inode": 11801721
+    },
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "startedAt": "2026-08-09T09:42:53.440758455Z",
+    "state": "running",
+    "health": "healthy",
+    "serverHealthy": true,
+    "clusterReadyForPlayers": true,
+    "playerReadyMarkers": 1,
+    "freshLogLines": 357,
+    "freshJavaErrors": 0,
+    "freshArenaWarnings": 0,
+    "prohibitedFreshLogSignatures": 0,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "LogServer": 1,
+      "ConnectionServer": 1,
+      "DatabaseServer": 1,
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CommoditiesServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "GameServer": 15
+    },
+    "gameServerBinaryAuthentication": "all 15 live game-server processes map /swg-precu/build/bin/SwgGameServer; 30 executable/shared-object map entries total and zero unmapped processes",
+    "devShmEntries": 0
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete seven-row xp_bonus_general player-buff family across generic admission, direct application, refresh, persistence, empty status-icon creation, stale script-variable state, movement bonus, and item-consumption gating",
+    "preserved": "explicit PRE-CU skill XP pools, ordinary XP grants, retained reward chips, holiday foods and vendors, Meatlump content, veteran rewards, item/template data, appearances, strings, quests, zones, and non-player compatibility",
+    "notClaimedComplete": "the broader PRE-CU precedence discovery audit remains active; one manual client presentation check remains for Center of Being command-browser placement"
+  },
+  "requiredBeforeReady": []
+}

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-droid-combat-module-runtime-retirement",
+  "status": "ready",
+  "scope": "Retire the six tiered post-NGE droid combat-module families for players and player-owned droids while preserving Publish 14.1 droid controls, Detonate Droid, JTL flight-computer programming, module data/assets, and non-player expansion droid behavior. Close the complete OnCommitDroidProgramCommands callback inventory so the retained JTL listener cannot be confused with retired ground-combat modules.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "Pinned Publish 14.1 Core3 contains the classic droid command lifecycle and Detonate Droid but none of the flame-jet, droideka-shield, battery-dump, regenerative-plating, electrical-shock, or torturous-needle command/module families.",
+    "jtlDroidProgrammingSource": "MMOCoreORB/src/server/zone/ZonePacketHandler.cpp registers DroidCommandProgrammingCallback as a space callback at controller message 0x435.",
+    "retainedContentBoundary": "Later command, combat, buff, crafting, examine, visual, and encounter data remain loadable; only player runtime authority is denied. JTL droid flight-computer programming remains active."
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnCommitDroidProgramCommands\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 2,
+    "productionJtlHandlers": 1,
+    "guardedDeveloperHandlers": 1,
+    "inventorySha256": "dfcd8be344418f35b410fcf3093941d884c0d2fb33c686d36c3a859cd585f58c",
+    "sourceSetSha256": "15c0b2e3397d32796e8fdfbed57cc6247a5ce482b1c50ddae3f93017d7ed8f6a",
+    "sourcePaths": [
+      "space/combat/combat_ship_player.java",
+      "test/esebesta_test.java"
+    ]
+  },
+  "expected": {
+    "authoritativeSourceFiles": 7,
+    "retiredPlayerActions": 18,
+    "retiredServerActions": 15,
+    "retiredPersistentBuffs": 3,
+    "directPlayerWrappers": 18,
+    "retainedCommandRows": 33,
+    "retainedCombatRows": 33,
+    "retainedShieldBuffRows": 3,
+    "classicDroidCommands": 16,
+    "detonateDroidRows": 1,
+    "droidProgrammingCallbacks": 2,
+    "droidProgrammingProductionJtlCallbacks": 1,
+    "droidProgrammingGuardedDeveloperCallbacks": 1,
+    "droidProgrammingGroundCombatMutations": 0,
+    "droidProgrammingJtlModuleWrites": 3,
+    "developerDroidProgrammingSelfDetachGuards": 1,
+    "playerOwnedRuntimeFailsClosed": true,
+    "nonPlayerExpansionCompatibilityPreserved": true,
+    "classicDroidControlsPreserved": true,
+    "precuDroidDetonationPreserved": true,
+    "precuJtlDroidProgrammingPreserved": true,
+    "laterDataAndAssetsPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "library/pet_lib.java": "d0b6a03365ed081075590dddb947d29b85ce9bffdad2712e66ef98727b51574b",
+      "systems/combat/combat_base.java": "153647766c1aa03beeeaa351e83a7b4ec3c9295fe1ca6afd261fa2f03877500a",
+      "player/base/base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "systems/combat/combat_actions.java": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+      "command/command_table.tab": "2349ca3f4db04568e4d57d34d5512a440fe74f6a5072f14f485a980ba95fc7de",
+      "combat/combat_data.tab": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
+      "buff/buff.tab": "ba786e08cafac4f027d5cb93102eaaeb3b66e2bd59543187ef5fb55ba50cce2d"
+    },
+    "supportingSourceSha256": {
+      "space/combat/combat_ship_player.java": "0cbe62c29eb441b7b4ae1811213901691d5ad783edf79be6b83943e42abc3b7d",
+      "test/esebesta_test.java": "75bca6e2160651a790fb82939057bfccec58bc1219a15963babc1591e33c1b35",
+      "player/live_conversions.java": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e"
+    },
+    "focusedJavaCompile": "passed OpenJDK 11 Java 8-target compilation of pet_lib.java, combat_base.java, and base_player.java against the deployed x64 class tree in an isolated /dev/shm directory that was removed immediately",
+    "fullJavaCompile": "passed canonical exact zero-class dependency rebuild; 5713 Java sources produced 5747 class files under OpenJDK 11",
+    "fullServerBuild": "passed the canonical mandatory source/data/bytecode/native artifact gates, clean x64 rebuild, controlled restart, and readiness deployment in 1173.1 seconds from pushed parent d6c73c8327c80c13959c4569a8f4bbfbd9336dfc, direct source 6193173a6e96d395ec3aa43413ab67cde64d8a3a, and native source 3f530f88a1b904d349cc08bced37e84d57df1e4d",
+    "compiledClassSha256": {
+      "library/pet_lib.class": "cf1784c0a9eee69356480766349d5ad5073ff83cbf9afe659bb79a7fe1cb6cce",
+      "systems/combat/combat_base.class": "fe60a92cc6cb0f61f8a58d645352e472594a239f600d19aed166ed3a3c6daa9b",
+      "player/base/base_player.class": "ddc9b56f176b6505f9b65d96b32dcafb541fd099fa0c046d54bfef6075f4af23"
+    },
+    "architecture": "ELF 64-bit LSB shared object, x86-64; all 15 live SwgGameServer processes map the authenticated build binary",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "serverGameArchiveSha256": "9981b9fa6556c67cfb3b848968472e660223f2389d77504c79f95fa8d31c390e",
+    "sourceWorkParity": "passed byte-for-byte for all seven authoritative sources between the read-only direct source mount and writable Docker work volume",
+    "bytecodeAudit": "passed player lifecycle cleanup, exact player/server/buff inventories, direct-wrapper centralization, player-owned standard-action denial, retained tier-3 server and shield identifiers, and PRE-CU Detonate Droid bytecode gates",
+    "deploymentProbe": "passed cumulative PRE-CU source/data/bytecode gates, clean x64 build, restart/readiness, empty /dev/shm, clean fresh logs, and 15/15 live mapped-game-process verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-08",
+    "container": "swg-precu",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source (read-only)",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "deployedParentCommit": "27e20c54313b66a2c163bcf6dc3f9258f555f145",
+    "deployedDirectSourceCommit": "9ddd463d0effcadb33c60c7b27b26cd568192e8a",
+    "deployedNativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "compiledClassSizes": {
+      "library/pet_lib.class": 119873,
+      "systems/combat/combat_base.class": 153780,
+      "player/base/base_player.class": 323427
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveGameProcessCount": 15,
+    "liveGameProcessesMappedBuiltBinary": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 30,
+    "devShmResidueEntries": 0,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "LogServer": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CommoditiesServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}

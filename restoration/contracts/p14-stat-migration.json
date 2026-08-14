@@ -46,10 +46,14 @@
   "sourceFiles": {
     "commandCpp": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp",
     "commandHeader": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h",
+    "scriptMethodsAttributes": "src/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp",
+    "baseClass": "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
     "playerController": "src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp",
     "imageDesignerManager": "src/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp",
     "imageDesignerNative": "src/engine/server/library/serverScript/src/shared/ScriptMethodsImageDesign.cpp",
     "sharedImageDesigner": "src/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp",
+    "playerImageDesigner": "dsrc/sku.0/sys.server/compiled/game/script/systems/image_designer/player_image_designer.java",
     "imageDesignerWireMessage": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/ImageDesignChangeMessage.cpp",
     "imageDesignerScript": "dsrc/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java",
     "newbieTutorial": "src/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp",
@@ -63,7 +67,11 @@
   "commitBoundaries": {
     "tutorial": "Validated targets are applied immediately and consumed once while either authoritative fresh-character tutorial marker remains present, covering both full and skipped starting halls without a tent.",
     "firstPlanet": "The full and skipped tutorial flows retire their markers at confirmed normal-world handoff; returning to the tutorial scene later does not restore free migration.",
-    "normalWorld": "Validated targets remain server-owned until an authenticated, non-self entertainer with the imagedesign command commits them while both players remain in the original salon-marked structure."
+    "normalWorld": "Validated targets remain server-owned until an authenticated, non-self entertainer with the imagedesign command commits them while both players remain in the same permanent salon or entertainment-module camp."
+  },
+  "venueAdmission": {
+    "permanentSalon": "The exact session terminal has the salon object variable and remains the topmost container for both players.",
+    "entertainerTent": "The exact session terminal has modules.entertainer and its campsite trigger volume still contains both players at validation and commit time."
   },
   "imageDesignerCommit": {
     "designType": "DT_STAT_MIGRATION",
@@ -75,7 +83,7 @@
       "designer and recipient are distinct",
       "designer retains the imagedesign command",
       "recipient is no longer in the fresh-character tutorial lifecycle",
-      "both participants remain in the original server-verified salon structure",
+      "both participants remain in the original server-verified salon structure or entertainment-module campsite trigger volume",
       "recipient has a valid zero-points-left nine-stat allocation"
     ],
     "consumption": "The allocation is revalidated immediately before mutation and erased after one successful commit.",
@@ -93,8 +101,17 @@
     "consumption": "A committing marker is persisted before mutation; successful tutorial and salon commits remove the complete record.",
     "failurePolicy": "Partial, invalid, or interrupted-commit records fail closed and are never replayed."
   },
+  "ctsAllocation": {
+    "version": 1,
+    "versionKey": "precuCtsStatAllocationVersion",
+    "allocationKey": "precuCtsStatAllocation",
+    "attributeCount": 9,
+    "pendingMigrationPolicy": "reject-transfer",
+    "source": "validated unmodified maximum attributes in canonical nine-attribute order",
+    "destination": "one native validation and application call before transfer flags or any skill, XP, quest, credit, waypoint, or item replay"
+  },
   "knownLimitations": {
-    "imageDesignerCommit": "Restored for authenticated normal-world salon transactions.",
+    "imageDesignerCommit": "Restored for authenticated normal-world salon and entertainment-module camp transactions.",
     "sessionPersistence": "Validated pending allocations survive a graceful game-server restart; an interruption after the committing marker is written fails closed rather than replaying the service."
   }
 }

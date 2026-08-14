@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-trap-admission-authority",
+  "status": "ready",
+  "scope": "Require the Publish 14.1 Novice Scout skill box as well as a positive trapping modifier for ordinary trap radial use, preventing passive Wookiee and Sullustan racial trapping bonuses from granting the Scout trap ability while preserving trap targeting, queuing, consumption, and experience behavior.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/creature/commands/ThrowTrapCommand.h",
+    "findings": [
+      "The pinned Publish 14.1 implementation rejects trap use when trapping is below one or the player lacks outdoors_scout_novice.",
+      "The authenticated PRE-CU skill table grants both trapping and novice trap schematics from outdoors_scout_novice.",
+      "Wookiee and Sullustan passive species rows intentionally retain trapping bonuses, but those modifiers are bonuses to learned trapping rather than grants of the Novice Scout trap ability."
+    ]
+  },
+  "diagnosis": {
+    "productionEntryPoint": "item.trap.trap_base.OnObjectMenuSelect",
+    "radialMenuType": "ITEM_USE",
+    "staleAdmissionGate": "skillMod <= 0",
+    "bypassSpecies": ["species_wookiee", "species_sullustan"],
+    "precuSkillAuthority": "outdoors_scout_novice"
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 2,
+    "gameplaySourceFiles": 1,
+    "trappingModifierReadsInAdmission": 1,
+    "noviceScoutSkillChecksInAdmission": 1,
+    "skillModifierOnlyAdmissionChecks": 0,
+    "queueCommandCrc": 88718951,
+    "noviceScoutModifier": "trapping=5",
+    "noviceScoutTrapSchematicGroup": "craftScoutTrapGroupNovice",
+    "passiveTrappingSpecies": {
+      "species_wookiee": "trapping=10",
+      "species_sullustan": "trapping=10"
+    },
+    "speciesNoviceScoutGrants": 0,
+    "preservedTargetRules": [
+      "valid look-at target",
+      "visible target",
+      "living and non-incapacitated monster",
+      "not a pet"
+    ],
+    "preservedTrapLifecycle": [
+      "queued throwTrap command",
+      "stack decrement or object destruction",
+      "target-authored creature difficulty for Scout experience"
+    ],
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "trapBase": "dsrc/sku.0/sys.server/compiled/game/script/item/trap/trap_base.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "trapBase": "2f2b8282b7c59c9820e7dcd20bd0288092ee331a2cf33607bcca5da35ca04da3",
+      "skills": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0"
+    },
+    "compiledClassSha256": {
+      "trapBase": "887097d3005eaa080fe65e423e28cd5146d7ab5ff9e323286c797bead7016b41"
+    },
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and trap_base.class was emitted 2026-08-04T16:17:30Z",
+    "fullServerBuild": "passed in 572.3 seconds from the pushed direct source with all server and data targets completed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte; read-only source mount and writable work-volume SHA-256 are both 2f2b8282b7c59c9820e7dcd20bd0288092ee331a2cf33607bcca5da35ca04da3",
+    "bytecodeAudit": "OnObjectMenuSelect contains exactly one trapping constant, one outdoors_scout_novice constant, one hasSkill call, and one unchanged 88718951 throw-command constant",
+    "deploymentProbe": "passed mandatory source/work parity, cumulative PRE-CU data and bytecode gates, focused trap admission bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassPresent": true,
+    "compiledClassSize": 6951,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the ordinary trap radial path's skill-modifier-only admission bypass",
+    "preserved": "PRE-CU racial trapping bonuses, Novice Scout trap progression, trap target validation, command queuing, item consumption, Scout experience, retained expansion scout devices, and later content",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

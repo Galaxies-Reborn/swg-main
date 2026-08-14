@@ -121,28 +121,30 @@ $secondary = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuSe
 $resultCode = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuSecondaryDefenseResultCode("
 $counter = Get-BracedBlock -Text $combatBase -Signature "public boolean doPrecuCounterAttack("
 $attackerAccuracy = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuAttackerAccuracyTotal("
+$hitEngine = Get-BracedBlock -Text $combatBase -Signature "public hit_result[] runHitEngine(attacker_data attackerData, weapon_data weaponData, defender_data[] defenderData, attacker_results attackerResults, defender_results[] defenderResults, combat_data actionData, boolean isTangibleAttacking, boolean isAutoAiming, int overloadDamage)"
 
 Assert-Contract -Condition (
     $combatEngine.Contains("public boolean precuBlock = false;") -and
     $combatEngine.Contains("public boolean precuCounter = false;") -and
     $combatEngine.Contains("public boolean precuRicochet = false;")) -Name "p14.secondary-defense.hit-result.explicit-flags"
 Assert-Contract -Condition (
-    $combatBase.Contains("if (precuPrimaryResult == HIT_RESULT_HIT)") -and
-    $combatBase.Contains("precuSecondaryResult = getPrecuSecondaryDefenseResult(attackerData, defenderData[i], weaponData, actionData);")) -Name "p14.secondary-defense.integration.after-primary-hit-only"
+    $hitEngine.Contains("if (precuPrimaryResult == HIT_RESULT_HIT)") -and
+    $hitEngine.Contains("precuSecondaryResult = getPrecuSecondaryDefenseResult(")) -Name "p14.secondary-defense.integration.after-primary-hit-only"
 Assert-Contract -Condition (
-    $combatBase.Contains("if (precuSecondaryResult == PRECU_SECONDARY_RESULT_FALLBACK)") -and
-    $combatBase.Contains("precuPrimaryResult = PRECU_PRIMARY_RESULT_FALLBACK;") -and
-    $combatBase.Contains("int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult") -and
-    $combatBase.Contains("int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult")) -Name "p14.secondary-defense.integration.complete-nge-fallback"
+    $hitEngine.Contains("if (precuAuthoritativeAttack)") -and
+    $hitEngine.Contains("precuSecondaryResult = HIT_RESULT_HIT;") -and
+    $hitEngine.Contains("defResult = precuSecondaryResult;") -and
+    $hitEngine.Contains("atkResult = precuPrimaryResult;") -and
+    -not $hitEngine.Contains("precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ?")) -Name "p14.secondary-defense.integration.precu-fails-closed"
 Assert-Contract -Condition (
     $secondary.Contains('getHeldWeapon(defenderData.id)') -and
-    -not $secondary.Contains('getCurrentWeapon(defenderData.id)') -and
-    $secondary.Contains('dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES)') -and
-    ([regex]::Matches($secondary, 'return PRECU_SECONDARY_RESULT_FALLBACK;').Count -ge 4)) -Name "p14.secondary-defense.runtime.exact-defender-profile"
+    $secondary.Contains('getCurrentWeapon(defenderData.id)') -and
+    $secondary.Contains('getPrecuWeaponProfileRow(defenderWeapon)') -and
+    -not $secondary.Contains('FALLBACK_NO_WEAPON')) -Name "p14.secondary-defense.runtime.exact-or-family-defender-profile"
 Assert-Contract -Condition (
-    $secondary.IndexOf('if (jedi.isLightsaber(defenderWeapon))', [StringComparison]::Ordinal) -ge 0 -and
-    $secondary.IndexOf('if (jedi.isLightsaber(defenderWeapon))', [StringComparison]::Ordinal) -lt
-        $secondary.IndexOf('dataTableSearchColumnForString(getTemplateName(defenderWeapon)', [StringComparison]::Ordinal)) -Name "p14.secondary-defense.ricochet.standardized-before-profile-fallback"
+    $secondary.IndexOf('jedi.isLightsaber(defenderWeapon) ||', [StringComparison]::Ordinal) -ge 0 -and
+    $secondary.IndexOf('jedi.isLightsaber(defenderWeapon) ||', [StringComparison]::Ordinal) -lt
+        $secondary.IndexOf('getPrecuWeaponProfileRow(defenderWeapon)', [StringComparison]::Ordinal)) -Name "p14.secondary-defense.ricochet.standardized-before-profile-fallback"
 Assert-Contract -Condition (
     $secondary.Contains('!ai_lib.isTurret(attackerData.id)') -and
     $secondary.Contains('combat.isRangedWeapon(weaponData.weaponType) || combat.isHeavyWeapon(weaponData.weaponType)') -and
@@ -156,13 +158,16 @@ Assert-Contract -Condition (
     $secondary.Contains('getState(defenderData.id, STATE_BERSERK) > 0') -and
     $secondary.Contains('vehicle.isVehicle(defenderData.id)')) -Name "p14.secondary-defense.runtime.core3-state-suppression"
 Assert-Contract -Condition (
-    $secondary.Contains('int evadeSkill = getLevel(defenderData.id);') -and
+    $secondary.Contains('int evadeSkill = 0;') -and
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, secondaryDefenseSkill)') -and
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + secondaryDefenseSkill)') -and
-    $secondary.Contains('if (evadeSkill > 125)')) -Name "p14.secondary-defense.runtime.skill-stack-and-cap"
+    $secondary.Contains('if (evadeSkill > 125)') -and
+    -not $secondary.Contains('getLevel(defenderData.id)') -and
+    [int]$contract.currentAuthority.playerLevelContribution -eq 0) -Name "p14.secondary-defense.runtime.skill-stack-and-cap"
 Assert-Contract -Condition (
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_center_of_being")') -and
-    $secondary.Contains('getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion)')) -Name "p14.secondary-defense.runtime.center-and-posture"
+    $secondary.Contains('getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion)') -and
+    $secondary.Contains('getPrecuMeleeDefenseLocomotionModifier(defenderData.locomotion)')) -Name "p14.secondary-defense.runtime.center-and-posture"
 Assert-Contract -Condition (
     $secondary.Contains('int attackRoll = rand(1, 500);') -and
     $secondary.Contains('int defendRoll = rand(1, 200);') -and

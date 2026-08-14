@@ -1,0 +1,96 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/corpse.java b/sku.0/sys.server/compiled/game/script/library/corpse.java
+--- a/sku.0/sys.server/compiled/game/script/library/corpse.java
++++ b/sku.0/sys.server/compiled/game/script/library/corpse.java
+@@ -17,6 +17,7 @@ public class corpse extends script.base_script
+     public static final String VAR_TIME_CREATED = "create_time";
+     public static final String VAR_HAS_RESOURCE = "hasResource";
+     public static final String VAR_BEEN_HARVESTED = "beenHarvested";
++    public static final String SKILL_NOVICE_SCOUT = "outdoors_scout_novice";
+     public static final String GROUP_CONSENTED = "consented";
+     public static final String DICT_PLAYER_ID = "playerId";
+     public static final String DICT_CORPSE_ID = "corpseId";
+@@ -71,6 +72,7 @@ public class corpse extends script.base_script
+     public static final string_id SID_GROUP_HARVEST_BONUS_SCOUT = new string_id("skl_use", "group_harvest_bonus_scout");
+     public static final string_id SID_GROUP_HARVEST_BONUS_MASTERSCOUT = new string_id("skl_use", "group_harvest_bonus_masterscout");
+     public static final string_id SID_NOTHING_TO_HARVEST = new string_id("skl_use", "nothing_to_harvest");
++    public static final string_id SID_HARVEST_REQUIRES_SCOUT = new string_id("error_message", "harvest_corpse_failed");
+     public static final String DATATABLE_SPECIES = "datatables/mob/creatures.iff";
+     public static final String DATATABLE_COL_HAS_RESOURCE = "hasResources";
+     public static final String DATATABLE_COL_MEAT_AMT = "meat";
+@@ -681,8 +683,21 @@ public class corpse extends script.base_script
+         }
+         return (hasResource(ai_lib.getCreatureName(corpse)) != null);
+     }
++    public static boolean canPlayerHarvestCreature(obj_id player, boolean verbose) throws InterruptedException
++    {
++        boolean allowed = isIdValid(player) && isPlayer(player) && hasSkill(player, SKILL_NOVICE_SCOUT);
++        if (!allowed && verbose && isIdValid(player) && isPlayer(player))
++        {
++            sendSystemMessage(player, SID_HARVEST_REQUIRES_SCOUT);
++        }
++        return allowed;
++    }
+     public static boolean harvestCreatureCorpse(obj_id player, obj_id corpse, String restype) throws InterruptedException
+     {
++        if (!canPlayerHarvestCreature(player, true))
++        {
++            return false;
++        }
+         obj_id pInv = utils.getInventoryContainer(player);
+         obj_id cInv = utils.getInventoryContainer(corpse);
+         if ((pInv == null) || (cInv == null))
+diff --git a/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java b/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
+--- a/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
++++ b/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
+@@ -52,7 +52,7 @@ public class ai_corpse extends script.base_script
+         {
+             if (canOpen)
+             {
+-                if (canHarvest(self, player))
++                if (corpse.canPlayerHarvestCreature(player, false) && canHarvest(self, player))
+                 {
+                     int[] hasResource = getIntArrayObjVar(self, corpse.VAR_HAS_RESOURCE);
+                     if (hasResource != null)
+@@ -192,6 +192,14 @@ public class ai_corpse extends script.base_script
+         {
+             if (canOpen)
+             {
++                boolean harvestMenuItem = item == menu_info_types.SERVER_HARVEST_CORPSE ||
++                    item == menu_info_types.SERVER_MENU5 ||
++                    item == menu_info_types.SERVER_MENU6 ||
++                    item == menu_info_types.SERVER_MENU7;
++                if (harvestMenuItem && !corpse.canPlayerHarvestCreature(player, true))
++                {
++                    return SCRIPT_OVERRIDE;
++                }
+                 if (canHarvest(self, player))
+                 {
+                     if (item == menu_info_types.SERVER_HARVEST_CORPSE)
+diff --git a/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java b/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java
+--- a/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java
++++ b/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java
+@@ -17,6 +17,10 @@ public class outdoorsman extends script.base_script
+     public static final string_id SID_NO_RESOURCE = new string_id("error_message", "no_resource");
+     public int cmdHarvestCorpse(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
++        if (!corpse.canPlayerHarvestCreature(self, true))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (!isIdValid(target) || params == null)
+         {
+             return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -563,10 +563,6 @@ public class combat_base extends script.base_script
+         {
+             setLocation(self, getLocation(target));
+         }
+-        if (!isPlayer(self) && !beast_lib.isBeast(self))
+-        {
+-            setCommandTimerValue(self, TIMER_COOLDOWN, 0.0f);
+-        }
+         if (triggerPetBar)
+         {
+             combat_data cd = combat_engine.getCombatData(actionName);

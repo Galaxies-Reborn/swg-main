@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-heroic-jewelry-weapon-speed-authority",
+  "status": "ready",
+  "scope": "Keep retained heroic jewelry and buff content while limiting gameplay authority to Publish-era skill modifiers, migrating persisted NGE item leaves, and refusing the same six later primary-stat modifiers at the generic buff writer.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3CombatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "core3CombatManagerSha256": "49475952c6a0f54010018a4d2409c1ab1ee2bcaf6cf5384821e09a15330b90d2",
+    "publish12ClientSkillsSha256": "ca5275d226361e8ae9aefe1ccf24c9432f58e5d3bc043bb3217d15674bf17136",
+    "publish12SkillBuffAssets": 23,
+    "findings": [
+      "Publish 14.1 attack cadence sums the weapon template's category speed modifiers plus the authored private and generic melee/ranged speed modifiers; it has no weapon action-cost expertise statistic.",
+      "The authenticated Publish 12 client skill table contains the classic weapon speed families and none of agility_modified, stamina_modified, constitution_modified, precision_modified, strength_modified, or luck_modified; the extracted patch exposes twenty-three classic skill-buff assets and none for those six later primary stats.",
+      "The restored x64 command queue maps the ten retained jewelry categories to their authenticated Publish 14.1 *_speed modifiers and consumes the enhanced modifier in calculatePrecuAttackTime.",
+      "The inherited heroic jewelry generator produced two NGE primary-stat modifiers plus expertise_action_weapon_<type>; those statistics feed later combat mechanics and have no authenticated one-to-one Publish 14.1 jewelry translation.",
+      "All twenty-six jewelry definitions and all seventy-two heroic loot-table placements remain. New items write only one weighted PRE-CU speed modifier, while attach, initialize, and delayed generation remove the exact sixteen legacy NGE leaves without deleting unrelated skillmod leaves or rerolling an already-valid speed modifier."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 2,
+    "heroicJewelryDefinitions": 26,
+    "heroicJewelryScriptBindings": 26,
+    "heroicLootOccurrences": 72,
+    "heroicLootUniqueItems": 26,
+    "generatedModifiersPerItem": 1,
+    "generatedWeaponSpeedModifiers": 10,
+    "generatedWeaponSpeedValue": 2,
+    "legacyNgePrimaryModifiers": 6,
+    "genericBuffPrimaryModifiersRetired": 6,
+    "genericBuffWriterHandlersGuarded": 3,
+    "retainedCreatureMilkModifiers": 3,
+    "remainingGenericPrimaryModifierWriters": 0,
+    "legacyNgeActionModifiers": 10,
+    "legacyMigrationCallSites": 3,
+    "rangedSpeedModifiers": 3,
+    "meleeSpeedModifiers": 4,
+    "lightsaberSpeedModifiers": 3,
+    "rangedWeightMaximum": 57,
+    "lightsaberWeightMinimum": 78,
+    "remainingHeroicNgeWriters": 0,
+    "retainedHeroicContentPreserved": true
+  },
+  "sourceFiles": {
+    "heroicItemScript": "dsrc/sku.0/sys.server/compiled/game/script/item/heroic_random_stat_item.java",
+    "masterItems": "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
+    "heroicDrops": "dsrc/sku.0/sys.server/compiled/game/datatables/loot/loot_items/dungeon/heroic_drops.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
+    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java",
+    "effectMapping": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "heroicItemScript": "5845ed2afb96376bf9e34b3336d481dde34759e7b6b5feb933a09a5805ca63b4",
+      "masterItems": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+      "heroicDrops": "abc93f2e913c1c1ab064bf5d1cb11db582a2dc4df96b2f7bd03e1234a1812db6",
+      "skillTable": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+      "commandQueue": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba",
+      "buffHandler": "83acdb0173e3c543035961ea1a6a12bcc2090e1c5ef76cdcdeaacc8b4fd9e1d0",
+      "effectMapping": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a"
+    },
+    "compiledClassSha256": {
+      "heroicItemScript": "4b4706329d4590d45624e3f6900bda19050b33fb9b88712188b3bb2e0fbc79f5",
+      "buffHandler": "43bdc6a868d547b0f1b00dfc16406821882a2b59a860fcf7ac5bacfe7f36fbd5"
+    },
+    "sourceTest": "passed against current source; heroic item migration and exact-six primary-stat rejection remain intact while the shared handler independently retires persisted NGE Force Sensitive stance/focus and Bounty Hunter shield state for players",
+    "focusedJavaCompile": "passed for current buff.java, buff_handler.java, and base_player.java with Java 8 target in an ephemeral /dev/shm directory removed immediately; heroic item authority remained authenticated",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes",
+    "fullServerBuild": "passed in 858.2 seconds from pushed parent 6a34a830b9407a0137af384373e8f784232f1126 and direct dsrc 0e750f699d681ae9bb20047ed23dedb98921ebe3 with all x64 server and data targets completed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for all seven contract sources between the read-only direct-source mount and Docker work volume",
+    "bytecodeAudit": "passed; heroic item authority and shared handler Force Sensitive invisibility denial remain isolated",
+    "deploymentProbe": "passed direct-source preflight, parity, bytecode, x64, readiness, mapped-binary, and clean-log verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-06",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "heroicItemScript": 4208,
+      "buffHandler": 134585
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 30,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "Retained heroic jewelry no longer writes NGE primary stats or weapon action-cost expertise, and retained buff mappings cannot materialize the same six later primary statistics through the generic writer.",
+    "preserved": "All jewelry templates, names, item-table rows, heroic loot placements, delayed generation, the +2 speed magnitude, the original ranged/melee/lightsaber weighting, existing valid speed rolls, and unrelated skillmod leaves remain unchanged.",
+    "notClaimedComplete": "Other retained content-specific NGE statistic references remain subject to later production-reachability audits."
+  },
+  "requiredBeforeReady": []
+}

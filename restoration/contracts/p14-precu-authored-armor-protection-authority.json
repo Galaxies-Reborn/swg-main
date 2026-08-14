@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-authored-armor-protection-authority",
+  "status": "ready",
+  "scope": "Make authored mob, armor-piece, and pseudo-armor protection authoritative in the live armor recalculation cache, removing inherited NGE expertise, armor-set expertise, overridable protection, and entertainer build-a-buff resistance inputs without changing Publish 14.1 hit-location mitigation.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 combat manager selects the armor object at the resolved hit location and reads that object's authored rating and damage-type resistance.",
+      "Publish 14.1 applies PSG protection before the struck armor object, applies the weapon-versus-armor rating multiplier, and wears armor condition from incoming damage.",
+      "The pinned Publish 14.1 source contains no NGE expertise, armor-set expertise, overridable protection, or entertainer build-a-buff authority.",
+      "The retained armor recalculation helper is production-reachable on login, armor/cybernetic transfer, buff recalculation, faction changes, and battlefield vehicles; PRE-CU profiled creatures instead resolve their armor objvars directly on each hit."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "historicalExecutableNgeProtectionReads": 12,
+    "remainingArmorExpertiseReads": 0,
+    "remainingElementalBuildABuffReads": 0,
+    "qualifiedProductionRecalculationCallSites": 13,
+    "mobBaseProtectionPreserved": true,
+    "weightedArmorPieceProtectionPreserved": true,
+    "armorConditionScalingPreserved": true,
+    "pseudoArmorProtectionPreserved": true,
+    "armorSetTrackingPreserved": true,
+    "precuHitLocationMitigationPreserved": true,
+    "psgBeforeArmorPreserved": true,
+    "authoredRatingAndResistancePreserved": true
+  },
+  "sourceFiles": {
+    "armor": "dsrc/sku.0/sys.server/compiled/game/script/library/armor.java",
+    "combat": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "armor": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
+      "combat": "afe1fdf9e37767bff9cde61faa31e109c79759e917a89b74d9d770ceea8b3dbb"
+    },
+    "compiledClassSha256": {
+      "armor": "63a8c6368f633db2b2bb05a70fb45d4e782c2544896081f5b161520532eb00d2",
+      "combat": "f80271507ca8490d94f42003604a0f622b9d4a5b9b9a1f4dfe99baf342851c9e"
+    },
+    "sourceTest": "passed; all 12 executable NGE expertise, armor-set expertise, overridable protection, and entertainer elemental-resistance reads are retired; authored mob base protection, weighted armor-piece protection, condition scaling, pseudo armor, armor-set tracking, and the Publish 14.1 PSG/hit-location path remain present across 13 production recalculation call sites, while profiled creatures use the direct PRE-CU armor route",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, armor.class was emitted at 2026-08-05T00:24:30.933961919Z, and combat.class was emitted at 2026-08-05T00:24:31.137971499Z",
+    "fullServerBuild": "passed in 645.7 seconds from pushed parent 3f892367 and direct dsrc 688e7626",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for armor.java and combat.java against the read-only direct-source mount",
+    "bytecodeAudit": "passed; armor.class contains no expertise_ or elemental_resistance constants and retains getArmorSpecialProtections/getArmorDecayPercentage, while combat.class retains applyPrecuArmorProtection/getPrecuArmorObjectProtection",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused authored-armor source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "armor": 40379,
+      "combat": 104566
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all executable NGE expertise, armor-set expertise, overridable protection, and entertainer elemental-resistance reads in the live shared armor recalculation library",
+    "preserved": "authored armor-object general and special protections, armor condition scaling, weighted client defense display/cache values, pseudo armor, armor-set identification, PSG selection, Publish 14.1 hit-location mitigation, armor piercing, condition wear, cybernetics, and retained expansion equipment",
+    "notClaimedComplete": "combat outcome expertise, reverse engineering, performance compatibility, buff-handler compatibility, and other content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}

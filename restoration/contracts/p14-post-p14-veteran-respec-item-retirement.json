@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-p14-veteran-respec-item-retirement",
+  "status": "ready",
+  "scope": "Retire the inherited post-Publish-14 veteran profession-respec voucher and respec-counter reset device so retained reward objects cannot expose NGE respec menus, mutate NGE respec state, or consume themselves, while preserving their templates, presentation, veteran-reward rows, and all unrelated veteran rewards.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "The pinned Publish 14.1 Core3 tree retains veteran rewards but contains no profession-respec voucher, character respec-counter reset device, respec_voucher state, respecsBought counter, or profession-template respec gameplay. The inherited voucher is listed as a later 39-month reward and both live scripts mutate the retired NGE respec model.",
+    "retainedBoundary": "The two veteran reward objects, shared/server templates, strings, reward-table rows, appearances, and unrelated veteran rewards remain available as compatibility content. Only their player menu, SUI, destructive consumption, NGE state mutation, and serialized script attachment are retired. PRE-CU skill surrender remains trainer-driven."
+  },
+  "inventory": {
+    "retiredScripts": [
+      "systems.veteran_reward.character_respec_reset_device",
+      "systems.veteran_reward.respec_voucher_deed"
+    ],
+    "retainedTemplates": [
+      "object/tangible/veteran_reward/character_respec_reset_device.iff",
+      "object/tangible/veteran_reward/respec_voucher_deed.iff"
+    ],
+    "retiredPersistedState": [
+      "respecDeviceUsed",
+      "respecsBought",
+      "respec_voucher"
+    ]
+  },
+  "expected": {
+    "retiredScriptFamilies": 2,
+    "lifecycleCleanupEntrypoints": 4,
+    "inertMenuEntrypoints": 4,
+    "inertSuiCallbacks": 1,
+    "retainedTemplateBindings": 2,
+    "retainedVeteranRewardRows": 1,
+    "retainedMasterItemRows": 1,
+    "playerFacingNgeRespecMutationCalls": 0,
+    "destructiveItemConsumptionCalls": 0,
+    "staleMigrationStateCleanupEntries": 3,
+    "unrelatedVeteranRewardsAffected": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; no host artifact, staging, generated overlay, or duplicate source tree",
+    "sourceSha256": {
+      "player/live_conversions.java": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e",
+      "systems/veteran_reward/character_respec_reset_device.java": "cd8dcbfbf6dede7bedcda49da443061a7e44666789287a6428e5ed7eb5b3cbbf",
+      "systems/veteran_reward/respec_voucher_deed.java": "a32d5015eb36777065ef5b8b1d0c5024c9cc40061a87fda7bda44bf7a91350d7",
+      "object/tangible/veteran_reward/character_respec_reset_device.tpf": "9329e6ad2f8322e6bbde340dfc13bd4804a22f7b522ebbb6be57cccad8aadc27",
+      "object/tangible/veteran_reward/respec_voucher_deed.tpf": "a792340f847ac1c3ca881546142a123d185a5a51f017bc5ec549e39fe19f2159",
+      "datatables/veteran_rewards/items.tab": "1e2831edfa1473b4647067c75ba2fa765e44bbb400188d5888a76c193b84063b",
+      "datatables/item/master_item/master_item.tab": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d"
+    },
+    "focusedJavaCompile": "passed for both veteran respec item scripts and player.live_conversions with Java 8 source/target against the canonical deployed x64 classpath in an ephemeral /dev/shm directory removed immediately",
+    "focusedClassSha256": {
+      "player/live_conversions.class": "e5092374a3d52cfc9cb84b494f73b2443631bb78fc628e15528ba0e9bd6d9d25",
+      "systems/veteran_reward/character_respec_reset_device.class": "5023e3df1e3e17eed631b4e68ade3c4b348229cf1ca3fd377bcc6727f066f0fc",
+      "systems/veteran_reward/respec_voucher_deed.class": "116242cbf5a5b23fcb72bdc17635a0fb1643757bcedeb095f29a7c2ca1338784"
+    },
+    "focusedClassBytes": {
+      "player/live_conversions.class": 25957,
+      "systems/veteran_reward/character_respec_reset_device.class": 1302,
+      "systems/veteran_reward/respec_voucher_deed.class": 1848
+    },
+    "fullServerBuild": "passed: canonical clean x86-64 deployment completed in 922.4 seconds from parent 635cdd2163894219ba97bd2029cc64694b979ee2 and dsrc 3a8a34ae29928a975bd8979d5b6ad41f8f3b667e",
+    "deployedParentCommit": "947369e56bb65d50793e4b3df9af1e7fe439a928",
+    "deployedDsrcCommit": "93878e4b3350f1e9391cd2bde25b3727243b6608",
+    "deployedJavaSources": 5717,
+    "deployedJavaClasses": 5751,
+    "sourceWorkParity": "passed byte-for-byte for all three changed Java sources between the read-only direct-source mount and canonical Docker work tree",
+    "deployedClassSha256": {
+      "player/live_conversions.class": "7c3c145b2d3feb5e35064514953fe52cda8df50d841228597d9c9d7a765bdb5f",
+      "systems/veteran_reward/character_respec_reset_device.class": "d4256dc85343d566ec203feb839dbad7cfca3371eee2fce1d9db1484fa220628",
+      "systems/veteran_reward/respec_voucher_deed.class": "b9ea0ea73435e0fe3fea77ad629da98234eca4c9dfcb61116c11755f0b3998b4"
+    },
+    "deployedClassBytes": {
+      "player/live_conversions.class": 30056,
+      "systems/veteran_reward/character_respec_reset_device.class": 1657,
+      "systems/veteran_reward/respec_voucher_deed.class": 2268
+    },
+    "deployedBytecodeAudit": "passed: both retirement predicates compile to constant true; four item-menu callbacks and the voucher SUI callback compile to cleanup call plus return; both classes contain no destroyObject, setObjVar, addRootMenu, or SUI-message-box reference; player.live_conversions removes respecDeviceUsed",
+    "serverBinary": {
+      "path": "/swg-precu/build/bin/SwgGameServer",
+      "format": "ELF 64-bit LSB x86-64",
+      "sha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
+      "bytes": 22587592,
+      "inode": 12141854,
+      "buildId": "186028aec5352e367a12a74626984a4a5a7aeeb1"
+    },
+    "serverGameArchive": {
+      "path": "/swg-precu/build/engine/server/library/serverGame/src/libserverGame.a",
+      "sha256": "db86201560944ce97864f3010c7abd7f74eb771e2908ddd10a76802ec42aad52",
+      "bytes": 32651496,
+      "inode": 11801721
+    },
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "startedAt": "2026-08-09T07:07:46.221679036Z",
+    "state": "running",
+    "health": "healthy",
+    "serverHealthy": true,
+    "clusterReadyForPlayers": true,
+    "playerReadyMarkers": 1,
+    "freshLogLines": 358,
+    "prohibitedFreshLogSignatures": 0,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "LogServer": 1,
+      "ConnectionServer": 1,
+      "DatabaseServer": 1,
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CommoditiesServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "GameServer": 15
+    },
+    "gameServerBinaryAuthentication": "all 15 live game-server processes map /swg-precu/build/bin/SwgGameServer; 30 executable/shared-object map entries total and zero unmapped processes",
+    "devShmEntries": 0
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete player menu, SUI callback, state mutation, destructive item consumption, serialized attachment, and persisted-state cleanup surfaces for the veteran respec voucher and character respec-counter reset device",
+    "preserved": "PRE-CU trainer skill surrender, veteran reward eligibility and claiming, retained reward objects/templates/strings/table rows, cosmetic and utility veteran rewards, expansion content, and administrative compatibility",
+    "notClaimedComplete": "the broader PRE-CU precedence discovery audit remains active; one manual client presentation check remains for Center of Being command-browser placement"
+  },
+  "requiredBeforeReady": []
+}

@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-groundquest-xp-authority",
+  "status": "ready",
+  "scope": "Retain authored later-content ground quests and their level/tier reward table while removing the NGE player-level-derived quest XP cap; PRE-CU XP-type pools and their existing skill-specific limits remain authoritative. Close the complete OnQuestReceivedReward, OnQuestCompleted, and OnQuestCleared callback inventories and prove that their production listeners preserve authored quest content without introducing player level, profession, expertise, roadmap, or skill-template authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/bin/scripts/managers/player_manager.lua",
+      "MMOCoreORB/src/server/zone/objects/player/PlayerObject.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 progression is skill-box and XP-pool based, not driven by an NGE player level table.",
+      "The retained quest_experience table is authored quest content keyed by quest level and reward tier and is preserved.",
+      "The removed helper converted hidden player difficulty back into player_level.iff xp_required rows and capped every quest reward to half of that NGE level delta.",
+      "All retained ground-quest XP routes already enter the PRE-CU combat, crafting, social, or explicit XP grant adapters.",
+      "The shared XP grant and native PlayerObject grantExperiencePoints path enforce the receiving XP pool's skill-derived experience limit.",
+      "The complete Java source tree contains exactly one OnQuestReceivedReward callback. It reads authored quest content, dispatches it through the authenticated ground-quest reward adapter, and records metrics through the PRE-CU skill-difficulty adapter without mutating player level, profession, expertise, or skill template.",
+      "The complete Java source tree contains three OnQuestCompleted listeners: base-player retained-content sequencing, the Mustafar Obi-Wan monitor, and one dormant test listener. The complete OnQuestCleared family is the sole base-player listener. None owns NGE player progression."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnQuestReceivedReward\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 1,
+    "sourceFiles": 1,
+    "productionContentDispatchers": 1,
+    "inventorySha256": "cbc3c379bb456d1d1c73ba832b526886b8dd7fab5d90966b71215ef323e5605f",
+    "sourceSetSha256": "2310549fdf6c7b2d7d9aa1cd5745058b7e8851ffbe73d8f640b69907fc97813d",
+    "sourcePaths": [
+      "player/base/base_player.java"
+    ]
+  },
+  "completionInventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnQuestCompleted\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 3,
+    "sourceFiles": 3,
+    "productionHandlers": 2,
+    "testHandlers": 1,
+    "inventorySha256": "bb0887b88d34853c5eb2b05ff6d72cd89973a5c4ba3612430f87bdbfe16fa355",
+    "sourceSetSha256": "d4e52c88b50bc7ee15498d39151352c7c9972c2d553e0c6db4f5cd93e069c5e5",
+    "sourcePaths": [
+      "player/base/base_player.java",
+      "test/esebesta_test.java",
+      "theme_park/dungeon/mustafar_trials/obiwan_finale/obiwan_quest_monitor.java"
+    ]
+  },
+  "clearInventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnQuestCleared\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 1,
+    "sourceFiles": 1,
+    "productionHandlers": 1,
+    "inventorySha256": "33f48e2839b1cf1148c011f26dcf5fada5b833dfec71910419c04393e33fa304",
+    "sourceSetSha256": "2310549fdf6c7b2d7d9aa1cd5745058b7e8851ffbe73d8f640b69907fc97813d",
+    "sourcePaths": [
+      "player/base/base_player.java"
+    ]
+  },
+  "expected": {
+    "authoredQuestExperienceTableReads": 1,
+    "ngePlayerLevelTableReads": 0,
+    "ngeQuestXpCapHelpers": 0,
+    "groundquestRewardCalculations": 2,
+    "rewardMetricCalculations": 1,
+    "questRewardCallbacks": 1,
+    "questRewardContentDispatches": 1,
+    "questRewardMetricsDispatches": 1,
+    "questRewardNgePlayerProgressionMutations": 0,
+    "questCompletionCallbacks": 3,
+    "questCompletionProductionCallbacks": 2,
+    "questCompletionTestCallbacks": 1,
+    "questClearCallbacks": 1,
+    "questLifecycleNgePlayerProgressionMutations": 0,
+    "nativeQuestLifecycleTriggerRegistrations": 3,
+    "nativeQuestLifecycleDispatchers": 3,
+    "combatXpRoutes": 1,
+    "craftingXpRoutes": 1,
+    "socialXpRoutes": 1,
+    "explicitOtherXpRoutes": 1,
+    "precuXpPoolCapPreserved": true,
+    "nativeXpLimitPreserved": true,
+    "questCreditsItemsFactionAndGcwRewardsPreserved": true,
+    "authoredQuestLevelAndTierPreserved": true,
+    "conditionalQuestChainsPreserved": true,
+    "questCollectionRewardsPreserved": true,
+    "smugglerBountyCleanupPreserved": true,
+    "mustafarObiwanSequencePreserved": true,
+    "authoredQuestClearPenaltiesPreserved": true,
+    "collectionDataGrantDependencyReady": true
+  },
+  "sourceFiles": {
+    "groundquests": "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java",
+    "xp": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "playerObject": "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp",
+    "obiwanMonitor": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/dungeon/mustafar_trials/obiwan_finale/obiwan_quest_monitor.java",
+    "testQuestListener": "dsrc/sku.0/sys.server/compiled/game/script/test/esebesta_test.java",
+    "collection": "dsrc/sku.0/sys.server/compiled/game/script/library/collection.java",
+    "scriptFunctionTable": "src/engine/server/library/serverScript/src/shared/ScriptFunctionTable.cpp"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "groundquests": "17ea0ee5bbd198cf5769c00bc7834045333cce7b2435e87fa4daa6103d3fbc3f",
+      "xp": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a",
+      "basePlayer": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "playerObject": "1339b58e55c2581c669de31122ca60017b851633f77fda2cee876669a883918c",
+      "obiwanMonitor": "1e9246983f2bbd0ff20825a91b181a04720ef5c60e42490edbaa9646437ed151",
+      "testQuestListener": "75bca6e2160651a790fb82939057bfccec58bc1219a15963babc1591e33c1b35",
+      "collection": "a4da8b416f8aaed91e3c8953fb925a6525f6c421c269ff0254a48c2be5393172",
+      "scriptFunctionTable": "646b2b7ac39b4fe8b9af5660a93b0ed2ffff6b86d393a4c9b9db9d4cb83c4053"
+    },
+    "compiledClassSha256": {
+      "groundquests": "6a1ac2f33edf31af724edb38e4db42d194c0afbccb753a79b2b9c78eecd7bedc",
+      "basePlayer": "ddc9b56f176b6505f9b65d96b32dcafb541fd099fa0c046d54bfef6075f4af23",
+      "obiwanMonitor": "0c39f8d05c44b0db03ad2cc8f967bf5ec98e5c75e47462a8d51fd2c52013e292"
+    },
+    "compiledClassBytes": {
+      "groundquests": 56298,
+      "basePlayer": 323427,
+      "obiwanMonitor": 4863
+    },
+    "sourceTest": "passed; retained quest rewards and all four explicit XP routes remain, player_level.iff and getQuestXpCap are absent, all completion/clear callbacks are inventoried, and their production bodies preserve content without owning NGE progression",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5,717 sources produced 5,751 classes in the canonical deployment completed in 708.8 seconds on 2026-08-11",
+    "fullServerBuild": "passed from parent 26f5e73340004121a891238c0a78d9710288e8e8, direct dsrc ebaf48f8f434d18f0c9e0e655b81fc51244bda7d, and native src 1d891e3f7a543872a5518292a4efa6635129c651",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte through the canonical mandatory direct-source/work parity gate for all eight authenticated quest-lifecycle sources",
+    "bytecodeAudit": "groundquests.class retains the authored quest_experience.iff table and explicit PRE-CU XP routes; base_player.class contains the authenticated reward/completion/clear listeners; obiwan_quest_monitor.class retains the Mustafar sequence; class hashes are pinned",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused ground-quest source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-11",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassPresent": true,
+    "compiledClassSize": 56298,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveGameProcessCount": 15,
+    "liveGameProcessesMappedBuiltBinary": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 30,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
+    "clientProcessRequiredForServerReady": false,
+    "hostArtifactOrStagingDirectories": 0,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the active player_level.iff-derived XP cap, the sole OnQuestReceivedReward listener, all three OnQuestCompleted listeners, the sole OnQuestCleared listener, and their native registrations and dispatch paths",
+    "preserved": "authored later-era quests and zones, quest level/tier reward lookup, explicit XP-type routing, XP-pool limits, credits, items, faction standing, independent retained GCW rewards, conditional quest chains, collection rewards, Mustafar Obi-Wan sequencing, bounty cleanup, authored clear penalties, and metrics",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

@@ -13,6 +13,18 @@ $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json"
 $contract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14CommandDuration)) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 
+if ($null -ne $contract.runtimeSupersession)
+{
+    if ([string]$contract.runtimeSupersession.contract -cne "p14-authoritative-weapon-speeds.json")
+    {
+        throw "Unexpected command-duration runtime supersession contract: $($contract.runtimeSupersession.contract)"
+    }
+
+    & (Join-Path $PSScriptRoot "Test-P14AuthoritativeWeaponSpeeds.ps1") -SourceRoot $source
+    Write-Host "Legacy opt-in command-duration checks are superseded by the global authoritative weapon-speed contract."
+    return
+}
+
 $paths = @{}
 foreach ($property in $contract.sourceFiles.psobject.Properties)
 {
@@ -167,6 +179,12 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     ([regex]::Matches($helper, [regex]::Escape('return command.m_execTime;')).Count -ge 4) -and
     $helper.Contains('if (speedMultiplier <= 0.0f)')) -Name "p14.duration.runtime.fail-closed-static-fallback"
+Assert-Contract -Condition (
+    $helper.Contains('!owner.isPlayerControlled()') -and
+    $helper.Contains('command.m_commandName == "creatureMeleeAttack"') -and
+    $helper.Contains('command.m_commandName == "creatureRangedAttack"') -and
+    $helper.Contains('creatureWeapon->getAttackTime()') -and
+    $helper.Contains('return attackTime > 2.0f ? attackTime : 2.0f;')) -Name "p14.duration.runtime.creature-default-weapon-timing"
 Assert-Contract -Condition (
     $helper.Contains('return 4.0f;') -and
     $helper.Contains('return executeTime > 1.0f ? executeTime : 1.0f;')) -Name "p14.duration.runtime.null-and-floor"

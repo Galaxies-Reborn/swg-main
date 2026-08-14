@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "feature": "precu-base-novice-learning",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Galaxies Reborn override of the Publish 14.1 base-profession entry boxes: all six base novice skills require skill points and the retained trainer fee, but no XP or advanced prerequisite; advanced novice boxes retain their normal prerequisites and XP costs.",
+  "authority": {
+    "sourceMode": "direct-branch",
+    "userDirectedOverride": true,
+    "publish14BaselinePreserved": true,
+    "reason": "The Galaxies Reborn pseudo PRE-CU ruleset intentionally restores immediately purchasable base novice boxes and the requested novice weapon certifications while preserving the Publish 14.1 advanced-profession progression boundary.",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "directSourceChangedFiles": [
+      "sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java",
+      "sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java",
+      "sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+    ]
+  },
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "xpLimitTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/xp_limits.tab",
+    "skillTeacher": "dsrc/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java",
+    "phaseARuntime": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java"
+  },
+  "expected": {
+    "baseNoviceSkills": [
+      "combat_brawler_novice",
+      "combat_marksman_novice",
+      "crafting_artisan_novice",
+      "outdoors_scout_novice",
+      "science_medic_novice",
+      "social_entertainer_novice"
+    ],
+    "baseNoviceQualification": {
+      "graphType": "fourByFour",
+      "moneyRequired": 100,
+      "pointsRequired": 15,
+      "skillsRequired": "",
+      "xpType": "",
+      "xpCost": 0,
+      "xpCap": 0
+    },
+    "artisanCommands": [
+      "private_artisan_novice",
+      "sample",
+      "survey"
+    ],
+    "brawlerCertifications": [
+      "cert_lance_staff_wood_s1",
+      "cert_axe_heavy_duty",
+      "cert_knife_survival"
+    ],
+    "marksmanCertifications": [
+      "cert_pistol_cdef",
+      "cert_rifle_cdef",
+      "cert_carbine_cdef"
+    ],
+    "advancedNoviceControl": {
+      "name": "combat_pistol_novice",
+      "moneyRequired": 5000,
+      "pointsRequired": 6,
+      "skillsRequired": "combat_marksman_pistol_04",
+      "xpType": "combat_rangedspecialize_pistol",
+      "xpCost": 125000,
+      "xpCap": 350000
+    },
+    "phaseA": {
+      "xpType": "crafting_general",
+      "prepurchaseXpCap": 1000,
+      "engineeringSkill": "crafting_artisan_engineering_01",
+      "engineeringXpCost": 500,
+      "engineeringXpCap": 2000,
+      "completeCommandVector": [
+        "private_artisan_novice",
+        "sample",
+        "survey",
+        "private_artisan_engineering_1"
+      ]
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "sourceSha256": {
+      "skillTable": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+      "xpLimitTable": "f09f12376fc7f3bec11467d49c49421d1bf4f74c36b04310d9372c179d97af5c",
+      "skillTeacher": "3f3b477d6fa2146494ce299991b8608268dc0a529a39f5c48e10e4ce5671a60e",
+      "phaseARuntime": "a19f608e2355faf2ac42d9250b1f01fb78572438e116573cb55fc0928f2b742e"
+    },
+    "canonicalBuild": {
+      "result": "passed",
+      "workflow": "restoration/scripts/Deploy-PrecuServer.ps1 without -SkipBuild",
+      "dependencyClean": {
+        "allJavaClassesDeleted": true,
+        "exactIffDeletedBeforeBuild": "sku.0/sys.shared/compiled/game/datatables/skill/skills.iff"
+      },
+      "sourceWorkParity": {
+        "result": "passed",
+        "requiredSourceKeys": [
+          "skillTable",
+          "xpLimitTable",
+          "skillTeacher",
+          "phaseARuntime"
+        ]
+      },
+      "compiledArtifacts": [
+        {
+          "path": "sku.0/sys.shared/compiled/game/datatables/skill/skills.iff",
+          "bytes": 565564,
+          "sha256": "ef6483cd810df8abc837d1b2a3fc39cea968e5ded3d91312b8ae9ec7d08b1dc2"
+        },
+        {
+          "path": "sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.class",
+          "bytes": 38357,
+          "sha256": "f00e7975bbbb3c4f9bc5fa7055415d5035dae0da5014cfdd8f598961c5b6419d"
+        },
+        {
+          "path": "sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.class",
+          "bytes": 64894,
+          "sha256": "93febdda7b686474a0bf75fe8748bb690ceb05c29adc4587240c2b85313b6986"
+        }
+      ],
+      "capturePolicy": "A canonical build prints exact post-build artifact bytes and SHA-256 values. Pending values fail the Build gate; copy the captured identities into this contract and rerun with -SkipBuild only after reviewing the canonical build output. The verifier never edits evidence automatically."
+    }
+  },
+  "deploymentEvidence": {
+    "result": "passed",
+    "deploymentParentCommit": "1e09c2886404a55101d6518d85c627e77a91cbfc",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "container": "swg-precu",
+    "containerId": "bfc5d86014f2ab2570558541b13df6ff7db4c20547fca49c5648f3f51bebec7e",
+    "containerStartedAt": "2026-08-12T14:38:37.046220355Z",
+    "clusterReadyForPlayers": true,
+    "liveGameProcessCount": 15,
+    "allLiveGameProcessesMatchBinary": true
+  },
+  "liveAcceptancePayload": {
+    "id": "p14-base-novice-single-player-reversible-v1",
+    "result": "pending",
+    "identityBound": true,
+    "boundedSeconds": 300,
+    "mutationBoundary": "Use one identity-bound test character with at least 15 free skill points, 100 credits, and one unowned base novice skill. Record the preimage, buy that base novice at its matching trainer with zero XP in every pool, prove the skill/commands/certifications, surrender only that purchased skill, and prove the original skill, points, credits, XP, command, inventory, posture, and location fingerprints are restored.",
+    "steps": [
+      "capture-identity-and-preimage",
+      "purchase-one-unowned-base-novice-with-zero-xp",
+      "verify-skill-points-fee-commands-and-certifications",
+      "surrender-only-the-purchased-base-novice",
+      "verify-exact-cleanup-and-server-health"
+    ]
+  },
+  "liveEvidence": {
+    "result": "pending",
+    "payloadId": "p14-base-novice-single-player-reversible-v1",
+    "playerOid": 0,
+    "stationId": 0,
+    "characterName": "pending",
+    "testedSkill": "pending",
+    "xpBefore": "pending",
+    "xpAfterPurchase": "pending",
+    "pointsBefore": 0,
+    "pointsAfterPurchase": 0,
+    "creditsBefore": 0,
+    "creditsAfterPurchase": 0,
+    "cleanupResult": "pending",
+    "serverHealthyAfterCleanup": false
+  },
+  "requiredBeforeReady": [
+    "Complete the identity-bound reversible live acceptance payload after the canonical x64 build is deployed and record exact purchase, zero-XP, command/certification, surrender, cleanup, and server-health evidence."
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-retained-device-authority",
+  "status": "ready",
+  "scope": "Translate retained expansion scout-device class admission and trap/conceal scaling onto Publish 14.1 professions and skill modifiers without making the retired NGE Spy profession, player combat level, or ranger_trap modifier authoritative elsewhere.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/events/ThrowTrapTask.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ConcealCommand.h",
+      "MMOCoreORB/src/server/zone/objects/tangible/components/droid/DroidTrapModuleDataComponent.cpp"
+    ],
+    "publish141SkillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "findings": [
+      "Publish 14.1 Scout grants the trapping modifier from novice through the tools branch and master; Ranger requires Master Scout and adds tracking, conceal, camouflage, and a trapping support branch.",
+      "The authenticated Publish 14.1 implementation resolves trap use with the trapping modifier and Ranger concealment with camouflage; it does not use player combat level or the later ranger_trap modifier.",
+      "Retained expansion scout-device templates encode the later Spy profession as class ID 5. Ranger is the closest Publish 14.1 advanced profession for this item-only tracking, camouflage, and trapping role.",
+      "The item-only translation must not make Rangers identify as NGE Spies in quests, conversations, profession displays, or other gameplay systems.",
+      "Retained numeric class metadata must be presented through localized Publish 14.1 profession roots; fabricated numeric NGE keys such as @skl_n:class_1 are neither valid PRE-CU profession names nor valid player-facing labels."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 2,
+    "retainedClassMetadataFiles": 11,
+    "retainedLevelMetadataFiles": 11,
+    "spyClassItemAdmission": "outdoors_ranger_novice",
+    "spyClassItemPresentation": "@skl_n:outdoors_ranger_novice",
+    "precuClassPresentation": {
+      "COMMANDO": "@skl_n:combat_commando_novice",
+      "SMUGGLER": "@skl_n:combat_smuggler_novice",
+      "MEDIC": "@skl_n:science_medic_novice",
+      "OFFICER": "@skl_n:outdoors_squadleader_novice",
+      "SPY": "@skl_n:outdoors_ranger_novice",
+      "BOUNTY_HUNTER": "@skl_n:combat_bountyhunter_novice",
+      "FORCE_SENSITIVE": "@skl_n:force_sensitive",
+      "TRADER": "@skl_n:crafting_artisan_novice",
+      "ENTERTAINER": "@skl_n:social_entertainer_novice"
+    },
+    "numericNgeClassPresentationKeys": 0,
+    "otherRetainedClassAdmissionsDelegateToPrecuProfessionMappings": true,
+    "globalSpyProfessionIdentity": false,
+    "trapSkillModifier": "trapping",
+    "concealSkillModifier": "camouflage",
+    "trapPlayerLevelAuthority": false,
+    "concealPlayerLevelAuthority": false,
+    "retiredRangerTrapModifierReads": 0,
+    "disarmChanceBounds": {
+      "minimumPercent": 10,
+      "maximumPercent": 95
+    },
+    "retainedCompatibilityMetadataPreserved": true,
+    "missionTerminalSourceChanged": false
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/374-p14-precu-retained-device-authority.patch",
+      "bytes": 6560,
+      "sha256": "e2eac93a2fe1e8cabfc446df63b3f625d2a16fc7ee63d28f1d7d2f1745657d79"
+    },
+    "sourceSha256": {
+      "script.library.utils": "86909a18bbb9fcd72f6ff6969c78dd52095580c7d9637289e3cdbcb152f3695c",
+      "script.library.stealth": "18324719ba4b0e077c2c49dde160a6a28e380941f59b7f8acf222627ac8a1160",
+      "datatables.skill.skills": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0"
+    },
+    "compiledClassSha256": {
+      "script.library.utils": "5f72a900665871388f03043b0bba6b33a6d261e635c5e7acd2d89b44e863ffb6",
+      "script.library.stealth": "1f987aed0f9748baac71a800e068dd586d67f2fea2e9c866ecbe7f77986fcb4d"
+    },
+    "currentSourceEvidenceRefreshedBy": "Retained numeric class metadata now presents all nine compatibility slots through localized Publish 14.1 profession roots; item admission, classic Ranger conceal, and trap mechanics remain unchanged.",
+    "staticContract": "passed",
+    "fullJavaCompile": "passed (5713 Java sources, 5747 compiled classes, OpenJDK 11)",
+    "cleanMaterializationPatches": 406,
+    "cleanMaterializationAcceptanceFiles": 1149,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedBuild": "passed",
+    "architecture": "ELF 64-bit x86-64",
+    "serverBinarySha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
+    "serverBinaryBuildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa",
+    "deploymentProbe": "passed the expanded retained-device and vendor source contracts, full 5,713-source Java compile, canonical x64 build, exact nine-slot PRE-CU label bytecode table, guarded restart/readiness, mapped-binary verification, and clean fresh-log audit from pushed parent d918927ed12a6b7404d9cf94f83968d8ed477c22 and direct source e5c482487242b40b6af4f2daee274abc9b3af0fd",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "missionTerminalUserVerification": "working in-world immediately before this milestone; the user physically ran to the terminal",
+    "missionSourceSha256": {
+      "mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-09",
+    "validatedBuildStartedAtUtc": "2026-08-09T12:47:01.89825279Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source (read-only)",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "LogServer": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CommoditiesServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "representativeSourceWorkParity": true,
+    "bytecodeProbes": [
+      "utils exposes the item-local isPrecuRetainedItemClass adapter and Ranger skill root",
+      "getPrecuRetainedItemClassName compiles as an exact 1-9 switch over localized PRE-CU Commando, Smuggler, Medic, Squad Leader, Ranger, Bounty Hunter, Force Sensitive, Artisan, and Entertainer labels with an empty fail-closed default",
+      "stealth exposes trapping and camouflage PRE-CU modifier constants",
+      "compiled stealth has no ranger_trap constant, retains classic invis_cover, and exposes the post-Publish-14 player-only invisibility cleanup boundary"
+    ],
+    "postStartLogAudit": {
+      "lines": 357,
+      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
+    },
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "retained scout-device Spy-class admission, exact PRE-CU presentation for every retained numeric class slot, trap arming, trap disarming, and device-conceal skill authority",
+    "notClaimedComplete": "post-Publish-14 HEP activation and player invisibility are closed separately while the retained device asset remains; other later mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

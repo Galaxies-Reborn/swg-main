@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-battlefield-vehicle-armor-authority",
+  "status": "ready",
+  "scope": "Preserve the retained Echo Base battlefield vehicles and vehicle mines while routing authored vehicle armor through PRE-CU protection and retiring the mine's unrelated NGE primary-stat writer.",
+  "eraEvidence": {
+    "basis": "The authenticated PRE-CU armor route consumes authored creature protection from armor.general_protection, and the PRE-CU raw-damage route does not consume NGE *_modified primary statistics. Echo Base remains retained later content, but its gameplay state cannot be authored through those NGE statistics.",
+    "findings": [
+      "The retained battlefield vehicle table authors 10000 protection for the snowspeeder and 15000 for the Hoth AT-ST.",
+      "Twenty-one Echo Base spawn rows attach systems.vehicle_system.battlefield_vehicle: thirteen snowspeeders and eight Hoth AT-STs.",
+      "OnAttach reads default_armor and calls setArmor, making this a production initialization route rather than dormant compatibility code.",
+      "The inherited setArmor implementation wrote expertise_innate_protection_all, but the restored PRE-CU mob armor calculator intentionally reads armor.general_protection and does not read expertise statistics.",
+      "Sixty retained Echo Base vehicle-mine spawn rows bind theme_park.heroic.echo_base.vehicle_mine and pair with sixty explosion cleanup rows.",
+      "The mine queues command CRC -1220440242 twice; the authenticated SOE string CRC resolves that value to hoth_sapper_detonate, whose retained combat row is an area RIFLE action with 150000 authored added damage.",
+      "The mine's inherited strength_modified=1000 grant could not contribute to its RIFLE attack even in the later melee-only strength branch, and the authoritative PRE-CU damage route returns before that branch. Removing it preserves the trigger, visibility break, command, damage data, and cleanup lifecycle."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 2,
+    "vehicleDataRows": 2,
+    "snowspeederAuthoredArmor": 10000,
+    "hothAtstAuthoredArmor": 15000,
+    "echoBaseVehicleSpawns": 21,
+    "echoBaseSnowspeederSpawns": 13,
+    "echoBaseHothAtstSpawns": 8,
+    "echoBaseVehicleMineSpawns": 60,
+    "echoBaseVehicleMineCleanupRows": 60,
+    "vehicleMineQueuedCommandCrc": -1220440242,
+    "vehicleMineQueueSites": 2,
+    "vehicleMineTriggerRadius": 10,
+    "vehicleMineCommandRows": 1,
+    "vehicleMineCombatRows": 1,
+    "vehicleMineAuthoredAddedDamage": 150000,
+    "remainingVehicleMineNgePrimaryWrites": 0,
+    "remainingVehicleArmorExpertiseWrites": 0,
+    "authoredProtectionObjvarWrites": 1,
+    "mobArmorRecalculations": 1,
+    "retainedEchoBaseContentPreserved": true
+  },
+  "sourceFiles": {
+    "vehicleScript": "dsrc/sku.0/sys.server/compiled/game/script/systems/vehicle_system/battlefield_vehicle.java",
+    "armor": "dsrc/sku.0/sys.server/compiled/game/script/library/armor.java",
+    "vehicleTable": "dsrc/sku.0/sys.server/compiled/game/datatables/vehicle/battlefield_vehicle.tab",
+    "echoBaseSpawns": "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab",
+    "vehicleMineScript": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/heroic/echo_base/vehicle_mine.java",
+    "creatures": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "vehicleScript": "c2259b931a62e473f5eada4a4e0ecdfeae590e243414fadd347a5d9b237a7a6b",
+      "armor": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
+      "vehicleTable": "c288af4b60e2dbd0400029355e920e92dca61c541b3c5bd7c203b108aac948a5",
+      "echoBaseSpawns": "8f7969b09f0c088353dd5c7555a7054e1086d4c035e048bcc9ffe5cae8949856",
+      "vehicleMineScript": "04e421df9324c49500f1fadb5efe909545d950086f12644960c8956714f63231",
+      "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
+      "commandTable": "2349ca3f4db04568e4d57d34d5512a440fe74f6a5072f14f485a980ba95fc7de",
+      "combatData": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e"
+    },
+    "compiledClassSha256": {
+      "vehicleScript": "df37bd059a6fda9ad9c301758504844c33ee053691ac1fecacdac9f49dd72d09",
+      "vehicleMineScript": "bee12f4a1255883c2d0c98759d6a4b22bea4094cd1ffc9bc9c9707ef7ce863d1"
+    },
+    "sourceTest": "passed; authenticated vehicle armor, all twenty-one vehicle and sixty mine spawns, sixty mine cleanup rows, PRE-CU protection, the exact mine trigger/command/visibility/death lifecycle, its command and combat bindings, and zero vehicle expertise or mine primary-stat writers",
+    "focusedJavaCompile": "passed in an ephemeral in-memory directory removed immediately; vehicle_mine.class retains command CRC -1220440242 and contains no strength_modified symbol",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, battlefield_vehicle.class was emitted at 2026-08-05T04:42:30.822284189Z, and vehicle_mine.class was emitted at 2026-08-05T04:42:32.319695499Z",
+    "fullServerBuild": "passed in 618.2 seconds from pushed parent 72e8dbe3d4da0365cfd9ec5dbe5312b19a36cd67 and direct dsrc bae87330fffb96bd51cb89742c96eff262bec61a",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for battlefield_vehicle.java, armor.java, battlefield_vehicle.tab, echo_base.tab, vehicle_mine.java, creatures.tab, command_table.tab, and combat_data.tab between the read-only source and Docker work volume; vehicle_mine.java source/work SHA-256 is 04e421df9324c49500f1fadb5efe909545d950086f12644960c8956714f63231",
+    "bytecodeAudit": "passed; vehicle_mine.class contains exactly two command CRC -1220440242 loads, the hoth_vehicle_mine trigger symbol, visibility break, and trigger cleanup, while containing no strength_modified symbol; battlefield_vehicle.class retains PRE-CU armor.general_protection and recalculation with no expertise armor symbol",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, expanded Echo Base vehicle/mine source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, clean Java compilation, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": {
+      "vehicleScript": 11124,
+      "vehicleMineScript": 1859
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "The retained battlefield vehicle initialization path cannot discard authored armor behind NGE expertise, and retained vehicle mines no longer seed an NGE primary statistic unrelated to their attack.",
+    "preserved": "Echo Base vehicle and mine templates, spawn counts, health, factions, allowed zone, driver and gunner attacks, mine trigger and visibility behavior, queued sapper action, authored combat data, death cleanup, special commands, passenger behavior, and authored armor magnitudes remain unchanged.",
+    "notClaimedComplete": "Other retained content-specific expertise references remain subject to later production-reachability audits."
+  },
+  "requiredBeforeReady": []
+}

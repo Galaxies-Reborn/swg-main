@@ -23,15 +23,17 @@ foreach ($entry in $files.GetEnumerator())
 }
 foreach ($required in @(
     "messageTo(self, `"checkForStart`"",
-    "gcw.getImperialPercentileByRegion(self)",
-    "gcw.getRebelPercentileByRegion(self)"
+    "gcw.getImperialPlanetControlScore(self)",
+    "gcw.getRebelPlanetControlScore(self)",
+    "scoreDelta >= gcw.PRECU_GCW_DIFFICULTY_SCORE_DELTA"
 ))
 {
     if (-not $bodies["guard_spawner.java"].Contains($required)) { throw "Normal city-guard behavior is missing: $required" }
 }
 foreach ($required in @(
-    "gcw.getImperialRatio(self)",
-    "gcw.getRebelRatio(self)",
+    "gcw.getImperialPlanetControlScore(self)",
+    "gcw.getRebelPlanetControlScore(self)",
+    "gcw.PRECU_GCW_DIFFICULTY_SCORE_DELTA",
     'webster.put("faction", faction)',
     'webster.put("hard", hard)'
 ))
@@ -54,7 +56,8 @@ if ($Expectation -eq "Ready")
 {
     $contract = Get-Content (Join-Path $restorationRoot "contracts/p14-empire-day-generic-system-overrides.json") -Raw | ConvertFrom-Json
     if ($contract.status -ne "ready" -or $contract.runtimeEvidence.result -ne "passed" -or
-        -not $contract.runtimeEvidence.serverHealthy -or -not $contract.expected.normalGenericSystemsRetained)
+        -not $contract.runtimeEvidence.serverHealthy -or -not $contract.expected.normalGenericSystemsRetained -or
+        -not $contract.expected.precuBaseControlSelection -or [int]$contract.expected.precuBaseDifficultyScoreDelta -ne 64)
     {
         throw "Runtime evidence is not ready."
     }

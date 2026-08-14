@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-crafting-expertise-authority",
+  "status": "ready",
+  "scope": "Remove executable NGE expertise modifiers from the active Publish 14.1 crafting, resource-sampling yield, structure-management, and retained cybernetic-crafting paths while preserving authored PRE-CU skill, resource, structure, and experimentation behavior. Close the complete OnCraftingExperiment callback inventory and distinguish the retained weapon-component coreLevel attribute from retired player combat-level authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/crafting/labratories/SharedLabratory.cpp",
+      "MMOCoreORB/src/server/zone/managers/crafting/CraftingManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ResourceCommand.h"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 implementation has no expertise system or expertise-derived crafting modifiers.",
+      "The inherited active crafting path still allowed NGE expertise modifiers to raise resource-quality caps, alter experimentation rolls, and reduce crafted-item complexity.",
+      "Resource sampling yield and structure placement/load still allowed NGE expertise modifiers to increase yield, extraction rate, hopper size, and reduce power or maintenance costs.",
+      "The retained cybernetic crafting path allowed an NGE expertise modifier to reduce its authored protection penalty.",
+      "Persisted factory and harvester power-expertise objvars are removed when the compatibility helper runs so stale later-era state cannot remain authoritative.",
+      "The complete Java source tree contains exactly one OnCraftingExperiment callback. It dispatches into the authenticated PRE-CU resource, skill-mod, Force/city/food, and Luck experimentation path; its coreLevel argument is copied only into the authored weapon-component attribute of the same name and never reads or writes player combat level."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnCraftingExperiment\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 1,
+    "sourceFiles": 1,
+    "precuExperimentDispatchers": 1,
+    "inventorySha256": "0f5947b1b657f8ed00feda4b6cf8f62574a8637df234273b33f151d41755ef32",
+    "sourceSetSha256": "9a7e8f109faeec5410c582064f408951b55cdbffeef74e51ebb62cc1efbb8c1f",
+    "sourcePaths": [
+      "systems/crafting/crafting_base.java"
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 5,
+    "historicalExecutableExpertiseReads": 11,
+    "remainingExecutableExpertiseReads": 0,
+    "craftingExperimentCallbacks": 1,
+    "craftingExperimentPrecuDispatches": 1,
+    "craftingExperimentPlayerLevelReadsOrWrites": 0,
+    "resourceQualityExpertiseReads": 0,
+    "experimentationExpertiseReads": 0,
+    "complexityExpertiseReads": 0,
+    "samplingExpertiseReads": 0,
+    "structureExpertiseReads": 0,
+    "cyberneticExpertiseReads": 0,
+    "stalePowerExpertiseObjvarsRemoved": 2,
+    "precuCraftingLuckPreserved": true,
+    "forceExperimentationPreserved": true,
+    "cityAndFoodExperimentationPreserved": true,
+    "authoredResourceAndStructureValuesPreserved": true,
+    "retainedCyberneticBasePenalty": 0.6,
+    "retainedContentPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "craftinglib": "dsrc/sku.0/sys.server/compiled/game/script/library/craftinglib.java",
+    "resource": "dsrc/sku.0/sys.server/compiled/game/script/library/resource.java",
+    "playerStructure": "dsrc/sku.0/sys.server/compiled/game/script/library/player_structure.java",
+    "craftingBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java",
+    "cybernetic": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/armor/crafting_new_cybernetics_final.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "46cde098fa000be953c668eebc18980bece1dc89b8a82ed36b02cf085476bb1e",
+      "craftinglib": "cba3f9eaa647f7070786eba53b8b34f3252d62717d11979f79825b639e9f335d",
+      "resource": "bfdbd15eb09a50ba9624d272c49db863a8c63b2d0f079c6d9ac0ebeb69cd6069",
+      "playerStructure": "d6ea6a1a637743ea55051ce5ed82ae5433f913228d99af4ac63f43ca73ef297c",
+      "craftingBase": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6",
+      "cybernetic": "1962d6ce3481c9e913c4f703979440a3163347652817d31ebc086deb6f27ba8d"
+    },
+    "compiledClassSha256": {
+      "craftinglib": "112be2957484c32f144265a1233b3c05e9836c2bcb0a8e81ca0f7af7c090ff4e",
+      "resource": "9c8cac0e6c8190c62a90551e96d27047c9912398bfe3b83411e2dffce1ce0023",
+      "playerStructure": "c9cdadae846df2175eefbdb4ef380959467bbc6fc0faa394a56c7f3c44323480",
+      "craftingBase": "71bf98a06ceac9de223dfc63d7ee4b63362a758c318792ac1e2e4262a5a915b9",
+      "cybernetic": "f9e7831ed7b6f437da45db367aefb96eb7dcd8d29a06387261e8c2648247b7fb"
+    },
+    "sourceTest": "passed; all 11 active NGE expertise reads in the authenticated five-file surface are retired while Publish 14.1 Luck, Force/city/food experimentation, resource weighting, TCG sampling, authored structure values, ordinary structure skill mods, and the retained cybernetic base penalty remain present",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and all five crafting-expertise authority classes were emitted between 2026-08-04T20:13:53Z and 2026-08-04T20:13:57Z",
+    "fullServerBuild": "passed in 718.9 seconds from pushed parent 120d870 and direct dsrc 4c2da2e17",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for craftinglib.java, resource.java, player_structure.java, crafting_base.java, and crafting_new_cybernetics_final.java against the read-only direct-source mount",
+    "bytecodeAudit": "passed; all five compiled classes contain no expertise_ constant or executable reference, while player_structure.class retains both stale power-modifier objvar constants for cleanup",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused crafting-expertise source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "craftinglib": 59041,
+      "resource": 30337,
+      "playerStructure": 155471,
+      "craftingBase": 23235,
+      "cybernetic": 7270
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all 11 active NGE expertise-modifier reads in the shared crafting, sampling-yield, structure-management, and retained cybernetic-crafting calculation surface plus the complete sole-listener OnCraftingExperiment callback inventory",
+    "preserved": "resource weighting, crafting inspiration, city and food adjustments, Force experimentation, Publish 14.1 Luck, ordinary crafting skill mods, authored deed extraction/hopper/power values, structure maintenance and factory-efficiency mods, TCG sampling content, and the retained cybernetic base penalty",
+    "notClaimedComplete": "other retained NGE buffs, TCG bonuses, and dormant or content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}

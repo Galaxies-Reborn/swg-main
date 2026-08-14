@@ -51,7 +51,7 @@ foreach ($name in $expected.Keys) {
     Assert ($command.Count -eq 1 -and $combat.Count -eq 1 -and
         $override.Count -eq 1 -and $spam.Count -eq 1) "$name rows missing or duplicated"
     $command=$command[0]; $combat=$combat[0]; $override=$override[0]; $spam=$spam[0]
-    Assert ([string]::IsNullOrEmpty([string]$command.commandCategory) -and
+    Assert ([string]$command.commandCategory -ceq "combat" -and
         [string]$command.defaultPriority -ceq "normal" -and
         [string]$command.scriptHook -ceq $want.hook -and
         [string]$command.failScriptHook -ceq "failSpecialAttack" -and

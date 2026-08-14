@@ -1,0 +1,366 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/buff.java b/sku.0/sys.server/compiled/game/script/library/buff.java
+index f74b4599410d4c78978abc7eec611e48f87f9a13..67099c578fbc6e3dc3bdbb1c676a9cbb235dd225 100755
+--- a/sku.0/sys.server/compiled/game/script/library/buff.java
++++ b/sku.0/sys.server/compiled/game/script/library/buff.java
+@@ -16,8 +16,39 @@ public class buff extends script.base_script
+     public static final int GROUP_BUFF_DISTANCE = 100;
+     public static final String BUFF_TABLE = "datatables/buff/buff.iff";
+     public static final String DEBUFF_STATE_PARALYZED = "buff.state.paralyzed";
+-    public static final String AGGRO_TRANSFER_TO = "aggroBuffTransfer";
+-    public static final String DOT_BLEEDING = "dot_bleeding";
++    public static final String AGGRO_TRANSFER_TO = "aggroBuffTransfer";
++    public static boolean isPostNgeBuffProgressionRetired()
++    {
++        return true;
++    }
++    public static void retirePostNgeBuffProgression(obj_id player) throws InterruptedException
++    {
++        if (!isPostNgeBuffProgressionRetired() || !isIdValid(player) || !exists(player))
++        {
++            return;
++        }
++        if (hasBuff(player, "buildabuff_inspiration"))
++        {
++            removeBuff(player, "buildabuff_inspiration");
++        }
++        if (hasBuff(player, "general_inspiration"))
++        {
++            removeBuff(player, "general_inspiration");
++        }
++        utils.removeScriptVarTree(player, "performance.buildabuff");
++        utils.removeScriptVarTree(player, "buff.xpBonus");
++        utils.removeScriptVarTree(player, "buff.xpBonusGeneral");
++        utils.removeScriptVarTree(player, "buff.general_inspiration");
++        if (hasScript(player, "systems.buff_builder.buff_builder_response"))
++        {
++            detachScript(player, "systems.buff_builder.buff_builder_response");
++        }
++        if (hasScript(player, "systems.buff_builder.buff_builder_cancel"))
++        {
++            detachScript(player, "systems.buff_builder.buff_builder_cancel");
++        }
++    }
++    public static final String DOT_BLEEDING = "dot_bleeding";
+     public static final String DOT_POISON = "dot_poison";
+     public static final String DOT_DISEASE = "dot_disease";
+     public static final String DOT_FIRE = "dot_fire";
+diff --git a/sku.0/sys.server/compiled/game/script/library/gcw.java b/sku.0/sys.server/compiled/game/script/library/gcw.java
+index 715f26c1a2281b3d6bafa3faf62f72ab47628553..17e42f1c49deb62f04adb21e5c4193e5acf79eed 100755
+--- a/sku.0/sys.server/compiled/game/script/library/gcw.java
++++ b/sku.0/sys.server/compiled/game/script/library/gcw.java
+@@ -1529,6 +1529,10 @@ public class gcw extends script.base_script
+     }
+     public static int getModifiedGcwPointValue(obj_id player, int passedValue) throws InterruptedException
+     {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            return passedValue;
++        }
+         float mod = 1.0f;
+         if (utils.hasScriptVar(player, "buff.xpBonus.value"))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/library/xp.java b/sku.0/sys.server/compiled/game/script/library/xp.java
+index b8a1041436cb74e897205f955463ece7881eca0e..67fceb107f4e61c53c4335afa9787d688cc0f212 100755
+--- a/sku.0/sys.server/compiled/game/script/library/xp.java
++++ b/sku.0/sys.server/compiled/game/script/library/xp.java
+@@ -311,6 +311,10 @@ public class xp extends script.base_script
+     }
+     public static int applyInspirationBuffXpModifier(obj_id target, String xp_type, int amt) throws InterruptedException
+     {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            return amt;
++        }
+         if (amt > 0)
+         {
+             float mod = getInspirationBuffXpModifier(target, xp_type);
+@@ -353,6 +357,10 @@ public class xp extends script.base_script
+     }
+     public static float getInspirationBuffXpModifier(obj_id target, String xp_type) throws InterruptedException
+     {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            return 1.0f;
++        }
+         float mod = 1.0f;
+         if (utils.hasScriptVar(target, "buff.xpBonus.types"))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index 3328220900ec084da3bea6332fde10fcdd8e318c..edace0fd29cce047e767dbb2657e55332aa3a77d 100755
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -1805,10 +1805,7 @@ public class base_player extends script.base_script
+         {
+             badge.grantBadge(self, "bdg_kash_avatar_zssik");
+         }
+-        if (!utils.hasScriptVar(self, "performance.buildabuff.buffComponentKeys") && buff.hasBuff(self, "buildabuff_inspiration"))
+-        {
+-            buff.removeBuff(self, "buildabuff_inspiration");
+-        }
++        buff.retirePostNgeBuffProgression(self);
+         if (getLocation(self).area == "dungeon1")
+         {
+             if (trial.getTop(self) == self)
+diff --git a/sku.0/sys.server/compiled/game/script/player/skill/performcommands.java b/sku.0/sys.server/compiled/game/script/player/skill/performcommands.java
+index 781347f16af3766c9c12917ac04173d6f4c46b34..dbe3fc6f7fd4c34e24aab3d8d686f9578633b47e 100755
+--- a/sku.0/sys.server/compiled/game/script/player/skill/performcommands.java
++++ b/sku.0/sys.server/compiled/game/script/player/skill/performcommands.java
+@@ -1,6 +1,7 @@
+ package script.player.skill;
+ 
+-import script.library.performance;
++import script.library.buff;
++import script.library.performance;
+ import script.library.sui;
+ import script.library.utils;
+ import script.obj_id;
+@@ -436,9 +437,14 @@ public class performcommands extends script.base_script
+         performance.performanceMessageToSelf(self, null, performance.SID_JUGGLE_FAIL);
+         return SCRIPT_CONTINUE;
+     }
+-    public int cmdInspire(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        obj_id inspireTarget = getIntendedTarget(self);
++    public int cmdInspire(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buff.retirePostNgeBuffProgression(self);
++            return SCRIPT_CONTINUE;
++        }
++        obj_id inspireTarget = getIntendedTarget(self);
+         if (!isIdValid(inspireTarget) || !isPlayer(inspireTarget))
+         {
+             inspireTarget = target;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java b/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
+index ab305058e864f52d18020b04b27a26b77535662d..4b2c8d81598bc76b983d32e8fee78149570c4581 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
++++ b/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
+@@ -446,7 +446,12 @@ public class buff_handler extends script.base_script
+     }
+     public int xpBonusGeneralAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster) throws InterruptedException
+     {
+-        int playerLevel = getLevel(self);
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            utils.removeScriptVarTree(self, "buff.xpBonusGeneral");
++            return SCRIPT_CONTINUE;
++        }
++        int playerLevel = skill.getPrecuEncounterDifficulty(self);
+         if (playerLevel < 90)
+         {
+             CustomerServiceLog("buff", "xpBonusGeneralAddBuff Buff used by player: " + self + " Name: " + getName(self) + " Player Level: " + playerLevel + " Effect: " + effectName + " subtype:" + subtype + " duration: " + duration + " value: " + value + " buffName: " + buffName + " caster: " + caster);
+@@ -481,7 +486,11 @@ public class buff_handler extends script.base_script
+     }
+     public int xpGrantedGeneralAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster) throws InterruptedException
+     {
+-        int playerLevel = getLevel(self);
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            return SCRIPT_CONTINUE;
++        }
++        int playerLevel = skill.getPrecuEncounterDifficulty(self);
+         if (playerLevel < 90)
+         {
+             int xpGranted = xp.grantUnmodifiedXPPercentageOfLevel(self, value);
+@@ -1673,6 +1682,12 @@ public class buff_handler extends script.base_script
+     }
+     public int buildabuffAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster) throws InterruptedException
+     {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buildabuffRemoveBuffHandler(self, effectName, subtype, duration, value, buffName, caster);
++            utils.removeScriptVarTree(self, "performance.buildabuff");
++            return SCRIPT_CONTINUE;
++        }
+         if (!utils.hasScriptVar(self, "performance.buildabuff.buffComponentKeys") || !utils.hasScriptVar(self, "performance.buildabuff.buffComponentValues"))
+         {
+             return SCRIPT_CONTINUE;
+@@ -1912,7 +1927,7 @@ public class buff_handler extends script.base_script
+                                 movement.applyMovementModifier(self, "buildabuff_movement_speed", buffValue);
+                                 break;
+                             case "reactive_second_chance":
+-                                int playerLevel = getLevel(self);
++                                int playerLevel = skill.getPrecuEncounterDifficulty(self);
+                                 float reactiveModifier = 0.0f;
+                                 if (isIdValid(bufferId) && exists(bufferId)) {
+                                     reactiveModifier = getEnhancedSkillStatisticModifierUncapped(bufferId, "expertise_en_inspire_proc_chance_increase");
+diff --git a/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_cancel.java b/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_cancel.java
+index 3b387fae6de5e379429157d57300de6c3bc418ba..9c7bb5754ef329d1d7b21bafe24fa83ee8adf925 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_cancel.java
++++ b/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_cancel.java
+@@ -1,27 +1,27 @@
+-package script.systems.buff_builder;
+-
+-import script.obj_id;
++package script.systems.buff_builder;
++
++import script.library.buff;
++import script.obj_id;
+ 
+ public class buff_builder_cancel extends script.base_script
+ {
+     public buff_builder_cancel()
+     {
+     }
+-    public static final String SCRIPT_BUFF_BUILDER_CANCEL = "systems.buff_builder.buff_builder_cancel";
+-    public int OnLogin(obj_id self) throws InterruptedException
+-    {
+-        if (isIdValid(self))
+-        {
+-            detachScript(self, SCRIPT_BUFF_BUILDER_CANCEL);
+-        }
+-        return SCRIPT_CONTINUE;
++    public static final String SCRIPT_BUFF_BUILDER_CANCEL = "systems.buff_builder.buff_builder_cancel";
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        buff.retirePostNgeBuffProgression(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        buff.retirePostNgeBuffProgression(self);
++        return SCRIPT_CONTINUE;
+     }
+-    public int OnBuffBuilderCanceled(obj_id self) throws InterruptedException
+-    {
+-        if (isIdValid(self))
+-        {
+-            detachScript(self, SCRIPT_BUFF_BUILDER_CANCEL);
+-        }
+-        return SCRIPT_CONTINUE;
++    public int OnBuffBuilderCanceled(obj_id self) throws InterruptedException
++    {
++        buff.retirePostNgeBuffProgression(self);
++        return SCRIPT_CONTINUE;
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_response.java b/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_response.java
+index 59c94f3d8850e350b992b3a03e019e329c3c63db..9f91b49cf35c9fdb8aadf793f1fcfd6811c85820 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_response.java
++++ b/sku.0/sys.server/compiled/game/script/systems/buff_builder/buff_builder_response.java
+@@ -15,33 +15,54 @@ public class buff_builder_response extends script.base_script
+     public static final String SCRIPT_BUFF_BUILDER_CANCEL = "systems.buff_builder.buff_builder_cancel";
+     public static final String BUILDABUFF_NAME = "buildabuff_inspiration";
+     public static final float BUFF_BUILDER_RANGE = 8.0f;
+-    public int OnInitialize(obj_id self) throws InterruptedException
+-    {
+-        if (hasScript(self, SCRIPT_BUFF_BUILDER_RESPONSE))
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buff.retirePostNgeBuffProgression(self);
++            return SCRIPT_CONTINUE;
++        }
++        if (hasScript(self, SCRIPT_BUFF_BUILDER_RESPONSE))
+         {
+             detachScript(self, SCRIPT_BUFF_BUILDER_RESPONSE);
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnLogin(obj_id self) throws InterruptedException
+-    {
+-        if (hasScript(self, SCRIPT_BUFF_BUILDER_RESPONSE))
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buff.retirePostNgeBuffProgression(self);
++            return SCRIPT_CONTINUE;
++        }
++        if (hasScript(self, SCRIPT_BUFF_BUILDER_RESPONSE))
+         {
+             detachScript(self, SCRIPT_BUFF_BUILDER_RESPONSE);
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnImmediateLogout(obj_id self) throws InterruptedException
+-    {
+-        if (hasScript(self, SCRIPT_BUFF_BUILDER_RESPONSE))
++    public int OnImmediateLogout(obj_id self) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buff.retirePostNgeBuffProgression(self);
++            return SCRIPT_CONTINUE;
++        }
++        if (hasScript(self, SCRIPT_BUFF_BUILDER_RESPONSE))
+         {
+             detachScript(self, SCRIPT_BUFF_BUILDER_RESPONSE);
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnBuffBuilderValidate(obj_id self, obj_id bufferId, obj_id recipientId, int startingTime, int bufferRequiredCredits, int recipientPaidCredits, boolean accepted, String[] buffComponentKeys, int[] buffComponentValues) throws InterruptedException
+-    {
+-        if (!accepted)
++    public int OnBuffBuilderValidate(obj_id self, obj_id bufferId, obj_id recipientId, int startingTime, int bufferRequiredCredits, int recipientPaidCredits, boolean accepted, String[] buffComponentKeys, int[] buffComponentValues) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buff.retirePostNgeBuffProgression(self);
++            buff.retirePostNgeBuffProgression(recipientId);
++            return SCRIPT_CONTINUE;
++        }
++        if (!accepted)
+         {
+             detachScript(self, SCRIPT_BUFF_BUILDER_RESPONSE);
+             return SCRIPT_CONTINUE;
+@@ -55,9 +76,15 @@ public class buff_builder_response extends script.base_script
+         buffBuilderValidated(bufferId, recipientId, startingTime, bufferRequiredCredits, recipientPaidCredits, accepted, buffComponentKeys, buffComponentValues);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnBuffBuilderCompleted(obj_id self, obj_id bufferId, obj_id recipientId, int startingTime, int bufferRequiredCredits, int recipientPaidCredits, boolean accepted, String[] buffComponentKeys, int[] buffComponentValues) throws InterruptedException
+-    {
+-        if (bufferRequiredCredits > 0 && !money.pay(recipientId, bufferId, bufferRequiredCredits, "", null))
++    public int OnBuffBuilderCompleted(obj_id self, obj_id bufferId, obj_id recipientId, int startingTime, int bufferRequiredCredits, int recipientPaidCredits, boolean accepted, String[] buffComponentKeys, int[] buffComponentValues) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buff.retirePostNgeBuffProgression(self);
++            buff.retirePostNgeBuffProgression(recipientId);
++            return SCRIPT_CONTINUE;
++        }
++        if (bufferRequiredCredits > 0 && !money.pay(recipientId, bufferId, bufferRequiredCredits, "", null))
+         {
+             sendSystemMessage(recipientId, new string_id("spam", "buildabuff_nsf_buffee"));
+             sendSystemMessage(bufferId, new string_id("spam", "buildabuff_nsf_buffer"));
+@@ -133,9 +160,14 @@ public class buff_builder_response extends script.base_script
+         detachScript(self, SCRIPT_BUFF_BUILDER_RESPONSE);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnBuffBuilderCanceled(obj_id self) throws InterruptedException
+-    {
+-        detachScript(self, SCRIPT_BUFF_BUILDER_RESPONSE);
++    public int OnBuffBuilderCanceled(obj_id self) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            buff.retirePostNgeBuffProgression(self);
++            return SCRIPT_CONTINUE;
++        }
++        detachScript(self, SCRIPT_BUFF_BUILDER_RESPONSE);
+         return SCRIPT_CONTINUE;
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java b/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java
+index 941df05275a3625f366fbf1ce563625036b1b048..a530891c495ec133c843b47501453fe4635bd8ba 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java
+@@ -509,9 +509,13 @@ public class crafting_base extends script.base_script
+         removeObjVar(self, craftinglib.COMPONENT_ATTRIBUTE_INTERNAL_OBJVAR_NAME);
+         return SCRIPT_CONTINUE;
+     }
+-    public int getInspirationBuffXpBonus(obj_id self, int category, int amt) throws InterruptedException
+-    {
+-        if (utils.hasScriptVar(self, "buff.general_inspiration.value"))
++    public int getInspirationBuffXpBonus(obj_id self, int category, int amt) throws InterruptedException
++    {
++        if (buff.isPostNgeBuffProgressionRetired())
++        {
++            return 0;
++        }
++        if (utils.hasScriptVar(self, "buff.general_inspiration.value"))
+         {
+             float mod = utils.getFloatScriptVar(self, "buff.general_inspiration.value");
+             mod /= 100.0f;

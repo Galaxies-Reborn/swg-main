@@ -1,0 +1,219 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/utils.java b/sku.0/sys.server/compiled/game/script/library/utils.java
+index b148c24..7fa5af4 100644
+--- a/sku.0/sys.server/compiled/game/script/library/utils.java
++++ b/sku.0/sys.server/compiled/game/script/library/utils.java
+@@ -5790,15 +5790,6 @@ public class utils extends script.base_script
+                 attribs[firstFree++] = requiredText;
+             }
+         }
+-        if (hasObjVar(item, prefix + "levelRequired"))
+-        {
+-            int minLevel = getIntObjVar(item, prefix + "levelRequired");
+-            if (minLevel > getLevel(player))
+-            {
+-                names[firstFree] = "levelrequired";
+-                attribs[firstFree++] = "" + minLevel;
+-            }
+-        }
+         return firstFree;
+     }
+     public static boolean testItemClassRequirements(obj_id player, String requiredClasses, boolean silent) throws InterruptedException
+@@ -5820,20 +5811,8 @@ public class utils extends script.base_script
+     }
+     public static boolean testItemLevelRequirements(obj_id player, obj_id thing, boolean silent, String prefix) throws InterruptedException
+     {
+-        if (!hasObjVar(thing, prefix + "levelRequired"))
+-        {
+-            return true;
+-        }
+-        int minLevel = getIntObjVar(thing, prefix + "levelRequired");
+-        if (minLevel > getLevel(player))
+-        {
+-            if (!silent)
+-            {
+-                prose_package pp = prose.getPackage(new string_id("spam", "levelrequired"), "" + minLevel);
+-                sendSystemMessageProse(player, pp);
+-            }
+-            return false;
+-        }
++        // Retained expansion items may carry this compatibility metadata, but
++        // Publish 14.1 characters have no player combat level to gate against.
+         return true;
+     }
+     public static boolean testItemAbilityRequirements(obj_id player, obj_id thing, boolean silent, String prefix) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/library/weapons.java b/sku.0/sys.server/compiled/game/script/library/weapons.java
+index 1d3410b..4a92fdc 100644
+--- a/sku.0/sys.server/compiled/game/script/library/weapons.java
++++ b/sku.0/sys.server/compiled/game/script/library/weapons.java
+@@ -1211,37 +1211,19 @@ public class weapons extends script.base_script
+     }
+     public static void adjustWeaponRangeForExpertise(obj_id player, obj_id self, boolean modify) throws InterruptedException
+     {
+-        if (!hasObjVar(self, "weapon.original_max_range"))
++        // Retained callers still use the legacy helper name, but Publish 14.1
++        // has no expertise tree. Always restore the authored weapon range.
++        restorePrecuWeaponRange(self);
++    }
++    public static void restorePrecuWeaponRange(obj_id self) throws InterruptedException
++    {
++        if (!isIdValid(self) || !hasObjVar(self, "weapon.original_max_range"))
+         {
+             return;
+         }
+         range_info rangeData = getWeaponRangeInfo(self);
+         float originalRange = getFloatObjVar(self, "weapon.original_max_range");
+-        if (modify)
+-        {
+-            int weaponType = getWeaponType(self);
+-            float rangeMod = getSkillStatisticModifier(player, "expertise_range_bonus_all");
+-            rangeMod += getSkillStatisticModifier(player, "expertise_range_bonus_" + combat.getWeaponStringType(weaponType));
+-            if (combat.isRangedWeapon(self) || combat.isHeavyWeapon(self))
+-            {
+-                rangeMod += getSkillStatisticModifier(player, "expertise_range_bonus_ranged");
+-            }
+-            if (combat.isMeleeWeapon(self))
+-            {
+-                rangeMod += getSkillStatisticModifier(player, "expertise_range_bonus_melee");
+-            }
+-            rangeMod += getSkillStatisticModifier(player, "expertise_sm_rank_range_bonus");
+-            float adjustedMaxRange = rangeMod + originalRange;
+-            if (adjustedMaxRange > 64)
+-            {
+-                adjustedMaxRange = 64;
+-            }
+-            rangeData.maxRange = adjustedMaxRange;
+-        }
+-        else 
+-        {
+-            rangeData.maxRange = originalRange;
+-        }
++        rangeData.maxRange = originalRange;
+         setWeaponRangeInfo(self, rangeData);
+         setWeaponData(self);
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java
+index 8c2366b..d437f40 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java
+@@ -104,7 +104,7 @@ public class combat_weapon extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public void expertiseRangeModify(obj_id self) throws InterruptedException
++    public void restorePrecuWeaponRange(obj_id self) throws InterruptedException
+     {
+         if (!isIdValid(self))
+         {
+@@ -144,31 +144,26 @@ public class combat_weapon extends script.base_script
+                 return;
+             }
+         }
+-        obj_id holder = getContainedBy(self);
+-        if (!isIdNull(holder) && isPlayer(holder))
+-        {
+-            if (self == getObjectInSlot(holder, "hold_r"))
+-            {
+-                weapons.adjustWeaponRangeForExpertise(holder, self, true);
+-            }
+-            else 
+-            {
+-                weapons.adjustWeaponRangeForExpertise(holder, self, false);
+-            }
+-        }
+-        else 
+-        {
+-            weapons.adjustWeaponRangeForExpertise(null, self, false);
+-        }
++        weapons.restorePrecuWeaponRange(self);
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
++        restorePrecuWeaponRange(self);
++        obj_id owner = utils.getContainingPlayerOrCreature(self);
++        if (isPlayer(owner))
++        {
++            retireNgeWeaponDamageSkillMods(owner);
++        }
+         messageTo(self, "weaponConversion", null, 5, false);
+         return SCRIPT_CONTINUE;
+     }
+     public int weaponConversion(obj_id self, dictionary params) throws InterruptedException
+     {
+         obj_id owner = utils.getContainingPlayerOrCreature(self);
++        if (isPlayer(owner))
++        {
++            retireNgeWeaponDamageSkillMods(owner);
++        }
+         int niche = ai_lib.aiGetNiche(owner);
+         if (niche != 1)
+         {
+@@ -184,7 +179,7 @@ public class combat_weapon extends script.base_script
+         }
+         if (static_item.isStaticItem(self))
+         {
+-            expertiseRangeModify(self);
++            restorePrecuWeaponRange(self);
+             return SCRIPT_CONTINUE;
+         }
+         else 
+@@ -219,7 +214,7 @@ public class combat_weapon extends script.base_script
+         weapons.validateWeaponDamageType(self);
+         weapons.validateWeaponRange(self);
+         weapons.setWeaponData(self);
+-        expertiseRangeModify(self);
++        restorePrecuWeaponRange(self);
+         if (weapons.checkForIllegalStorytellerWeapon(owner, self))
+         {
+             weapons.handleIllegalStorytellerWeapon(owner, self, "OnInitialize");
+@@ -234,39 +229,31 @@ public class combat_weapon extends script.base_script
+     }
+     public int OnTransferred(obj_id self, obj_id sourceContainer, obj_id destContainer, obj_id transferer) throws InterruptedException
+     {
+-        expertiseRangeModify(self);
++        restorePrecuWeaponRange(self);
+         if (isPlayer(destContainer))
+         {
+-            setDamageSkillMods(destContainer, self);
++            retireNgeWeaponDamageSkillMods(destContainer);
+             proc.buildCurrentProcList(destContainer);
+         }
+         else if (isPlayer(sourceContainer))
+         {
+-            setDamageSkillMods(sourceContainer, null);
++            retireNgeWeaponDamageSkillMods(sourceContainer);
+             proc.buildCurrentProcList(sourceContainer);
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public void setDamageSkillMods(obj_id player, obj_id weapon) throws InterruptedException
++    public void retireNgeWeaponDamageSkillMods(obj_id player) throws InterruptedException
+     {
+-        int intMultiplier = combat.PLAYER_ATTACKER_DAMAGE_LEVEL_MULTIPLIER;
+-        int intBaseDamage = combat.PLAYER_COMBAT_BASE_DAMAGE;
+-        int weaponMinDamage = 0;
+-        int weaponMaxDamage = 0;
+-        if (isIdValid(weapon))
+-        {
+-            weaponMinDamage = getWeaponMinDamage(weapon);
+-            weaponMaxDamage = getWeaponMaxDamage(weapon);
+-        }
+-        int playerLevel = getLevel(player);
+-        int minDamage = weaponMinDamage + (playerLevel * intMultiplier);
+-        int maxDamage = intBaseDamage + weaponMaxDamage + (playerLevel * intMultiplier);
+         int oldMin = getSkillStatisticModifier(player, "minDamage");
+-        applySkillStatisticModifier(player, "minDamage", 0 - oldMin);
++        if (oldMin != 0)
++        {
++            applySkillStatisticModifier(player, "minDamage", 0 - oldMin);
++        }
+         int oldMax = getSkillStatisticModifier(player, "maxDamage");
+-        applySkillStatisticModifier(player, "maxDamage", 0 - oldMax);
+-        applySkillStatisticModifier(player, "minDamage", minDamage);
+-        applySkillStatisticModifier(player, "maxDamage", maxDamage);
++        if (oldMax != 0)
++        {
++            applySkillStatisticModifier(player, "maxDamage", 0 - oldMax);
++        }
+     }
+     public int OnGetAttributes(obj_id self, obj_id player, String[] names, String[] attribs) throws InterruptedException
+     {

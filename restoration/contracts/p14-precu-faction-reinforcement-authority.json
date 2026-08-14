@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-faction-reinforcement-authority",
+  "status": "ready",
+  "scope": "Preserve the retained lieutenant faction comm-link while deriving its reinforcement from restored Publish 14 faction rank and learned PRE-CU combat skills instead of the removed NGE player level.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU faction and skill progression with retained expansion content",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3Reference": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+    "findings": [
+      "Publish 14.1 players progress through learned skill boxes and have no NGE combat level.",
+      "The restored faction rank is an independent persisted value from zero through fifteen and already governs faction promotion.",
+      "The retained comm-link authors reinforcement templates only for ranks seven through twelve, so higher PRE-CU ranks must reuse the highest authored template rather than request a missing creature row."
+    ]
+  },
+  "diagnosis": {
+    "historicalPlayerLevelReads": 1,
+    "historicalFormula": "getLevel(player) - 10 + rank",
+    "restoredFactionRankMaximum": 15,
+    "authoredTemplateMinimumRank": 7,
+    "authoredTemplateMaximumRank": 12,
+    "authoredReinforcementRows": 12,
+    "missingAuthoredRowsForRanks": [13, 14, 15]
+  },
+  "expected": {
+    "minimumRequiredFactionRank": 7,
+    "maximumRestoredFactionRank": 15,
+    "maximumRetainedTemplateRank": 12,
+    "higherRanksUseHighestAuthoredTemplate": true,
+    "rankAuthority": "pvpGetCurrentGcwRank restored PRE-CU persisted faction rank",
+    "combatDifficultyAuthority": "skill.getPrecuEncounterDifficulty from learned PRE-CU combat skill boxes",
+    "playerLevelReads": 0,
+    "retainedItemLevelGateAuthoritative": false,
+    "factionAndDeclaredStatusChecksPreserved": true,
+    "cooldownAndIndoorChecksPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "library/faction_perk.java": "7baf89bd7af8946652592ac55756c29ae4f57c3a620b51f1b7323943fd943f99"
+    },
+    "fullJavaCompile": "passed from pushed direct source; faction_perk.class emitted 2026-08-04T11:05:31Z",
+    "compiledClassSha256": "00bfe5286c688f55cb9b7e7f0064cd11402a1f5056fc2a1c531f7f49ba62efa5",
+    "bytecodeAudit": "zero getLevel symbols; getPrecuEncounterDifficulty is present; PRECU_COMM_LINK_MIN_RANK=7 and PRECU_COMM_LINK_MAX_TEMPLATE_RANK=12 are compiled constants",
+    "fullServerBuild": "passed in 506.4 seconds from pushed direct source",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed for library/faction_perk.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "skillLibrarySha256": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+    "staticItemLibrarySha256": "1723f2a061c5b8dba64c4d6b8887a983502d0d043f1ea166c540eed71775d9af",
+    "combatActionsSha256": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+    "commLinkItemScriptSha256": "3d19013e3077e82e5f039fa7b981772faf478f163852a8bd48be3f21133a40f9",
+    "creatureTableSha256": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
+    "masterItemTableSha256": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+    "gcwRewardsTableSha256": "609394f9ac60027858531b5fbce7f0cc1618ef65e88d8177bd692cb93099c3ff",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 1,
+    "compiledClassPresent": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the live lieutenant comm-link's NGE player-level spawn formula and missing rank 13-15 template requests",
+    "preserved": "the comm-link items and use radial, faction and declared-state checks, restored PRE-CU rank requirement, rank-specific retained reinforcement appearances, indoor guard, cooldown, combat targeting, retained expansion content, and mission behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

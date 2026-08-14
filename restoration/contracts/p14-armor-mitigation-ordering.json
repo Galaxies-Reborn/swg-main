@@ -1,14 +1,20 @@
 {
   "schemaVersion": 1,
   "feature": "armor-mitigation-ordering",
-  "status": "ready",
-  "requiredBeforeReady": [],
+  "status": "implemented-build-verified-live-pending",
+  "requiredBeforeReady": [
+    "Run the reversible live Force Armor/Shield acceptance covering activation, mitigation, Force drain, layer ordering, cleanup, and server health."
+  ],
   "sourceFiles": {
     "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "jediLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
     "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
     "legacyCombatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base_old.java",
     "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_armor_mitigation_fixture.java",
-    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab"
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "jediActions": "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
   },
   "semanticReference": {
     "repository": "swgemu/Core3",
@@ -21,7 +27,15 @@
       "action": ["LEFT_LEG", "RIGHT_LEG"],
       "mind": ["HEAD"]
     },
+    "historicalPlayerLayerOrder": [
+      "personal shield generator",
+      "hit-location armor piece",
+      "food mitigate_damage",
+      "target HAM pool",
+      "wound roll"
+    ],
     "playerLayerOrder": [
+      "Force Armor/Force Shield",
       "personal shield generator",
       "hit-location armor piece",
       "food mitigate_damage",
@@ -55,12 +69,350 @@
     },
     "npcFallback": "retained SWGSource aggregate armor path"
   },
+  "forceDefenseContract": {
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "sourceSha256": {
+      "combat.java": "afe1fdf9e37767bff9cde61faa31e109c79759e917a89b74d9d770ceea8b3dbb",
+      "jedi.java": "3549b440320c7ca75a8e55a8f44e27405e38a4caf47c0c5891afba99b328fbc0",
+      "combat_actions.java": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+      "combat_base.java": "153647766c1aa03beeeaa351e83a7b4ec3c9295fe1ca6afd261fa2f03877500a",
+      "buff.tab": "ba786e08cafac4f027d5cb93102eaaeb3b66e2bd59543187ef5fb55ba50cce2d",
+      "jedi_actions.tab": "1f6363b77c1878586e7fdc475b398d05593bb4cc779a5d679aa8c629fefae68f"
+    },
+    "ranks": [
+      {"command":"forceArmor1","buff":"forceArmor","domain":"non-Force action","rank":1,"activationCost":75,"durationSeconds":900,"protectionPercent":25,"extraForceCost":0.5,"buffRowSha256":"f7fda1aa87dfc6b2aab939c899902e2613172a330362973d532561af71e4ba62","actionRowSha256":"22f0c16ff84f08a2e186476aa67c0192735e5e102bad4f6d3b462d063b10b2e8"},
+      {"command":"forceArmor2","buff":"forceArmor_1","domain":"non-Force action","rank":2,"activationCost":150,"durationSeconds":1800,"protectionPercent":45,"extraForceCost":0.3,"buffRowSha256":"042aaef73e3dca75df03bda639452270a6e19ad73dc5f3805add5fd56f029549","actionRowSha256":"35b20171d53a3f15d1e5c0b66e213c8c9df099c893cc80d9aaa45583b3a83c02"},
+      {"command":"forceShield1","buff":"forceShield","domain":"exact Force action name","rank":1,"activationCost":75,"durationSeconds":900,"protectionPercent":25,"extraForceCost":0.5,"buffRowSha256":"60986d40c983b19296a2936a8cc19f159d93457672c2967c196d41c42e9239ff","actionRowSha256":"2e3b008e1093de0152cb11af0f3bdb0f073bf1dcdb614dba073efc0c629c440f"},
+      {"command":"forceShield2","buff":"forceShield_1","domain":"exact Force action name","rank":2,"activationCost":150,"durationSeconds":1800,"protectionPercent":45,"extraForceCost":0.3,"buffRowSha256":"3901dfb371ba3011564891d831dc1b9a41d216da40da6bd4584017e0d3699601","actionRowSha256":"da1dc3de39a4e43ec3f9d4dd7319ab7b59f684bdeb26ccaa4dfe220d2555f33a"}
+    ],
+    "forceRankModifiers": {
+      "rank1ProtectionPerControl": 0.25,
+      "rank2ProtectionPerControl": 0.35,
+      "hitDrainPerManipulation": -0.003,
+      "strengthRounding": "base + int(control * coefficient + 0.5)"
+    },
+    "activation": {
+      "sameRankToggleFirst": true,
+      "equalForceAllowed": true,
+      "armorRejected": true,
+      "rank1BlockedByRank2": true,
+      "rank2ReplacesRank1": true,
+      "localizationKeys": [
+        "apply_forcearmor1",
+        "apply_forcearmor2",
+        "apply_forceshield1",
+        "apply_forceshield2",
+        "remove_forcearmor1",
+        "remove_forcearmor2",
+        "remove_forceshield1",
+        "remove_forceshield2"
+      ]
+    },
+    "forceActionClassification": {
+      "kind": "case-sensitive action-name allowlist; weapon type is not authority",
+      "count": 20,
+      "sha256": "7876ff70cb1668a02969cd1de9e833888b31e444808b3c7a675bd2c8d1d88615",
+      "names": [
+        "animalAttack",
+        "animalCalm",
+        "animalScare",
+        "forceChoke",
+        "forceIntimidate1",
+        "forceIntimidate2",
+        "forceKnockdown1",
+        "forceKnockdown2",
+        "forceKnockdown3",
+        "forceLightningCone1",
+        "forceLightningCone2",
+        "forceLightningSingle1",
+        "forceLightningSingle2",
+        "forceThrow1",
+        "forceThrow2",
+        "forceWeaken1",
+        "forceWeaken2",
+        "jediMindTrick",
+        "mindBlast1",
+        "mindBlast2"
+      ]
+    },
+    "oddDamageObserverCanary": {
+      "incomingDamage": 7,
+      "mitigationPercent": 25,
+      "remainingDamage": 5,
+      "actualBlockedDamage": 2,
+      "observerAbsorbedDamage": 1,
+      "rank1ExtraForceCost": 0.5,
+      "forceDebit": 0,
+      "rule": "Java casts truncate the remaining and observer products independently; returned actual blocked delta is not the observer drain basis."
+    },
+    "hitDrain": {
+      "mitigationBeforeForceCheck": true,
+      "removeAtOrBelowCost": true,
+      "subtractOnlyAboveCost": true
+    },
+    "historicalForceDefenseEvidence": {
+      "directSourceCommit": "6955b771580e324b770c1a8d809a5d094e75a75a",
+      "authenticatesCurrentSource": false,
+      "note": "Immutable historical Force Armor/Shield build and deployment evidence for 6955b771580e324b770c1a8d809a5d094e75a75a only; it does not authenticate direct-source commit 10f2b88285969329effcfc3aba975c17118fd0b4 and is not a current Build or Ready gate.",
+      "build": {
+        "result": "passed",
+        "container": "swg-precu",
+        "validatedContainerStartedAt": "2026-08-11T19:33:27.545182504Z",
+        "fullJavaCompile": {"result":"passed"},
+        "sourceWorkParity": {"result":"passed","checkedFiles":6,"matchedFiles":6},
+        "requiredArtifacts": [
+          "combat.class",
+          "jedi.class",
+          "combat_actions.class",
+          "combat_base.class",
+          "buff.iff",
+          "jedi_actions.iff"
+        ],
+        "requiredArtifactPaths": {
+          "combat.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/combat.class",
+          "jedi.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class",
+          "combat_actions.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class",
+          "combat_base.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.class",
+          "buff.iff": "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff",
+          "jedi_actions.iff": "/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
+        },
+        "compiledArtifacts": {
+          "combat.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/library/combat.class","sha256":"9da67775009c4d759787a18c42b81284f2678f9192b0f9ec5b333758f691c2e0","bytes":104999},
+          "jedi.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class","sha256":"8b01dd4e3a30f695e94eb1adea64ff5c636d8a052ee099f9192b72e268ce7b1e","bytes":63031},
+          "combat_actions.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class","sha256":"8897d436301115665a21be2abd59912adb92e7866470debe41c678ca4707f2ff","bytes":323746},
+          "combat_base.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.class","sha256":"b554206a81cc99a3398693660f2537882439f188b50ee26d592c9eb60aa05cad","bytes":153718},
+          "buff.iff": {"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff","sha256":"5ad40453036f45431adcc256374e204b37c52778d484e28c620741c8d1bea679","bytes":366646},
+          "jedi_actions.iff": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff","sha256":"40532287304615027c45d8b576275b0b29fdfa0378415e0fab0d44ac3a262c2b","bytes":13250}
+        },
+        "serverBinary": {
+          "path": "/swg-precu/build/bin/SwgGameServer",
+          "sha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+          "buildIdSha1": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+          "bytes": 22587656,
+          "inode": 12141822
+        },
+        "deterministicTableRecompile": {
+          "result": "passed",
+          "compiler": "/swg-precu/build/bin/DataTableTool",
+          "temporaryRoot": "/dev/shm",
+          "cleanupVerified": true,
+          "tables": {
+            "buff.iff": {
+              "sourcePath": "/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+              "sourceSha256": "ecd6cc2f7ed18b89babd07bfa4e662ece2376220761cf6507e7238232af88e5b",
+              "canonicalPath": "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff",
+              "freshOutputMatchesCanonical": true
+            },
+            "jedi_actions.iff": {
+              "sourcePath": "/swg-precu/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab",
+              "sourceSha256": "0d7982e85429fd81106c1da0f3541b9facaa9dd1262374fa0ac4d87102acf2b9",
+              "canonicalPath": "/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff",
+              "freshOutputMatchesCanonical": true
+            }
+          }
+        }
+      },
+      "deployment": {
+        "result": "passed",
+        "directSourceCommit": "6955b771580e324b770c1a8d809a5d094e75a75a",
+        "container": "swg-precu",
+        "containerId": "bfc5d86014f2ab2570558541b13df6ff7db4c20547fca49c5648f3f51bebec7e",
+        "containerImage": "swg-precu-server-x64:local",
+        "containerImageId": "sha256:666082edac4672ecfc6b908235bb34437118176f83bb71f496ed6dc997b64874",
+        "containerStartedAt": "2026-08-11T19:33:27.545182504Z",
+        "containerHealth": "healthy",
+        "clusterReadyForPlayers": true,
+        "liveGameProcessCount": 15,
+        "liveGameProcessPids": [383,384,385,386,387,388,389,390,391,414,415,416,417,418,419],
+        "allLiveGameProcessesMatchBinary": true,
+        "liveBinaryPath": "/swg-precu/build/bin/SwgGameServer",
+        "liveBinaryInode": 12141822,
+        "liveBinarySizeBytes": 22587656,
+        "postStartLogAudit": {
+          "lineCount": 321,
+          "fatalSevereExceptionErrorDatabaseConversionUndefinedSymbolOracleOrEmptyGenericMessageMatches": 0,
+          "playerReadyMarkerCount": 1,
+          "result": "passed"
+        }
+      }
+    },
+    "build": {
+      "result": "passed",
+      "container": "swg-precu",
+      "validatedContainerStartedAt": "2026-08-11T22:57:52.560366271Z",
+      "fullJavaCompile": {"result":"passed"},
+      "sourceWorkParity": {"result":"passed","checkedFiles":6,"matchedFiles":6},
+      "requiredArtifacts": [
+        "combat.class",
+        "jedi.class",
+        "combat_actions.class",
+        "combat_base.class",
+        "buff.iff",
+        "jedi_actions.iff"
+      ],
+      "requiredArtifactPaths": {
+        "combat.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/combat.class",
+        "jedi.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class",
+        "combat_actions.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class",
+        "combat_base.class": "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.class",
+        "buff.iff": "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff",
+        "jedi_actions.iff": "/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
+      },
+      "compiledArtifacts": {
+        "combat.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/library/combat.class","sha256":"9da67775009c4d759787a18c42b81284f2678f9192b0f9ec5b333758f691c2e0","bytes":104999},
+        "jedi.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class","sha256":"8b01dd4e3a30f695e94eb1adea64ff5c636d8a052ee099f9192b72e268ce7b1e","bytes":63031},
+        "combat_actions.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class","sha256":"72672ac80d5eae05d33ed328506fae5c3395e3950f4033fd442cf2de58f740ec","bytes":324298},
+        "combat_base.class": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.class","sha256":"b554206a81cc99a3398693660f2537882439f188b50ee26d592c9eb60aa05cad","bytes":153718},
+        "buff.iff": {"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff","sha256":"5ad40453036f45431adcc256374e204b37c52778d484e28c620741c8d1bea679","bytes":366646},
+        "jedi_actions.iff": {"path":"/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff","sha256":"a72f801d55b7e5dca2867719d3aff6f0e28157cbb6445b5829d983dd691e4a61","bytes":13250}
+      },
+      "serverBinary": {
+        "path": "/swg-precu/build/bin/SwgGameServer",
+        "sha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+        "buildIdSha1": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+        "bytes": 22587656,
+        "inode": 12141822
+      },
+      "deterministicTableRecompile": {
+        "result": "passed",
+        "compiler": "/swg-precu/build/bin/DataTableTool",
+        "temporaryRoot": "/dev/shm",
+        "cleanupVerified": true,
+        "tables": {
+          "buff.iff": {
+            "sourcePath": "/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+            "sourceSha256": "ecd6cc2f7ed18b89babd07bfa4e662ece2376220761cf6507e7238232af88e5b",
+            "canonicalPath": "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff",
+            "freshOutputMatchesCanonical": true
+          },
+          "jedi_actions.iff": {
+            "sourcePath": "/swg-precu/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab",
+            "sourceSha256": "1f6363b77c1878586e7fdc475b398d05593bb4cc779a5d679aa8c629fefae68f",
+            "canonicalPath": "/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff",
+            "freshOutputMatchesCanonical": true
+          }
+        }
+      }
+    },
+    "deployment": {
+      "result": "passed",
+      "directSourceCommit": "10f2b88285969329effcfc3aba975c17118fd0b4",
+      "container": "swg-precu",
+      "containerId": "bfc5d86014f2ab2570558541b13df6ff7db4c20547fca49c5648f3f51bebec7e",
+      "containerImage": "swg-precu-server-x64:local",
+      "containerImageId": "sha256:666082edac4672ecfc6b908235bb34437118176f83bb71f496ed6dc997b64874",
+      "containerStartedAt": "2026-08-11T22:57:52.560366271Z",
+      "containerHealth": "healthy",
+      "clusterReadyForPlayers": true,
+      "liveGameProcessCount": 15,
+      "liveGameProcessPids": [394,395,396,397,398,399,400,401,402,403,404,405,406,407,408],
+      "allLiveGameProcessesMatchBinary": true,
+      "liveBinaryPath": "/swg-precu/build/bin/SwgGameServer",
+      "liveBinaryInode": 12141822,
+      "liveBinarySizeBytes": 22587656,
+      "postStartLogAudit": {
+        "lineCount": 321,
+        "fatalSevereExceptionErrorDatabaseConversionUndefinedSymbolOracleOrEmptyGenericMessageMatches": 0,
+        "playerReadyMarkerCount": 1,
+        "result": "passed"
+      }
+    },
+    "live": {
+      "result": "pending",
+      "directSourceCommit": "10f2b88285969329effcfc3aba975c17118fd0b4",
+      "containerStartedAt": "",
+      "sessionId": "",
+      "characterObjectId": 0,
+      "targetObjectId": 0,
+      "runtimeBinding": {
+        "deploymentEvidence": "forceDefenseContract.deployment",
+        "containerStartedAt": "",
+        "serverBinarySha256": "",
+        "serverBinaryBuildIdSha1": "",
+        "serverBinaryInode": 0,
+        "serverBinarySizeBytes": 0,
+        "liveGameProcessCount": 0,
+        "allLiveGameProcessesMatchBinary": false
+      },
+      "activation": [],
+      "tierLifecycle": {
+        "armorRank1BlockedByRank2": false,
+        "armorRank2ReplacedRank1": false,
+        "shieldRank1BlockedByRank2": false,
+        "shieldRank2ReplacedRank1": false,
+        "sameRankToggleBeforeOtherAdmissionChecks": false,
+        "armorEquipmentRejected": false
+      },
+      "domainMitigation": {
+        "forceArmor1NonForcePercent": 0,
+        "forceArmor2NonForcePercent": 0,
+        "forceArmorAgainstForcePercent": 0,
+        "forceShield1ForcePercent": 0,
+        "forceShield2ForcePercent": 0,
+        "forceShieldAgainstNonForcePercent": 0
+      },
+      "frsCases": [],
+      "oddDamageCanary": {
+        "incomingDamage": 0,
+        "mitigationPercent": 0,
+        "remainingDamage": 0,
+        "actualBlockedDamage": 0,
+        "observerAbsorbedDamage": 0,
+        "extraForceCost": 0,
+        "forceDebit": 0
+      },
+      "forceDrain": {
+        "atOrBelowCostRemovedBuffWithoutSubtract": false,
+        "atOrBelowHitEffectPlayed": false,
+        "atOrBelowRemoveLocalizationKey": "",
+        "atOrBelowForceBefore": 0,
+        "atOrBelowComputedCost": 0,
+        "atOrBelowForceAfter": 0,
+        "aboveCostSubtractedAndRetainedBuff": false,
+        "aboveForceBefore": 0,
+        "aboveComputedCost": 0,
+        "aboveForceAfter": 0,
+        "rank1BaseMultiplier": 0,
+        "rank2BaseMultiplier": 0,
+        "frsDrainPerManipulation": 0
+      },
+      "singlePool": {
+        "layerTrace": [],
+        "forceMitigationApplications": 0,
+        "foodUsesConsumed": 0,
+        "elementalDamageRestored": false
+      },
+      "multiPool": {
+        "layerTrace": [],
+        "activePools": 0,
+        "forceMitigationApplications": 0,
+        "foodEffectivenessReads": 0,
+        "foodUsesConsumed": 0,
+        "elementalDamageRestored": false
+      },
+      "cleanup": {
+        "allFourCommandsGrantedAndRevokedExactly": false,
+        "buffsRemoved": false,
+        "forcePowerRestored": false,
+        "skillStateRestored": false,
+        "targetStateRestored": false,
+        "relogVerified": false,
+        "serverHealthy": false
+      },
+      "requiredProof": [
+        "All four activation costs, durations, strengths, equal-Force admission, toggle, tier block/replacement, and armor rejection.",
+        "Exact action-name Force/non-Force domain split, 25/45 mitigation, 0.5/0.3 drain, and the 7-damage rounding canary.",
+        "FRS protection/drain coefficients, single- and multi-pool damage, Force then PSG then armor then food order, exact cleanup, and server health."
+      ]
+    }
+  },
   "weaponProfiles": {
     "object/weapon/ranged/rifle/rifle_cdef.iff": 0,
     "object/weapon/ranged/pistol/pistol_cdef.iff": 0,
     "object/weapon/ranged/carbine/carbine_cdef.iff": 0,
     "object/weapon/melee/unarmed/unarmed_default_player.iff": 0
   },
+  "authoritativeWeaponProfileRows": 355,
   "fixture": {
     "attackerOid": 44003778,
     "attackerStationId": 91001,
@@ -90,6 +442,7 @@
     "cleanupPolicy": "Destroy only the fixture-owned helmet, restore the original hat and food scriptvars exactly, then remove both identity-bound fixture roots. Repeated cleanup is idempotent."
   },
   "buildEvidence": {
+    "scope": "Historical PSG, hit-location armor, food, and weapon-profile build proof retained unchanged from before Force-defense restoration.",
     "result": "passed",
     "sourceCommit": "cd54de43e",
     "isolatedBuildVolume": "swg-precu-armor-mitigation-clean-build-143",
@@ -106,6 +459,7 @@
     }
   },
   "liveEvidence": {
+    "scope": "Historical reversible PSG, hit-location armor, food, HAM, cleanup, and health proof; it does not certify Force Armor or Force Shield.",
     "result": "passed",
     "verifiedAt": "2026-07-18T15:11:50-04:00",
     "clientProtocolVersion": 29,
@@ -179,10 +533,11 @@
       "damage-type protection and armor condition wear",
       "post-armor legacy and migrated food mitigation",
       "CDEF and player-unarmed armor-piercing profiles",
+      "Force Armor 1/2 and Force Shield 1/2 activation and persistent mitigation before PSG, armor, and food",
+      "case-sensitive action-name Force classification and observer-based Force drain",
       "deterministic and live reversible certification"
     ],
     "deferred": [
-      "Force Armor and Force Shield absorption",
       "crafted and looted weapon armor-piercing expansion",
       "creature-template armor-rating remap",
       "full elemental and DOT mitigation matrix",

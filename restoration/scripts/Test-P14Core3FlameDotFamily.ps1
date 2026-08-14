@@ -19,15 +19,22 @@ function Sha([string]$Path) {
     (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
 }
 $actionsPath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+$combatBasePath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+$combatLibraryPath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java"
+$heavyWeaponsPath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/library/heavyweapons.java"
 $fixturePath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java"
 $commandPath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 $combatPath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 $overridePath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab"
 $spamPath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab"
 $hamPath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab"
-$paths = @($actionsPath,$fixturePath,$commandPath,$combatPath,$overridePath,$spamPath,$hamPath)
+$paths = @($actionsPath,$combatBasePath,$combatLibraryPath,$heavyWeaponsPath,
+    $fixturePath,$commandPath,$combatPath,$overridePath,$spamPath,$hamPath)
 foreach ($path in $paths) { Assert (Test-Path -LiteralPath $path -PathType Leaf) "Missing M253 source: $path" }
 $actions = Get-Content -LiteralPath $actionsPath -Raw
+$combatBase = Get-Content -LiteralPath $combatBasePath -Raw
+$combatLibrary = Get-Content -LiteralPath $combatLibraryPath -Raw
+$heavyWeapons = Get-Content -LiteralPath $heavyWeaponsPath -Raw
 $fixture = Get-Content -LiteralPath $fixturePath -Raw
 $commands = Read-Rows $commandPath
 $combat = Read-Rows $combatPath
@@ -75,9 +82,36 @@ foreach ($token in @("FIXTURE_FLAME","equipFixtureFlame","flamePrecuHamCostModel
     "ORIGINAL_MAX_HEALTH","setMaxAttrib(player, HEALTH")) {
     Assert ($fixture.Contains($token)) "Fixture drifted: $token"
 }
+$heavyWeaponResolverStart = $heavyWeapons.IndexOf(
+    "public static String getHeavyWeaponDotName(obj_id player, int elementalDamageType",
+    [System.StringComparison]::Ordinal)
+$heavyWeaponResolver = if ($heavyWeaponResolverStart -ge 0) {
+    $heavyWeapons.Substring($heavyWeaponResolverStart)
+} else { "" }
+$heavyWeaponGuardIndex = $heavyWeaponResolver.IndexOf(
+    "if (isPlayer(player))", [System.StringComparison]::Ordinal)
+$heavyWeaponLevelIndex = $heavyWeaponResolver.IndexOf(
+    "int playerLevel = getLevel(player);", [System.StringComparison]::Ordinal)
+$retiredHeavyWeaponTokens = @(
+    "isCommandoBonus", "getDevastationChance", "commando_passive_dot",
+    "commando_devastation", "expertise_devastation_bonus",
+    "heavyweapons.getHeavyWeaponDotName(attackerData.id"
+)
+Assert (@($retiredHeavyWeaponTokens | Where-Object {
+        ($combatLibrary + $combatBase).Contains($_)
+    }).Count -eq 0 -and $heavyWeaponGuardIndex -ge 0 -and
+    $heavyWeaponResolver.Contains("return null;") -and
+    $heavyWeaponLevelIndex -gt $heavyWeaponGuardIndex) `
+    "NGE Commando default-heavy-attack player bonuses remain retired"
+Assert ($heavyWeapons.Contains('ATTACK_NAME_BASE_SINGLE = "co_hw_dot_"') -and
+    $heavyWeapons.Contains('ATTACK_NAME_BASE_AREA = "co_ae_hw_dot_"') -and
+    $heavyWeaponResolver.Contains("getLevel(player)")) `
+    "Non-player expansion heavy-weapon DOT compatibility drifted"
 $hashes = $contract.buildEvidence.sourceSha256
 $hashChecks = @{
-    "combat_actions.java"=$actionsPath; "precu_headshot1_fixture.java"=$fixturePath;
+    "combat_actions.java"=$actionsPath; "combat_base.java"=$combatBasePath;
+    "combat.java"=$combatLibraryPath; "heavyweapons.java"=$heavyWeaponsPath;
+    "precu_headshot1_fixture.java"=$fixturePath;
     "command_table.tab"=$commandPath; "combat_data.tab"=$combatPath;
     "precu_combat_overrides.tab"=$overridePath; "precu_combat_spam.tab"=$spamPath;
     "precu_weapon_ham_costs.tab"=$hamPath

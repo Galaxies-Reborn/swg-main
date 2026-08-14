@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-core3-action-preparation-authority",
+  "status": "ready",
+  "scope": "Make the pinned Publish 14.1 Core3 command preparation envelope authoritative for authenticated PRE-CU attacks while retaining later expansion content on the existing non-PRE-CU path.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "rangeSource": "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.h",
+    "rangeFunction": "CombatQueueCommand::doCombatAction",
+    "geometrySource": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "geometryFunction": "CombatManager::getAreaTargets"
+  },
+  "sourceFiles": {
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "runtimeFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_creature_combat_profile_runtime.java"
+  },
+  "core3Rules": {
+    "unspecifiedCommandRange": "max(10, weapon max range)",
+    "explicitCommandRange": "command range wins",
+    "delay": "authored command delay only",
+    "geometry": "authored cone and area values only",
+    "weaponValues": "raw min, max, speed, and elemental values"
+  },
+  "retiredForAuthenticatedPrecuAttacks": [
+    "attack replacement by NGE buffs",
+    "expertise action-data mutation",
+    "kill-meter vigor admission and drain",
+    "expertise delayed-attack adjustment",
+    "cybernetic and expertise range bonuses",
+    "expertise cone and area expansion",
+    "NGE weapon overload",
+    "NGE player elemental-value doubling",
+    "NGE killing-spree rampage injection"
+  ],
+  "expected": {
+    "expansionContentRetained": true,
+    "authenticatedActionsUseCore3Preparation": true,
+    "ngePreparationDiagnostics": 0
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/350-p14-core3-action-preparation-authority.patch",
+    "overlayPatchBytes": 12114,
+    "overlayPatchSha256": "5d9108720e96db50a0d67cc7df0c289913a20e4f55bbe13ada6abccee3cc5e50",
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "ELF 64-bit x86-64",
+    "buildIdSha1": "186028aec5352e367a12a74626984a4a5a7aeeb1",
+    "serverBinarySha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
+    "serverBinarySize": 22587592,
+    "serverBinaryInode": 12141854,
+    "verifiedOn": "2026-08-10",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "materializedCombatBaseSha256": "153647766c1aa03beeeaa351e83a7b4ec3c9295fe1ca6afd261fa2f03877500a",
+    "compiledCombatBaseSha256": "9d26b6788a5c8794381c066ca49137c45bf62d1cb1ef6d36595e127570b56964",
+    "runtimeFixtureSourceSha256": "cf42071c64f73683406de5000693c75786318565e301e66640653631e48657af",
+    "runtimeFixtureClassSha256": "79f755e0ce4fe95d9938a0816f30e7616a0df83b668091af573fe04e0b0a5d37",
+    "runtimeFixtureJavaCompile": "passed",
+    "container": "swg-precu",
+    "containerHealthy": true,
+    "clusterReady": true,
+    "result": "passed"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "recordedUtc": "2026-08-10T04:31:12Z",
+    "container": "swg-precu",
+    "serverProcessId": 383,
+    "fixture": "test.precu_creature_combat_profile_runtime",
+    "fixtureLifecycle": "63063063063063063063063063063063",
+    "attacker": 6615116312,
+    "defender": 6615116305,
+    "command": "creatureMeleeAttack",
+    "attackerProfile": "rancor",
+    "attackerWeaponTemplate": "object/weapon/creature/strength6/creature_strength6_normal.iff",
+    "preparation": {
+      "delay": 0.0,
+      "maxRange": 10.0,
+      "elementalValue": 0,
+      "ngeDelayApplied": 0,
+      "ngeRangeApplied": 0,
+      "ngeElementalMultiplierApplied": 0,
+      "ngeWeaponOverloadApplied": 0,
+      "result": "passed"
+    },
+    "cadence": {
+      "attackEvents": 7,
+      "assignedIntervalSeconds": 2.0,
+      "observedPairSeconds": [2.031, 2.061, 2.029, 2.039, 2.025, 2.034],
+      "minimumObservedConsecutiveSeconds": 2.025,
+      "pairsBelow1_95Seconds": 0,
+      "result": "passed"
+    },
+    "fixtureCleanup": {
+      "firstCleanupRestored": true,
+      "secondCleanupAlreadyClean": true,
+      "cadenceStableAfterCleanup": true,
+      "delayedErrorCount": 0,
+      "playerStateMutated": false,
+      "result": "passed"
+    },
+    "environment": {
+      "sourceAndBuildVolumeMatch": true,
+      "liveProcessMappedBuiltBinary": true,
+      "serverHealthy": true,
+      "clusterReadyForPlayers": true,
+      "PlanetServer": 15,
+      "SwgGameServer": 15,
+      "primaryClientProcessId": 52252,
+      "primaryClientRemainedOpenAndResponsive": true
+    }
+  },
+  "requiredBeforeReady": []
+}

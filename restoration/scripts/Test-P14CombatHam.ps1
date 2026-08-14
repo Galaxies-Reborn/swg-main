@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Build", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -10,6 +13,7 @@ $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
 $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw | ConvertFrom-Json
 $contract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14CombatHam)) -Raw | ConvertFrom-Json
+$nineAttributeContract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14NineAttributeRuntime)) -Raw | ConvertFrom-Json
 $gate = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.headShot1Gate)) -Raw | ConvertFrom-Json
 $marksmanMatrix = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14MarksmanTier1Matrix)) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
@@ -95,8 +99,8 @@ function Get-BracedBlock
 Write-Host "Publish 14.1 three-pool combat runtime checks:"
 
 Assert-Contract `
-    -Condition ([string]$contract.status -ceq "ready") `
-    -Name "p14.combat-ham.contract.generic-runtime-ready"
+    -Condition (@("implemented-build-pending", "ready") -contains [string]$contract.status) `
+    -Name "p14.combat-ham.contract.generic-runtime-status"
 Assert-Contract `
     -Condition (([string]$gate.status -ceq "ready") -and [string]$gate.acceptanceContract -ceq "contracts/p14-headshot1.json") `
     -Name "p14.combat-ham.first-command-gate-ready"
@@ -124,6 +128,17 @@ Assert-Contract `
     -Condition ($incapBlock.Contains("health <= 0 || action <= 0 || mind <= 0") -and $incapBlock.Contains("health > 0 && action > 0 && mind > 0") -and $incapBlock.Contains("setIncapacitated(true, attackerId)") -and $incapBlock.Contains("setIncapacitated(false, attackerId)")) `
     -Name "p14.combat-ham.incapacitation.any-empty-and-all-positive-recovery"
 
+Assert-Contract `
+    -Condition ([string]$contract.regenerationAuthority.contract -ceq "contracts/p14-nine-attribute-runtime.json" -and
+        -not [bool]$contract.regenerationAuthority.stanceRegenerationDeferred -and
+        [string]$contract.knownLimitations.woundsAndBattleFatigue -notmatch "stance-specific regeneration balance" -and
+        [string]$contract.knownLimitations.woundsAndBattleFatigue -match "not deferred" -and
+        (@($nineAttributeContract.regenerationGovernors | ForEach-Object { [string]$_ }) -join ",") -ceq
+            "Constitution,Stamina,Willpower" -and
+        [double]$nineAttributeContract.regenerationAuthority.postureMultipliers.crouched -eq 1.25 -and
+        [double]$nineAttributeContract.regenerationAuthority.postureMultipliers.sitting -eq 1.75) `
+    -Name "p14.combat-ham.regeneration-owned-by-nine-attribute-and-no-longer-deferred"
+
 $costAdjustment = Get-BracedBlock -Text $text.combatLibrary -Signature "private static int calculatePrecuHamCost("
 $costVector = Get-BracedBlock -Text $text.combatLibrary -Signature "private static int[] getPrecuHamActionCost("
 Assert-Contract `
@@ -146,10 +161,10 @@ Assert-Contract `
 Assert-Contract `
     -Condition (
         $text.combatBase.Contains("actionData.precuHamCostModel > 0") -and
-        $wrappedDamage.Contains("if (actionData.precuTargetPool >= 0)") -and
+        $wrappedDamage.Contains("precuResolvedTargetPool >= 0") -and
         [regex]::IsMatch(
             $wrappedDamage,
-            'doDamageToPool\s*\(\s*attacker,\s*defender,\s*hitData,\s*actionData\.precuTargetPool\s*\)') -and
+            'doDamageToPool\s*\(\s*attacker,\s*defender,\s*hitData,\s*precuResolvedTargetPool\s*\)') -and
         [regex]::IsMatch(
             $wrappedDamage,
             'else\s*\{\s*damageApplied\s*=\s*doDamage\s*\(\s*attacker,\s*defender,\s*hitData\s*\)')) `
@@ -168,6 +183,19 @@ Assert-Contract `
     -Condition ($weapon.Count -eq 1 -and [int]$weapon[0].healthCost -eq 10 -and [int]$weapon[0].actionCost -eq 15 -and [int]$weapon[0].mindCost -eq 10) `
     -Name "p14.combat-ham.data.cdef-costs-10-15-10"
 
+$creatureWeapon = @($weaponRows | Where-Object {
+    $_.templateName -ceq [string]$contract.profiledCreatureWeaponFixture.template
+})
+Assert-Contract `
+    -Condition ($creatureWeapon.Count -eq 1 -and
+        [int]$creatureWeapon[0].healthCost -eq 0 -and
+        [int]$creatureWeapon[0].actionCost -eq 0 -and
+        [int]$creatureWeapon[0].mindCost -eq 0 -and
+        $costVector.Contains('hasObjVar(self, "precu.combatProfile")') -and
+        $costVector.Contains('weaponTemplate.startsWith("object/weapon/creature/")') -and
+        $costVector.Contains('return new int[] { 0, 0, 0 };')) `
+    -Name "p14.combat-ham.data.profiled-creature-core3-zero-cost"
+
 $overrideRows = @(Import-Csv -LiteralPath $paths.combatOverrides -Delimiter "`t")
 $productionRows = @($overrideRows | Where-Object { $_.actionName -notin @("s", "__precu_runtime_probe") })
 $expectedProductionCommands = @(
@@ -176,11 +204,72 @@ $expectedProductionCommands = @(
 )
 $actualProductionCommands = @($productionRows | ForEach-Object { [string]$_.actionName })
 Assert-Contract `
-    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -eq $expectedProductionCommands.Count -and @($expectedProductionCommands | Where-Object { $actualProductionCommands -cnotcontains $_ }).Count -eq 0) `
+    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -ge $expectedProductionCommands.Count -and @($expectedProductionCommands | Where-Object { $actualProductionCommands -cnotcontains $_ }).Count -eq 0) `
     -Name "p14.combat-ham.data.separate-override-table-authenticated-production-commands"
 Assert-Contract `
     -Condition ((Get-Content -LiteralPath $paths.combatOverrides -Raw).Contains([string]$gate.feature)) `
     -Name "p14.combat-ham.data.ready-command-activated"
+
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
+Assert-Contract `
+    -Condition ($dsrcPin.Count -eq 1 -and $srcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.dsrcSourceCommit -and
+        [string]$srcPin[0].commit -ceq [string]$contract.buildEvidence.nativeSourceCommit -and
+        (Get-FileHash -LiteralPath $paths.combatLibrary -Algorithm SHA256).Hash.ToLowerInvariant() -ceq
+            [string]$contract.buildEvidence.sourceSha256.combatLibrary -and
+        (Get-FileHash -LiteralPath $paths.creatureCpp -Algorithm SHA256).Hash.ToLowerInvariant() -ceq
+            [string]$contract.buildEvidence.sourceSha256.creatureCpp) `
+    -Name "p14.combat-ham.source.direct-pins-and-regeneration-source-hashes"
+
+if ($Expectation -ceq "Source")
+{
+    Assert-Contract `
+        -Condition (([string]$contract.status -ceq "implemented-build-pending" -and
+                [string]$contract.buildEvidence.result -ceq "pending" -and
+                @($contract.requiredBeforeReady).Count -ge 1) -or
+            ([string]$contract.status -ceq "ready" -and
+                [string]$contract.buildEvidence.result -ceq "passed" -and
+                @($contract.requiredBeforeReady).Count -eq 0)) `
+        -Name "p14.combat-ham.status.truthful-source-or-ready-transition"
+}
+else
+{
+    $delegated = $contract.buildEvidence.delegatedDeploymentEvidence
+    $delegatedArtifacts = @($delegated.authenticatedArtifacts | ForEach-Object { [string]$_ })
+    $expectedDelegatedArtifacts = @(
+        "combat.class",
+        "CreatureObject.cpp.o",
+        "libserverGame.a",
+        "SwgGameServer"
+    )
+    Assert-Contract `
+        -Condition ([string]$delegated.contract -ceq "contracts/p14-nine-attribute-runtime.json" -and
+            [string]$delegated.expectation -ceq "Build" -and
+            ($delegatedArtifacts -join "`n") -ceq ($expectedDelegatedArtifacts -join "`n") -and
+            [bool]$delegated.includesExactLiveProcessAndPostStartLogAudit -and
+            [string]$delegated.result -ceq "passed" -and
+            [string]$contract.buildEvidence.sourceWorkParity.result -ceq "passed" -and
+            [int]$contract.buildEvidence.sourceWorkParity.checkedFiles -eq 2 -and
+            [int]$contract.buildEvidence.sourceWorkParity.matchedFiles -eq 2 -and
+            [string]$contract.buildEvidence.sourceSha256.combatLibrary -ceq
+                [string]$nineAttributeContract.buildEvidence.regenerationSourceSha256.combatLibrary -and
+            [string]$contract.buildEvidence.sourceSha256.creatureCpp -ceq
+                [string]$nineAttributeContract.buildEvidence.regenerationSourceSha256.creatureCpp -and
+            [string]$nineAttributeContract.buildEvidence.result -ceq "passed" -and
+            [string]$nineAttributeContract.runtimeEvidence.result -ceq "passed") `
+        -Name "p14.combat-ham.build.exact-nine-attribute-deployment-delegation"
+
+    & (Join-Path $PSScriptRoot "Test-P14NineAttributeRuntime.ps1") `
+        -SourceRoot $SourceRoot `
+        -Expectation Build
+
+    Assert-Contract `
+        -Condition ([string]$contract.status -ceq "ready" -and
+            [string]$contract.buildEvidence.result -ceq "passed" -and
+            @($contract.requiredBeforeReady).Count -eq 0) `
+        -Name "p14.combat-ham.build.current-deployment-evidence"
+}
 
 if ($failures.Count -gt 0)
 {

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-dynamic-mission-difficulty-authority",
+  "status": "ready",
+  "scope": "Keep retained mission boards, NPC jobs, expansion quests, and authored mission difficulty bands while preventing the removed NGE player combat level from regaining authority through residual or reactivated dynamic-mission helpers.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 characters progress through learned skill boxes and a 250-point skill budget rather than an NGE profession template or visible combat level.",
+      "The current mission board already derives its hidden 1-90 compatibility score from the loaded party's PRE-CU combat skill boxes and applies the authenticated full-credit group reward rule.",
+      "All six retained Mos Eisley NPC mission conversations already use the established PRE-CU encounter-difficulty adapter.",
+      "Two dormant planet-hunting helpers retained raw NGE player-level reads, and the escort NPC request path performed a third raw read whose value was never consumed.",
+      "Routing the two compatibility checks through the skill-box adapter and deleting the unused escort read preserves authored mission content while closing current and future NGE level precedence."
+    ]
+  },
+  "expected": {
+    "changedDsrcFiles": 3,
+    "gameplaySourceFiles": 2,
+    "rawPlayerLevelReadsInMissionTree": 0,
+    "precuEncounterDifficultyReadsInPlanetHelpers": 2,
+    "unusedEscortPlayerDifficultyReads": 0,
+    "dormantPlanetHelperReferences": 1,
+    "retainedNpcMissionConversationFiles": 6,
+    "precuNpcMissionAdapterReads": 6,
+    "missionBoardCombatScoreReads": 1,
+    "authoredEscortDifficultySource": "mission NPC intDifficulty objvar with the existing 1..20 fallback",
+    "missionBoardGroupRewardsPreserved": true,
+    "laterQuestsConversationsAndMissionsPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "skill": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "missionDynamic": "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java",
+    "missionPlayer": "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java",
+    "missionEscort": "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/mission_escort_npc.java",
+    "npcMission": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_convo.java",
+    "npcMission01": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_01_convo.java",
+    "npcMission02": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_02_convo.java",
+    "npcMission03": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_03_convo.java",
+    "npcMission04": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_04_convo.java",
+    "npcMission05": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/poi/tatooine/city/npc_mission_05_convo.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "46cde098fa000be953c668eebc18980bece1dc89b8a82ed36b02cf085476bb1e",
+      "skill": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+      "missionDynamic": "9034f47081954e4adcc61bd79439f71e937433bcce95be14dda8b9aa28e860a9",
+      "missionPlayer": "32ab4d4b055933721a9475476922064a2db0f05c3cf8268a53658a4d92597d49",
+      "missionEscort": "adadf077511fe9178c8267a3eecb6c7e78718a7dda9520be5a34fac582295c09",
+      "npcMission": "e2da348d57b13577ee32d627f99cc2ec42d075b09ee985735ffd4a8f223699de",
+      "npcMission01": "5534fab9bd83be5f0302142edb8d8286aa9e3256072e011a0d0a20d90cdd1efb",
+      "npcMission02": "504216efe50ce6b65302ae7975e8d25e18f7f41a13581a298751499e6f7677f5",
+      "npcMission03": "760bbd9cca8b97c9514e8c3378ef98ecad6c92eded6552d23b78d3175f379ad7",
+      "npcMission04": "63e340c793ed1964cd3864f7e50ff026a06cc39bb5e0193fc0eab1a81f1b579b",
+      "npcMission05": "b2d683c4299b279030af0064ac567d22320332e9f25beeb8d6f380a506ab86a5"
+    },
+    "compiledClassSha256": {
+      "missionDynamic": "3dfdbdb15f3e7ca617dbbac7cbffcc22cad4e2445ca40af074c3652b14da2a37",
+      "missionEscort": "a57bc9f86007202cf99f41f8b89de0bec0ba9eddfe25bb32e9336e2b55d1405a"
+    },
+    "sourceTest": "passed; the mission tree contains no raw player combat-level reads, both retained planet helpers use PRE-CU skill difficulty, the unused escort read is absent, and all production mission difficulty consumers remain preserved",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5717 sources produced 5751 classes and mission_dynamic_base.class was emitted 2026-08-10T08:38:23Z",
+    "fullServerBuild": "passed in 937.9 seconds from pushed parent 25cb74c, direct dsrc e3c1112513009c915eb6e5f22be2beffd02e4de8, and native src c5698b7737d012ac3b75f6d37b170e3d0320781c",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for mission_dynamic_base.java and mission_escort_npc.java; source and work SHA-256 pairs are identical",
+    "bytecodeAudit": "mission_dynamic_base.class contains exactly two skill.getPrecuEncounterDifficulty calls and zero getLevel calls; mission_escort_npc.class contains zero getLevel calls",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused mission bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-10",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassesPresent": true,
+    "compiledClassSizes": {
+      "missionDynamic": 85348,
+      "missionEscort": 5980
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches; player-ready markers present",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the last three raw NGE player combat-level reads in the production mission script tree",
+    "preserved": "mission-board generation, ten held missions, 24-player parties, full unsplit group credits, PRE-CU skill-box group scoring, retained NPC job conversations, authored mission-object difficulty, planet bands and feedback strings, expansion quests, and later content",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

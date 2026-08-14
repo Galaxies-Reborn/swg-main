@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-smuggler-content-expertise-authority",
+  "status": "ready",
+  "scope": "Preserve retained junk-dealer, summoned-dealer lifecycle, and contraband content for Publish 14.1 Smugglers while preventing inherited NGE expertise bonuses, proc buffs, secondary payouts, tiered primary/combat buffs, and the indirect junk-dealer special-effect handler from becoming gameplay authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/tangible/ContainerImplementation.cpp",
+    "findings": [
+      "The authenticated Publish 14.1 combat_smuggler family has 19 canonical rows and grants container, terminal, weapon, and armor slicing, pistol combat, feign death, spice crafting, and underworld language comprehension.",
+      "Publish 14.1 Smuggler rows contain no expertise_increase_smuggler_loot, expertise_junk_dealer_cut, Feeling Lucky proc, or summoned junk-dealer payout authority.",
+      "The corpse inspection command belongs to the later class_smuggler progression and is already retired from corpse menus and dispatch while its compatibility handler remains ungranted.",
+      "The summoned dealer command is owned only by the retired expertise_sm_path_off_the_books_1 row; no authenticated Publish 14.1 Smuggler row grants it.",
+      "The retained summoned dealer applied one of five NGE buffs on timeout or dismissal. Their tiers were selected by expertise_buff_under_the_counter and expertise_buff_best_deal_ever, and the buffs contain later primary-stat or damage-division modifiers.",
+      "The retained expertise_junk_dealer effect mapping dispatches through junkDealerAddBuffHandler and junkDealerRemoveBuffHandler against a dealer or NPC target while consulting a player stored in junkDealerBuffer. That indirect target shape is not covered by player-only buff admission and must be retired by exact effect identity before either handler can read NGE expertise statistics or write dealer modifiers.",
+      "Retained later-content junk sales, dealer greeting/profit/lifecycle behavior, and space contraband drops can remain available, but their outcomes must not be modified by an NGE expertise tree."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 4,
+    "canonicalPrecuSmugglerRows": 19,
+    "ngeSmugglerExpertiseReads": 0,
+    "ngeFeelingLuckyBuffReferences": 0,
+    "ngeSecondaryJunkPayouts": 0,
+    "summonedDealerExpertiseReads": 0,
+    "summonedDealerNgeBuffReferences": 0,
+    "retainedNgeJunkDealerExpertiseEffectMappingRows": 1,
+    "retainedNgeJunkDealerExpertiseInputModifiers": 3,
+    "retainedNgeJunkDealerExpertiseSkillModifierRows": 2,
+    "retainedNgeJunkDealerExpertiseSkillRows": 4,
+    "retiredNgeJunkDealerExpertiseResidueModifiers": 2,
+    "productionJunkDealerExpertiseHandlersGuarded": 2,
+    "ngeJunkDealerExpertiseBuffAdmissionReachable": false,
+    "persistedJunkDealerExpertiseResidueRemoved": true,
+    "summonedDealerLifetimeSeconds": 300,
+    "summonedDealerGreetingAndProfitPreserved": true,
+    "summonedDealerDismissalAndCleanupPreserved": true,
+    "junkDealerBasePayoutPreserved": true,
+    "underworldFactionTierPreserved": true,
+    "spaceContrabandBaseChancePreserved": true,
+    "corpseContrabandMenuRetired": true,
+    "compatibilityCommandHandlerRetained": true,
+    "precuSmugglerProfessionAdmissionPreserved": true,
+    "laterContentPreserved": true
+  },
+  "sourceFiles": {
+    "smuggler": "dsrc/sku.0/sys.server/compiled/game/script/library/smuggler.java",
+    "junkDealerSummon": "dsrc/sku.0/sys.server/compiled/game/script/npc/junk_dealer/junk_dealer_summon.java",
+    "buffLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java",
+    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "lineEndingPolicy": "the touched legacy junk_dealer_summon.java blob was normalized to the repository's declared LF policy",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "smuggler": "895092ca34897c3e81f51679b8a4c24bddc3d7e7f08531344a260d33db4978a6",
+      "junkDealerSummon": "9bc9c97531381576418e4c4be5e3f2679fc154078abb910b786a27db5e9b3ead",
+      "buffLibrary": "c05ffc14396a3991e45feae1ce32fbb0d89f921a4e9a014a43646cb88e8fd418",
+      "buffHandler": "83acdb0173e3c543035961ea1a6a12bcc2090e1c5ef76cdcdeaacc8b4fd9e1d0"
+    },
+    "compiledClassSha256": {
+      "smuggler": "bb5464eaaae58b2917749deddb9785e631f2774077b191c5d9c55c486193f606",
+      "junkDealerSummon": "d6bb9bd4de64717d4c849d9a18109ca4cb0304febd9f279bd6ecf7737ba3b863",
+      "buffLibrary": "0470d708a99c9aebe497faecfeb3ea864c5464990fbe46804ef2f563539facfb",
+      "buffHandler": "6c69756e7b46ede682ca0ee896f0d83e411c48ab4da5b04fd5c96fb0dca3cd37"
+    },
+    "sourceTest": "passed exact one-mapping, three-input-modifier, two-listed-modifier-row, four-skill-row, shared all-target admission, two-residue cleanup, and two-handler junk-dealer expertise assertions while retaining the exact 19-row Publish 14.1 Smuggler family, slicing abilities, junk/contraband content, and summoned-dealer lifecycle",
+    "focusedJavaCompile": "passed Java 8 compatibility compile with -implicit:none in exact ephemeral container path /dev/shm/precu-smuggler-junk-effect-compile-20260808; buff.class SHA-256 e396f393bfde1c58d61fc17597385ce58e5ef7e044e7074a1ea40656385c0a04, 62004 bytes; buff_handler.class SHA-256 cbcca3fb17d9bdda429cafc20b60c8f7c11649d51fe2bd6bfdb720125738680f, 103237 bytes; path removed and absence verified",
+    "fullJavaCompile": "passed exact zero-class dependency rebuild from pushed direct-source commit f7396ad0b7134c384c3ddd5681e7cfb014049b31; 5713 Java sources produced 5747 classes under OpenJDK 11 in the canonical x64 Docker work volume",
+    "fullServerBuild": "passed canonical deployment in 986.8 seconds from pushed parent 2c0c9c18a02093819db3740156c7d21bc70f8ea8 and direct dsrc f7396ad0b7134c384c3ddd5681e7cfb014049b31 with all source, data, bytecode, native, architecture, restart, readiness, and live identity gates completed",
+    "architecture": "LoginServer, TaskManager, ConnectionServer, SwgDatabaseServer, TransferServer, ChatServer, CentralServer, PlanetServer, and SwgGameServer verified ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "serverGameArchiveSha256": "9981b9fa6556c67cfb3b848968472e660223f2389d77504c79f95fa8d31c390e",
+    "sourceWorkParity": "passed byte-for-byte for smuggler.java, junk_dealer_summon.java, buff.java, and buff_handler.java between the read-only direct-source mount and Docker work volume; changed shared files authenticated at 1428ea6d98b08ca2b0a228fa70e51119d2a19e23e26c1ad3f30274f5200ac456 and fa40c4ecfceb662360c30f8e74b85c8a1abf0b0bd02dc53e5ab2b37fff953449",
+    "bytecodeAudit": "passed deployed authentication of the exact expertise_junk_dealer predicate, all-target admission denial, junkDealerBuffer plus two-modifier cleanup, and both handler guards before any NGE expertise read or dealer modifier write; retained smuggler.class and junk_dealer_summon.class remain free of their previously retired expertise/proc/buff authority while preserving content lifecycle symbols",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, exact junk-dealer expertise source/data/bytecode gates, cumulative PRE-CU data/native/bytecode gates, nine runtime x64 binaries, controlled restart/readiness, stable TransferServer ownership, 15 mapped game-server identities, and clean fresh-log audit",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-08",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "smuggler": 33836,
+      "junkDealerSummon": 4265,
+      "buffLibrary": 72873,
+      "buffHandler": 136364
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "stableTransferServer": "PID 355 remained stable across five seconds and exclusively owned 172.26.0.2:50005",
+    "postStartLogAudit": "321 lines since container start; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, core-dump, segmentation-fault, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "NGE Smuggler expertise can no longer alter retained junk-dealer payouts or contraband drop chances, proc the later Feeling Lucky buff, cause the retained summoned dealer to apply any tiered NGE primary/combat buff, or reach the dealer-targeted expertise_junk_dealer special-effect handlers.",
+    "preserved": "The exact Publish 14.1 Smuggler skill family, slicing ownership, base junk sale, underworld faction tiers, space contraband drops, summoned-dealer greeting, conversation, profit reporting, lifetime, dismissal, and cleanup remain intact.",
+    "notClaimedComplete": "Other shared libraries and content-specific handlers remain subject to the broader PRE-CU precedence audit."
+  },
+  "requiredBeforeReady": []
+}

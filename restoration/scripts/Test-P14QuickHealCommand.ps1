@@ -86,6 +86,24 @@ $fixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 $row = Get-TableRow -Path $paths.commandTable -Key "quickHeal"
 
 Write-Host "Publish 14.1 Quick Heal command checks:"
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract -Condition (
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceCommit) `
+    -Name "p14.quick-heal.direct-source-pin"
+foreach ($property in
+    $contract.buildEvidence.currentSourceSha256.psobject.Properties)
+{
+    $actualHash =
+        (Get-FileHash -Algorithm SHA256 `
+            -LiteralPath $paths[[string]$property.Name]).Hash.ToLowerInvariant()
+    Assert-Contract -Condition (
+        [string]$actualHash -ceq [string]$property.Value) `
+        -Name "p14.quick-heal.source.$([string]$property.Name).authenticated"
+}
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq
         "6856f315a80b5250635b2272695caec1d64204ed" -and
@@ -131,14 +149,31 @@ Assert-Contract -Condition (
     $handler.Contains("MIN_HEAL = 150") -and
     $handler.Contains("MAX_HEAL = 750") -and
     $handler.Contains("rand(MIN_HEAL, MAX_HEAL)") -and
-    $handler.Contains("healDamage(target, HEALTH, healPower)") -and
-    $handler.Contains("healDamage(target, ACTION, healPower)") -and
+    [regex]::IsMatch(
+        $handler,
+        '(?s)healing\.healDamage\s*\(\s*self\s*,\s*target\s*,\s*HEALTH\s*,\s*healPower\s*,\s*true\s*\)') -and
+    [regex]::IsMatch(
+        $handler,
+        '(?s)healing\.healDamage\s*\(\s*self\s*,\s*target\s*,\s*ACTION\s*,\s*healPower\s*,\s*true\s*\)') -and
     $handler.Contains("addWound(self, FOCUS, MIND_WOUND_COST)") -and
     $handler.Contains("addWound(self, WILLPOWER, MIND_WOUND_COST)") -and
     -not $handler.Contains("consumeObject(") -and
     -not $handler.Contains("grantExperiencePoints(") -and
     -not $handler.Contains("performQuickHealTool")) `
     -Name "p14.quick-heal.runtime.core3-cost-heal-and-wounds"
+
+$quickHealObserver = $contract.productionContract.campHealingObserver
+Assert-Contract -Condition (
+    [int]$quickHealObserver.notificationsPerUse -eq 2 -and
+    (@($quickHealObserver.notifyingPools) -join ",") -ceq
+        "Health,Action" -and
+    [bool]$quickHealObserver.eachAuthoredRequestNotifiesWhenClampedDeltaIsZero -and
+    [regex]::Matches($handler, 'healing\.healDamage\s*\(').Count -eq 2 -and
+    [regex]::Matches(
+        $handler,
+        '(?s)healing\.healDamage\s*\([^;]+?\btrue\s*\);').Count -eq 2 -and
+    -not $handler.Contains("notifyCampHealing")) `
+    -Name "p14.quick-heal.runtime.two-authored-pool-observer-events"
 
 Assert-Contract -Condition (
     $fixture.Contains("PLAYER_OID = 39008597L") -and

@@ -1,0 +1,121 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/travel.java b/sku.0/sys.server/compiled/game/script/library/travel.java
+index fa999e6..f41ffdb 100644
+--- a/sku.0/sys.server/compiled/game/script/library/travel.java
++++ b/sku.0/sys.server/compiled/game/script/library/travel.java
+@@ -1142,6 +1142,11 @@ public class travel extends script.base_script
+     }
+     public static boolean movePlayerToDestination(obj_id player, String planet, String point, boolean groupPickupPointTravel) throws InterruptedException
+     {
++        if (groupPickupPointTravel)
++        {
++            LOG("LOG_CHANNEL", "travel::movePlayerToDestination -- rejected retired NGE group-pickup travel");
++            return false;
++        }
+         if (!isIdValid(player))
+         {
+             LOG("LOG_CHANNEL", "travel::movePlayerToDestination -- player is not valid");
+@@ -1157,27 +1162,24 @@ public class travel extends script.base_script
+             LOG("LOG_CHANNEL", "travel::movePlayerToDestination -- point is null");
+             return false;
+         }
+-        if (!groupPickupPointTravel)
++        if (isTravelBlocked(player, false))
++        {
++            return false;
++        }
++        if (planet.equals("mustafar"))
+         {
+-            if (isTravelBlocked(player, false))
++            if (!features.hasMustafarExpansionRetail(player))
+             {
++                sendSystemMessage(player, SID_MUSTAFAR_UNAUTHORIZED);
+                 return false;
+             }
+-            if (planet.equals("mustafar"))
+-            {
+-                if (!features.hasMustafarExpansionRetail(player))
+-                {
+-                    sendSystemMessage(player, SID_MUSTAFAR_UNAUTHORIZED);
+-                    return false;
+-                }
+-            }
+-            else if (planet.equals("kashyyyk_main"))
++        }
++        else if (planet.equals("kashyyyk_main"))
++        {
++            if (!features.hasEpisode3Expansion(player))
+             {
+-                if (!features.hasEpisode3Expansion(player))
+-                {
+-                    sendSystemMessage(player, SID_KASHYYYK_UNAUTHORIZED);
+-                    return false;
+-                }
++                sendSystemMessage(player, SID_KASHYYYK_UNAUTHORIZED);
++                return false;
+             }
+         }
+         location loc = getPlanetTravelPointLocation(planet, point);
+@@ -1200,14 +1202,7 @@ public class travel extends script.base_script
+             {
+                 performance.holographicCleanup(player);
+             }
+-            if (groupPickupPointTravel)
+-            {
+-                warpPlayer(player, planet, arrival.x, arrival.y, arrival.z, null, 0.0f, 0.0f, 0.0f);
+-            }
+-            else 
+-            {
+-                warpPlayer(player, planet, arrival.x, arrival.y, arrival.z, null, 0.0f, 0.0f, 0.0f, "msgTravelComplete");
+-            }
++            warpPlayer(player, planet, arrival.x, arrival.y, arrival.z, null, 0.0f, 0.0f, 0.0f, "msgTravelComplete");
+         }
+         else 
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_travel.java b/sku.0/sys.server/compiled/game/script/player/player_travel.java
+index 6bc7826..9b75892 100644
+--- a/sku.0/sys.server/compiled/game/script/player/player_travel.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_travel.java
+@@ -152,17 +152,13 @@ public class player_travel extends script.base_script
+     }
+     public int OnAboutToTravelToGroupPickupPoint(obj_id self) throws InterruptedException
+     {
+-        if (callable.hasAnyCallable(self))
+-        {
+-            sendSystemMessage(self, new string_id("beast", "beast_cant_travel"));
+-            return SCRIPT_OVERRIDE;
+-        }
+-        return SCRIPT_CONTINUE;
++        LOG("LOG_CHANNEL", "Ignored retired NGE group-pickup travel request for " + self);
++        return SCRIPT_OVERRIDE;
+     }
+     public int OnTravelToGroupPickupPoint(obj_id self, String planetName, String travelPointName) throws InterruptedException
+     {
+-        travel.movePlayerToDestination(self, planetName, travelPointName, true);
+-        return SCRIPT_CONTINUE;
++        LOG("LOG_CHANNEL", "Ignored retired NGE group-pickup travel dispatch for " + self);
++        return SCRIPT_OVERRIDE;
+     }
+     public int msgTicketPaymentFail(obj_id self, dictionary params) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 65a88ee..298276a 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -594,7 +594,7 @@ craft		immediate		failAdmin	console_craft			admin		0		0								0	0			0	1	1	0			0
+ createCreature		immediate	createCreature	failAdmin				admin																				1	1		0	1												1																														none					0			csr	0										
+ createManfSchematic		immediate			createManfSchematic																										0	1	0											1																														none		1		crafting	0				0										
+ createMissionElement		immediate	createMissionElement					admin																				1	1		0	1												1																														none					0			csr	0										
+-createGroupPickup		immediate			createGroupPickup																							1	1		0	1												0																														none					0				0										
++createGroupPickup		immediate			createGroupPickup																							1	1		0	1												0																														none					1				0										
+ createNPC		immediate	createNPC	failAdmin				admin																				1	1		0	1																																										none					0			csr	0										
+ createPrototype		immediate			createPrototype																										0	1	0																																									none		1		crafting	0				0										
+ createSpawningElement		immediate	createSpawningElement					admin																				1	1		0	1																																										none					0			csr	0										
+@@ -1079,7 +1079,7 @@ wildernessStealth		normal	wildernessStealth	failWildernessStealth				wildernessS
+ wipeItems		immediate	cmdWipeItems	failAdmin				admin																				1	1		0																																									gm.cmd		optional	0				0		40	csr	0										
+ wookieeRoar		normal	wookieeRoar	cmdInnateFail			1	wookieeRoar		0			0	0	0	0	0	0	0			0	0	0			0				0													0				0	0	0	0	0																						optional		2			0				1			species_innate		1	3600				
+ detPackAttack		normal	detPackAttack				1																								0																																											optional		2			0				1	ALL				1				1	
+-useGroupPickup		immediate			useGroupPickup																							1	1		0	1												0																														none					0				0										
++useGroupPickup		immediate			useGroupPickup																							1	1		0	1												0																														none					1				0										
+ throwDetPack		normal	throwDetPack																												0													0																														optional		2			0				1	ALL				1				1	
+ blueGlowie		normal	blueGlowie					blueGlowie	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	0	0	0	0	0	0	0	0		1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1									0	0	0	0	0	0	0									none	0	2			0				1					2	15	blueGlowie		1	
+ saberBlock	commandClicky	normal	saberBlock	failSpecialAttack			1	saberBlock	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0			0	0	1	1		1	0	0	1	1	1	1	0	1	0	1	1	1	1	0	0									0		0	0	0	0	0								other	none		2		combat_ranged	0			combat	1	ALL		saber_block	0	0.25	60			1	

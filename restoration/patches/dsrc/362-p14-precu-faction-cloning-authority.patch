@@ -1,0 +1,448 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/factions.java b/sku.0/sys.server/compiled/game/script/library/factions.java
+index f2c3b13..ef24d31 100644
+--- a/sku.0/sys.server/compiled/game/script/library/factions.java
++++ b/sku.0/sys.server/compiled/game/script/library/factions.java
+@@ -657,13 +657,6 @@ public class factions extends script.base_script
+         {
+             return false;
+         }
+-        if (utils.hasScriptVar(target, "buff.general_inspiration.value"))
+-        {
+-            float factionBonus = utils.getFloatScriptVar(target, "buff.general_inspiration.value");
+-            factionBonus /= 100.0f;
+-            factionBonus += 1.0f;
+-            value *= factionBonus;
+-        }
+         float oldRating = getFactionStanding(target, factionName);
+         float newRating = oldRating + value;
+         float factionMax = getFactionMax(target, factionName);
+@@ -1068,23 +1061,11 @@ public class factions extends script.base_script
+         {
+             return false;
+         }
+-        if (value > 0)
+-        {
+-            if (luck.isLucky(player, 0.01f))
+-            {
+-                float bonus = value * 0.2f;
+-                if (bonus < 1)
+-                {
+-                    bonus = 1;
+-                }
+-                value += bonus;
+-            }
+-        }
+         return addFactionStanding(player, factionName, value);
+     }
+-    public static void grantCombatFaction(obj_id killer, obj_id target, double percentDamage) throws InterruptedException
++    public static void grantCombatFaction(obj_id killer, obj_id target, double ignoredPercentDamage) throws InterruptedException
+     {
+-        if (!isIdValid(target) || !isIdValid(killer) || percentDamage < 0.0f || percentDamage > 1.0f)
++        if (!isIdValid(target) || !isIdValid(killer))
+         {
+             return;
+         }
+@@ -1096,19 +1077,24 @@ public class factions extends script.base_script
+         {
+             return;
+         }
+-        String killerFaction = getFaction(killer);
+         String targetFaction = getFaction(target);
+-        if ((killerFaction == null) || (targetFaction == null))
++        if (targetFaction == null || targetFaction.equals(""))
++        {
++            return;
++        }
++
++        if (!isPlayer(target))
+         {
++            awardPrecuNpcCombatFaction(killer, targetFaction, getLevel(target));
+             return;
+         }
+-        float killerStanding = getFactionStanding(killer, killerFaction);
+-        float targetStanding = getFactionStanding(target, targetFaction);
+-        if (isPlayer(killer) && pvpGetType(killer) == PVPTYPE_NEUTRAL)
++
++        String killerFaction = getFaction(killer);
++        if (killerFaction == null || killerFaction.equals(""))
+         {
+             return;
+         }
+-        if (isPlayer(target) && pvpGetType(target) == PVPTYPE_NEUTRAL)
++        if (pvpGetType(killer) == PVPTYPE_NEUTRAL || pvpGetType(target) == PVPTYPE_NEUTRAL)
+         {
+             return;
+         }
+@@ -1116,51 +1102,69 @@ public class factions extends script.base_script
+         {
+             return;
+         }
+-        int killerDiff = getLevel(killer);
+-        int targetDiff = getLevel(target);
+-        gcw.incrementGCWStanding(killer, target);
+-        if (isPlayer(target))
++
++        awardFactionStanding(killer, killerFaction, 30);
++        addFactionStanding(killer, targetFaction, -45);
++        addFactionStanding(target, targetFaction, -45);
++    }
++    private static void awardPrecuNpcCombatFaction(obj_id player, String defeatedFaction, int targetLevel) throws InterruptedException
++    {
++        int defeatedRow = getFactionNumber(defeatedFaction);
++        if (defeatedRow == AD_HOC_FACTION || defeatedRow < 0)
+         {
+-            if (targetStanding <= 0)
+-            {
+-                return;
+-            }
+-            int kRank = pvpGetCurrentGcwRank(killer);
+-            int tRank = pvpGetCurrentGcwRank(target);
+-            float diffFactor = 1.0f + (tRank - kRank) / (2 * MAXIMUM_RANK);
+-            int actualReward = (int)(MAX_FACTION_KILL_REWARD * percentDamage * diffFactor);
+-            int factionLoss = (int)(-1.5f * actualReward);
+-            if (hasSkill(target, "class_smuggler_phase2_novice"))
+-            {
+-                actualReward /= 2;
+-                factionLoss /= 2;
+-            }
+-            if (pvpGetType(killer) == PVPTYPE_DECLARED)
++            return;
++        }
++        if (dataTableGetInt(FACTION_TABLE, defeatedRow, "playerAllowed") != 1)
++        {
++            return;
++        }
++
++        float gain = targetLevel * dataTableGetFloat(FACTION_TABLE, defeatedRow, "combatFactor");
++        float loss = gain * 2.0f;
++        boolean defeatedGcwFaction = isPrecuGcwFaction(defeatedFaction);
++        String enemies = dataTableGetString(FACTION_TABLE, defeatedRow, "enemies");
++        if (enemies != null && !enemies.equals(""))
++        {
++            String[] enemyList = split(enemies, ',');
++            for (String enemy : enemyList)
+             {
+-                actualReward = actualReward * 2;
++                if (isPrecuGcwFaction(enemy) && !defeatedGcwFaction)
++                {
++                    continue;
++                }
++                int enemyRow = getFactionNumber(enemy);
++                if (enemyRow >= 0 && dataTableGetInt(FACTION_TABLE, enemyRow, "playerAllowed") == 1)
++                {
++                    addFactionStanding(player, enemy, gain);
++                }
+             }
+-            awardFactionStanding(killer, killerFaction, actualReward);
+-            addFactionStanding(killer, targetFaction, factionLoss);
+-            addFactionStanding(target, targetFaction, factionLoss);
+         }
+-        else 
++
++        addFactionStanding(player, defeatedFaction, -loss);
++
++        String allies = dataTableGetString(FACTION_TABLE, defeatedRow, "allies");
++        if (allies == null || allies.equals(""))
+         {
+-            if (targetDiff > 25)
++            return;
++        }
++        String[] allyList = split(allies, ',');
++        for (String ally : allyList)
++        {
++            if (isPrecuGcwFaction(ally))
+             {
+-                targetDiff = 25;
++                continue;
+             }
+-            if (killerDiff > 25)
++            int allyRow = getFactionNumber(ally);
++            if (allyRow >= 0 && dataTableGetInt(FACTION_TABLE, allyRow, "playerAllowed") == 1)
+             {
+-                killerDiff = 25;
++                addFactionStanding(player, ally, -loss);
+             }
+-            int diffDelta = (targetDiff - killerDiff) + 25;
+-            float diffFactor = diffDelta / 50.0f;
+-            int actualReward = (int)(MAX_FACTION_KILL_REWARD * percentDamage * diffFactor);
+-            int factionLoss = (int)(-1.5f * actualReward);
+-            awardFactionStanding(killer, killerFaction, actualReward);
+-            addFactionStanding(killer, targetFaction, factionLoss);
+         }
+     }
++    private static boolean isPrecuGcwFaction(String factionName) throws InterruptedException
++    {
++        return FACTION_IMPERIAL.equals(factionName) || FACTION_REBEL.equals(factionName);
++    }
+     public static void adjustSocialStanding(obj_id target, String faction, int amount) throws InterruptedException
+     {
+         if (!isPlayer(target))
+diff --git a/sku.0/sys.server/compiled/game/script/library/pclib.java b/sku.0/sys.server/compiled/game/script/library/pclib.java
+index 6583460..81b6152 100644
+--- a/sku.0/sys.server/compiled/game/script/library/pclib.java
++++ b/sku.0/sys.server/compiled/game/script/library/pclib.java
+@@ -163,39 +163,24 @@ public class pclib extends script.base_script
+     public static final String OBJVAR_JEDI_SKILL_REQUIREMENTS = "jedi.skillsNeeded";
+     public static final float DECAY_RATE = 0.002f;
+     public static final String DECAY_REMAINDER = "decay.remainder";
+-    public static final float MIN_CLONING_SICKNESS_COST = 100;
+-    public static final float MAX_CLONING_SICKNESS_COST = 5000;
+     public static int getCloningSicknessCureCost(obj_id player) throws InterruptedException
+     {
+-        float minCost = MIN_CLONING_SICKNESS_COST;
+-        float maxCost = MAX_CLONING_SICKNESS_COST;
+-        int city_id = city.checkCity(player, false);
+-        if (city_id > 0 && city.cityHasSpec(city_id, city.SF_SPEC_CLONING))
+-        {
+-            minCost = MIN_CLONING_SICKNESS_COST / 2;
+-            maxCost = MAX_CLONING_SICKNESS_COST / 2;
+-        }
+-        return (int) (minCost + ((maxCost - minCost) * (getLevel(player) / 90.0f)));
++        return 0;
+     }
+     public static boolean canAffordCloningSicknessCure(obj_id player) throws InterruptedException
+     {
+-        return getCloningSicknessCureCost(player) <= getTotalMoney(player);
++        return true;
+     }
+     public static void cureCloningSickness(obj_id player) throws InterruptedException
+     {
+-        if (!canAffordCloningSicknessCure(player))
++        if (!isIdValid(player) || !isPlayer(player))
+         {
+-            sendSystemMessage(player, new string_id("spam", "not_enough_cash_4_cure"));
+             return;
+         }
+-        int cost = getCloningSicknessCureCost(player);
+-        if (cost > 0)
++        if (buff.hasBuff(player, "cloning_sickness"))
+         {
+-            money.requestPayment(player, money.ACCT_CLONING, cost, "none", null, false);
++            buff.removeBuff(player, "cloning_sickness");
+         }
+-        playClientEffectObj(player, "appearance/pt_cure_cloning_sickness.prt", player, "");
+-        buff.removeBuff(player, "cloning_sickness");
+-        playMusic(player, "sound/vo_meddroid_01.snd");
+     }
+     public static obj_id grantWayPoint(obj_id player, obj_id target) throws InterruptedException
+     {
+@@ -736,7 +721,6 @@ public class pclib extends script.base_script
+             setObjVar(victim, VAR_DEATHBLOW_KILLER, killer);
+             setObjVar(victim, VAR_DEATHBLOW_STAMP, getGameTime());
+         }
+-        gcw.releaseGcwPointCredit(victim);
+         obj_id master;
+         obj_id pvpKiller = killer;
+         if (!isPlayer(killer))
+@@ -882,7 +866,6 @@ public class pclib extends script.base_script
+         {
+             sendSystemMessageProse(player, prose.getPackage(PROSE_VICTIM_DEAD, killer));
+         }
+-        float factionMod = 1.0f;
+         if (!isPlayer(killer) && isMob(killer) && isIdValid(getMaster(killer)))
+         {
+             killer = getMaster(killer);
+@@ -900,7 +883,7 @@ public class pclib extends script.base_script
+             }
+             else 
+             {
+-                if ((getTotalMoney(player) >= bounty_hunter.MIN_BOUNTY_SET) && (!dueling) && (getLevel(killer) >= 20))
++                if ((getTotalMoney(player) >= bounty_hunter.MIN_BOUNTY_SET) && (!dueling) && (skill.getPrecuEncounterDifficulty(killer) >= 20))
+                 {
+                     bounty_hunter.showSetBountySUI(player, killer);
+                 }
+@@ -911,7 +894,10 @@ public class pclib extends script.base_script
+                 guildUpdateGuildWarKillTracking(killer, player);
+             }
+         }
+-        factions.grantCombatFaction(killer, player, factionMod);
++        if (!dueling)
++        {
++            factions.grantCombatFaction(killer, player, 1.0f);
++        }
+         clearPrecuIncapacitationTimes(player);
+         utils.removeScriptVar(player, "incap.timeStamp");
+         dot.removeAllDots(player);
+diff --git a/sku.0/sys.server/compiled/game/script/library/xp.java b/sku.0/sys.server/compiled/game/script/library/xp.java
+index 0dde94d..f46f425 100644
+--- a/sku.0/sys.server/compiled/game/script/library/xp.java
++++ b/sku.0/sys.server/compiled/game/script/library/xp.java
+@@ -1019,17 +1019,19 @@ public class xp extends script.base_script
+             killList[0] = killCredit;
+         }
+         metrics.doKillMetrics(killCredit, target);
+-        String faction = factions.getFaction(target);
+-        int levelAmount = getLevel(target) * 10;
+         obj_id[] allKillers = new obj_id[killers.length];
+         for (int i = 0; i < killers.length; i++)
+         {
+             allKillers[i] = utils.stringToObjId(killers[i].getName());
+         }
++        obj_id factionRecipient = getPrecuFactionKillRecipient(target, killers, killList);
++        if (isIdValid(factionRecipient) && !isPlayer(target))
++        {
++            factions.grantCombatFaction(factionRecipient, target, 1.0f);
++        }
+         obj_var killerVar;
+         obj_id killer;
+         obj_id master;
+-        obj_id gcw_gain_object;
+         obj_id beast;
+         dictionary params;
+         obj_id beastBCD;
+@@ -1056,23 +1058,6 @@ public class xp extends script.base_script
+                     }
+                 }
+             }
+-            gcw_gain_object = null;
+-            if (isIdValid(master))
+-            {
+-                if (!utils.isObjIdInArray(allKillers, master))
+-                {
+-                    gcw_gain_object = master;
+-                }
+-            }
+-            else 
+-            {
+-                gcw_gain_object = killer;
+-            }
+-            if (isIdValid(gcw_gain_object) && !hasObjVar(target, gcw.GCW_POINT_OVERRIDE))
+-            {
+-                gcw.grantModifiedGcwPoints(target, gcw_gain_object, false, gcw.GCW_POINT_TYPE_GROUND_PVE, getName(target));
+-            }
+-            int dam = killerVar.getIntData();
+             checkAndUpdateHuntingMissions(killer, target);
+             if (isIdValid(killer) && killer.isLoaded() && !killer.isBeingDestroyed() && killer != target)
+             {
+@@ -1121,22 +1106,14 @@ public class xp extends script.base_script
+                             grantCombatStyleXp(master, COMBAT_GENERAL, xpTotal);
+                             displayXpFlyText(master, master, xpTotal);
+                             displayXpMsg(master, null, xpTotal);
+-                            double percentDamage = (dam / damageTally) + PERCENT_ADJUSTER;
+-                            factions.grantCombatFaction(master, target, percentDamage);
+                         }
+                     }
+                 }
+                 else if (utils.isObjIdInArray(killList, killer))
+                 {
+-                    double percentDamage = (dam / damageTally) + PERCENT_ADJUSTER;
+                     if (getDistance(killer, target) < MAX_DISTANCE)
+                     {
+                         grantCombatXpPerAttackType(killer, target, xpTotal);
+-                        factions.grantCombatFaction(killer, target, percentDamage);
+-                        if (faction != null)
+-                        {
+-                            factions.adjustSocialStanding(killer, faction, -levelAmount);
+-                        }
+                         ret = utils.addElement(ret, killerVar);
+                     }
+                 }
+@@ -1151,6 +1128,51 @@ public class xp extends script.base_script
+         ret.toArray(_ret);
+         return _ret;
+     }
++    private static obj_id getPrecuFactionKillRecipient(obj_id target, obj_var[] killers, obj_id[] killList) throws InterruptedException
++    {
++        if (!isIdValid(target) || killers == null || killers.length == 0 || killList == null || killList.length == 0)
++        {
++            return obj_id.NULL_ID;
++        }
++        dictionary playerDamage = new dictionary();
++        obj_id highestDamagePlayer = obj_id.NULL_ID;
++        int highestDamage = 0;
++        for (obj_var attackerDamage : killers)
++        {
++            obj_id attacker = utils.stringToObjId(attackerDamage.getName());
++            if (!isIdValid(attacker))
++            {
++                continue;
++            }
++            obj_id player = attacker;
++            if (!isPlayer(player) && isMob(player))
++            {
++                player = getMaster(player);
++            }
++            if (!isIdValid(player) || !isPlayer(player) || !exists(player) || !player.isLoaded() || player.isBeingDestroyed())
++            {
++                continue;
++            }
++            if (!utils.isObjIdInArray(killList, attacker) && !utils.isObjIdInArray(killList, player))
++            {
++                continue;
++            }
++            float distance = getDistance(player, target);
++            if (distance < 0.0f || distance >= MAX_DISTANCE)
++            {
++                continue;
++            }
++            String playerKey = player.toString();
++            int totalDamage = playerDamage.getInt(playerKey) + Math.max(0, attackerDamage.getIntData());
++            playerDamage.put(playerKey, totalDamage);
++            if (totalDamage > highestDamage)
++            {
++                highestDamage = totalDamage;
++                highestDamagePlayer = player;
++            }
++        }
++        return highestDamagePlayer;
++    }
+     public static void grantCombatXpPerAttackType(obj_id player, obj_id target, int totalXp) throws InterruptedException
+     {
+         if (!isIdValid(player) || (!isPlayer(player)) || !isIdValid(target) || totalXp < 1)
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index dc12dff..b1ecab0 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -1463,6 +1463,10 @@ public class base_player extends script.base_script
+     }
+     public int OnLogin(obj_id self) throws InterruptedException
+     {
++        if (buff.hasBuff(self, "cloning_sickness"))
++        {
++            buff.removeBuff(self, "cloning_sickness");
++        }
+         restorePrecuBerserkState(self);
+         restorePrecuRetreatState(self);
+         combat.restorePrecuFeignDeathOnLoad(self);
+@@ -11296,41 +11300,11 @@ public class base_player extends script.base_script
+     }
+     public int grantUnmodifiedExperienceOnSelf(obj_id self, dictionary params) throws InterruptedException
+     {
+-        if (npe.hasReachedMaxTutorialLevel(self))
+-        {
+-            int hadNotif = utils.getIntScriptVar(self, "npe.level_capped");
+-            if (hadNotif == 0)
+-            {
+-                string_id chat = new string_id("npe", "pop_level_cap");
+-                obj_id building = getTopMostContainer(self);
+-                obj_id droid = utils.getObjIdScriptVar(building, "objDroidInvis");
+-                npe.commTutorialPlayer(droid, self, 10, chat, "sound/dro_r2_3_danger.snd", "object/mobile/r2.iff");
+-                utils.setScriptVar(self, "npe.level_capped", 1);
+-            }
+-            return SCRIPT_CONTINUE;
+-        }
+-        int playerLevel = getLevel(self);
+-        if (isFreeTrialAccount(self))
+-        {
+-            if (playerLevel >= xp.TRIAL_LEVEL_CAP)
+-            {
+-                return SCRIPT_CONTINUE;
+-            }
+-        }
+         String xp_type = params.getString("xp_type");
+         int amt = params.getInt("amt");
+         String fromCallback = params.getString("fromCallback");
+         dictionary fromCallbackData = params.getDictionary("fromCallbackData");
+         obj_id fromId = params.getObjId("fromId");
+-        if (luck.isLucky(self, 0.001f))
+-        {
+-            float bonus = amt * 0.1f;
+-            if (bonus < 1.0f)
+-            {
+-                bonus = 1.0f;
+-            }
+-            amt += bonus;
+-        }
+         xp._grantUnmodifiedExperience(self, xp_type, amt, fromCallback, fromCallbackData, fromId);
+         return SCRIPT_CONTINUE;
+     }

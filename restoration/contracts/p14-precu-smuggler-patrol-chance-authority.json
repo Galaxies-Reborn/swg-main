@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-smuggler-patrol-chance-authority",
+  "status": "ready",
+  "scope": "Preserve retained Smuggler missions and patrol encounters while making their authored baseline contraband and Fast Talk chances authoritative instead of allowing the inherited NGE expertise tree to rewrite them.",
+  "eraEvidence": {
+    "basis": "The authenticated Publish 14.1 Smuggler profession is an owned skill-box graph with no expertise_sly_lie or expertise_fast_talk statistics. Retained later Smuggler missions may remain available, but their baseline encounter probabilities must not depend on the removed NGE expertise tree.",
+    "findings": [
+      "Normal quest-owned contraband checks authored a 5 percent pass chance; invoking the retained Sly Lie compatibility action added a fixed 10 points for a 15 percent total before NGE expertise and rank arithmetic was applied.",
+      "Fast Talk authored a 25 percent baseline before NGE expertise and rank arithmetic was applied.",
+      "Thirty-six creature rows attach ai.smuggler_spawn_enemy, and normal login sends the retained Smuggler bootstrap only through the PRE-CU combat_smuggler_novice profession gate.",
+      "The exact nineteen-row Publish 14.1 combat_smuggler family grants neither retained compatibility action, so later command/data rows remain loadable without becoming PRE-CU player progression authority."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "patrolJavaExpertiseReads": 0,
+    "normalContrabandPassChancePercent": 5,
+    "slyLieBaseBonusPercent": 10,
+    "slyLieTotalPassChancePercent": 15,
+    "fastTalkBaseChancePercent": 25,
+    "patrolCreatureRows": 36,
+    "canonicalPrecuSmugglerRows": 19,
+    "precuSlyLieSkillGrants": 0,
+    "precuFastTalkSkillGrants": 0,
+    "compatibilityCommandRowsPerAction": 1,
+    "compatibilityCombatRowsPerAction": 1,
+    "precuProfessionGate": "combat_smuggler_novice",
+    "missionAndPatrolContentPreserved": true
+  },
+  "sourceFiles": {
+    "patrolAi": "dsrc/sku.0/sys.server/compiled/game/script/ai/smuggler_spawn_enemy.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "utils": "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java",
+    "groundquests": "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java",
+    "creatures": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "patrolAi": "51e62b0eb9308c28b43f2f48d8335f3e7a9df771bbb0324fea03f894eb9ef0e3",
+      "basePlayer": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "utils": "86909a18bbb9fcd72f6ff6969c78dd52095580c7d9637289e3cdbcb152f3695c",
+      "groundquests": "17ea0ee5bbd198cf5769c00bc7834045333cce7b2435e87fa4daa6103d3fbc3f",
+      "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
+      "skills": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+      "commandTable": "2349ca3f4db04568e4d57d34d5512a440fe74f6a5072f14f485a980ba95fc7de",
+      "combatData": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e"
+    },
+    "compiledClassSha256": "161414a0d54e6940dff4a93d92a0c4f624802a4bf019157939e3eeffcd00d3a7",
+    "sourceTest": "passed; PRE-CU profession admission, retained mission/bootstrap/patrol reachability, exact 5/15/25 authored chances, compatibility command isolation, and zero patrol expertise reads authenticated",
+    "focusedJavaCompile": "passed in an ephemeral in-memory directory that was removed immediately; emitted patrol bytecode retained all three named baseline constants and contained no expertise symbol",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and smuggler_spawn_enemy.class was emitted at 2026-08-05T02:42:05.244256419Z",
+    "fullServerBuild": "passed in 617.4 seconds from pushed parent 8903812 and direct dsrc 691ff0d7f",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for smuggler_spawn_enemy.java between the read-only direct source and Docker work volume; both copies have SHA-256 51e62b0eb9308c28b43f2f48d8335f3e7a9df771bbb0324fea03f894eb9ef0e3",
+    "bytecodeAudit": "passed; smuggler_spawn_enemy.class retains CONTRABAND_BASE_PASS_CHANCE, SLY_LIE_BASE_BONUS, FAST_TALK_BASE_CHANCE, contrabandCheckResult, and fastTalkReaction while containing no expertise symbol or getSmugglerRank call",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused patrol source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 9790,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "Retained Smuggler patrol contraband and Fast Talk outcomes can no longer consume NGE expertise or expertise-scaled underworld rank.",
+    "preserved": "PRE-CU Novice Smuggler admission, retained bootstrap mail, ten Smuggler mission families, thirty-six patrol creature definitions, quest ownership, barks, snares, combat, cleanup, Sly Lie compatibility, Fast Talk confusion, and command/combat data rows remain available.",
+    "notClaimedComplete": "The ungranted summoned junk-dealer ability, Beast Master compatibility, and other dormant or content-specific expertise families remain subject to later reachability audits."
+  },
+  "requiredBeforeReady": []
+}

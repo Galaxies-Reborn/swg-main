@@ -90,6 +90,9 @@ function Get-BracedBlock
 
 $consumable = Get-Content -LiteralPath $paths.consumable -Raw
 $healing = Get-Content -LiteralPath $paths.healing -Raw
+$classicStimpack = Get-Content -LiteralPath $paths.classicStimpack -Raw
+$craftedStimpack = Get-Content -LiteralPath $paths.craftedStimpack -Raw
+$otherStimpack = Get-Content -LiteralPath $paths.otherStimpack -Raw
 $utils = Get-Content -LiteralPath $paths.utils -Raw
 $fixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 $consumeEntry = Get-BracedBlock -Text $consumable `
@@ -113,8 +116,28 @@ $applyStart = $consume.IndexOf(
 $decrement = $consume.LastIndexOf(
     "return decrementCharges(item, player);",
     [StringComparison]::Ordinal)
+$classicHealDamageItem = Get-BracedBlock -Text $healing `
+    -Signature "public static boolean useHealDamageItem(obj_id user, obj_id target, obj_id item, int attrib)"
 
 Write-Host "Publish 14.1 medicine-item consumption checks:"
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract -Condition (
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceCommit) `
+    -Name "p14.medicine.direct-source-pin"
+foreach ($property in
+    $contract.buildEvidence.currentSourceSha256.psobject.Properties)
+{
+    $actualHash =
+        (Get-FileHash -Algorithm SHA256 `
+            -LiteralPath $paths[[string]$property.Name]).Hash.ToLowerInvariant()
+    Assert-Contract -Condition (
+        [string]$actualHash -ceq [string]$property.Value) `
+        -Name "p14.medicine.source.$([string]$property.Name).authenticated"
+}
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq
         "6856f315a80b5250635b2272695caec1d64204ed" -and
@@ -148,6 +171,69 @@ Assert-Contract -Condition (
         "if (attrib_mod.getAttribute() == HEALTH)") -and
     -not $consume.Contains("LOOKS LIKE HEALTH TO ME")) `
     -Name "p14.medicine.runtime.all-validated-attributes-applied"
+
+$medicineObserver = $contract.productionContract.campHealingObserver
+$medicineObserverPattern =
+    '(?s)healing\.healDamage\s*\(\s*player\s*,\s*target\s*,\s*attrib_mod\.getAttribute\(\)\s*,\s*attrib_mod\.getValue\(\)\s*,\s*notifyCampHealing\s*\)'
+Assert-Contract -Condition (
+    [string]$medicineObserver.scope -ceq
+        "ordinary non-revive medicine" -and
+    [bool]$medicineObserver.firstPositiveInstantPoolModifierNotifies -and
+    -not [bool]$medicineObserver.subsequentInstantPoolModifiersNotify -and
+    [bool]$medicineObserver.notificationUsesMedicineUserAsHealer -and
+    [bool]$medicineObserver.clampedAppliedDeltaZeroStillCountsAsAuthoredEvent -and
+    -not [bool]$medicineObserver.woundHealingNotifies -and
+    -not [bool]$medicineObserver.timedBuffEnhancementAndNonPoolModifiersNotify -and
+    $consume.Contains("boolean medicine = healing.isMedicine(item);") -and
+    $consume.Contains("boolean revivePack = healing.isRevivePack(item);") -and
+    $consume.Contains("boolean notifiedMedicinePool = false;") -and
+    $consume.Contains("attrib_mod.getValue() > 0") -and
+    $consume.Contains("attrib_mod.getDuration() <= 0.0f") -and
+    $consume.Contains(
+        "(int)attrib_mod.getDecay() == (int)MOD_POOL") -and
+    [regex]::IsMatch(
+        $consume,
+        '(?s)boolean notifyCampHealing\s*=\s*revivePack\s*\|\|\s*\(medicine\s*&&\s*!notifiedMedicinePool\)') -and
+    [regex]::Matches($consume, $medicineObserverPattern).Count -eq 1 -and
+    [regex]::IsMatch(
+        $consume,
+        '(?s)healing\.healDamage\s*\([^;]+notifyCampHealing\s*\);\s*if\s*\(medicine\s*&&\s*!revivePack\)\s*\{\s*notifiedMedicinePool\s*=\s*true;') -and
+    [regex]::IsMatch(
+        $consume,
+        '(?s)else\s*\{\s*utils\.addAttribMod\(target, attrib_mod\);') -and
+    -not [regex]::IsMatch(
+        $consume,
+        '(?s)if\s*\([^)]*delta\s*>\s*0[^)]*\)\s*\{\s*notifiedMedicinePool\s*=\s*true;')) `
+    -Name "p14.medicine.runtime.first-authored-pool-observer-only"
+
+$classicStimObserverPattern =
+    '(?s)healDamage\s*\(\s*user\s*,\s*target\s*,\s*attrib\s*,\s*toHeal\s*,\s*true\s*\)'
+Assert-Contract -Condition (
+    [int]$medicineObserver.classicUseHealDamageItemNotificationsPerSuccessfulUse -eq 1 -and
+    [int]$medicineObserver.classicUseHealDamageItemBattleFatigueCreditsPerPositiveHeal -eq 1 -and
+    (@($medicineObserver.classicProducerScripts) -join ",") -ceq
+        "item.medicine.stimpack,item.medicine.stimpack_crafted,item.medicine.stimpack_other" -and
+    -not [string]::IsNullOrEmpty($classicHealDamageItem) -and
+    [regex]::Matches(
+        $classicHealDamageItem,
+        $classicStimObserverPattern).Count -eq 1 -and
+    [regex]::Matches(
+        $classicHealDamageItem,
+        'pvp\.bfCreditForHealing\s*\(\s*user\s*,\s*delta\s*\)').Count -eq 1 -and
+    [regex]::Matches(
+        $classicHealDamageItem,
+        '\bhealDamage\s*\(').Count -eq 1 -and
+    $classicStimpack.Contains(
+        "healing.useHealDamageItem(player, self, attrib)") -and
+    $classicStimpack.Contains(
+        "healing.useHealDamageItem(player, self)") -and
+    $craftedStimpack.Contains(
+        "healing.useHealDamageItem(player, self, attrib)") -and
+    $craftedStimpack.Contains(
+        "healing.useHealDamageItem(player, self)") -and
+    $otherStimpack.Contains(
+        "healing.useHealDamageItem(player, target, self)")) `
+    -Name "p14.medicine.runtime.classic-stim-producer-observer-and-bf"
 Assert-Contract -Condition (
     $decrement -gt $applyStart -and
     $consumable.Contains("else if (charges > 1)") -and

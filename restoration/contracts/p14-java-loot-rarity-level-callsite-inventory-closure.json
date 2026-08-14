@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-loot-rarity-level-callsite-inventory-closure",
+  "status": "ready",
+  "scope": "Close the complete Java loot-rarity and treasure-map level-band helper surface, proving that active player rewards use PRE-CU skill investment while retained theft and cash helpers consume authored NPC difficulty and retired NGE player entry points cannot restore combat-level progression.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 player progression is skill-box and XP-pool based; loot must not expose or consume a player combat-level stat.",
+      "The active Scout forage reward path selects retained treasure-map bands through skill.getPrecuEncounterDifficulty, the hidden PRE-CU combat-skill investment adapter already used by treasure-map ambush scaling.",
+      "The remaining cash and theft rarity helpers read authored NPC creature level or intCombatDifficulty. Publish 14.1 has no Spy theft action, and the inherited player steal entry point is already retired while NPC and expansion compatibility remains available.",
+      "The only additional generateTheftLoot call is confined to the working/dantest God diagnostic and has no production player progression authority."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\b(?:getCashForLevel|getAdjustedCreatureLevel|generateTheftLootRare|generateTheftLoot|getRareForagedTreasureMap|getPlayerTreasureMapString)\\s*\\(",
+    "javaSources": 5717,
+    "callSites": 20,
+    "sourceFiles": 4,
+    "inventorySha256": "993dcb558c6f921392b294275d3d408a4ecc5fde6267b344c589cfee392c3b73",
+    "sourceSetSha256": "6e547a619cb40e17a7bae6ca83c6b75caf31bd5dc4072aaabf2c7f9901ef9d8d",
+    "sourceContentSha256": "de820254b14e5072074675186b6248fc56a741817394f5a86b1305cdd263b444",
+    "methodCounts": {
+      "getCashForLevel": 3,
+      "getAdjustedCreatureLevel": 2,
+      "generateTheftLootRare": 2,
+      "generateTheftLoot": 6,
+      "getRareForagedTreasureMap": 3,
+      "getPlayerTreasureMapString": 4
+    },
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/library/loot.java": 12,
+      "sku.0/sys.server/compiled/game/script/library/stealth.java": 6,
+      "sku.0/sys.server/compiled/game/script/player/player_utility.java": 1,
+      "sku.0/sys.server/compiled/game/script/working/dantest.java": 1
+    }
+  },
+  "classification": {
+    "authoredNpcCashAndTheft": {
+      "callSites": 12,
+      "inventorySha256": "f34c96bba15ec68f5fbc42ae0aa3dfa5c264a66b31670ac5610ae1fa7c20b1e9",
+      "authority": "Cash bounds, normal theft loot, and rare theft bands consume the mark's authored NPC creature level, loot table, or intCombatDifficulty; player marks are excluded and player Spy theft admission is retired."
+    },
+    "precuSkillBasedTreasureMaps": {
+      "callSites": 7,
+      "inventorySha256": "353b49dd5e91c1140a42832787f9fb1afdd69b5fabfe570da2f170587299bd92",
+      "authority": "The active Scout forage map award and retained later map compatibility select one of nine content bands through skill.getPrecuEncounterDifficulty, never getLevel(player)."
+    },
+    "godDiagnostic": {
+      "callSites": 1,
+      "inventorySha256": "942b3829c9bc0b5e85ee21166f5a842bf24aad41bceb50feade402247cf5ffc6",
+      "authority": "working/dantest exposes one explicit administrator diagnostic call and is not a production progression path."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-precu-ground-loot-scout-forage-authority.json",
+    "p14-precu-mobile-stealth-detection-authority.json",
+    "p14-precu-encounter-difficulty-authority.json",
+    "p14-precu-combat-xp-authority.json",
+    "p14-java-residual-object-level-callsite-inventory-closure.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 0,
+    "authoredNpcCashAndTheftCalls": 12,
+    "precuSkillBasedTreasureMapCalls": 7,
+    "godDiagnosticCalls": 1,
+    "unclassifiedCalls": 0,
+    "playerCombatLevelLootAuthority": false,
+    "playerSpyTheftInvocationRetired": true,
+    "npcTheftCompatibilityPreserved": true,
+    "activeScoutMapDifficultyAuthority": "skill.getPrecuEncounterDifficulty",
+    "treasureMapBandRows": 9,
+    "treasureMapEncounterAdapterCalls": 3,
+    "retiredNgePlayerForageEntrypointInert": true,
+    "laterTreasureMapAndNpcContentPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceSha256": {
+      "library/loot.java": "e6f5ff10b25dc149acf775b74cc4804fc6074ce70809c7f540683a0d128aa4ab",
+      "library/stealth.java": "18324719ba4b0e077c2c49dde160a6a28e380941f59b7f8acf222627ac8a1160",
+      "player/player_utility.java": "ac7d04a644ab29ee0c883b90793a061eed99f15e9a794cdcfcadcce6e017229c",
+      "working/dantest.java": "bd6e72d1254c8441669e72a8ada696ef67cc8ba11831fdd6d6cac177794e15a4",
+      "systems/treasure_map/base/treasure_map.java": "e3a847a1abf169ad1a6be62246ed03fa619baf0ae51089f219ddab21fb576806"
+    },
+    "sourceAudit": "passed; all 20 loot-rarity and treasure-band helper references are classified as authored NPC compatibility, PRE-CU skill-based retained treasure-map content, or one God diagnostic, with zero unclassified player combat-level authority",
+    "gameplayBuildReused": "No gameplay source or data changed; the authenticated 5,717-source x64 deployment at the pinned direct/native revisions remains authoritative.",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T03:59:32.9278385-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinaryBytes": 22587656,
+    "clientProcessId": 52252,
+    "clientResponsive": true,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete Java cash/theft rarity and treasure-map band helper inventory, active Scout reward authority, retained treasure encounter scaling, retired player Spy/theft and NGE forage admission, and NPC/admin compatibility classification",
+    "preserved": "Publish 14.1 skill-box progression and Scout forage, authored NPC cash/loot difficulty, all nine later treasure-map bands and encounters, later NPC/expansion compatibility, and the God diagnostic",
+    "notClaimedComplete": "other dormant later reward systems outside this exact loot-rarity and treasure-map surface remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

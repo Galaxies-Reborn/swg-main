@@ -1,0 +1,338 @@
+diff --git a/sku.0/sys.server/compiled/game/script/cureward/cureward.java b/sku.0/sys.server/compiled/game/script/cureward/cureward.java
+index 476ceea..4e6129e 100644
+--- a/sku.0/sys.server/compiled/game/script/cureward/cureward.java
++++ b/sku.0/sys.server/compiled/game/script/cureward/cureward.java
+@@ -5,50 +5,23 @@ import script.obj_id;
+ 
+ public class cureward extends script.base_script
+ {
++    public static final boolean COMBAT_UPGRADE_REWARD_RUNTIME_RETIRED = true;
+     public cureward()
+     {
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        if (getConfigSetting("GameServer", "combatUpgradeReward") == null)
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        if (!createRewards(self))
+-        {
+-            messageTo(self, "handleRetryRewardNextLogin", null, 1, false);
+-        }
++        detachScript(self, "cureward.cureward");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        if (getConfigSetting("GameServer", "combatUpgradeReward") == null)
+-        {
+-            detachScript(self, "cureward.cureward");
+-        }
++        detachScript(self, "cureward.cureward");
+         return SCRIPT_CONTINUE;
+     }
+     public boolean createRewards(obj_id self) throws InterruptedException
+     {
+-        int bornOnDate = getPlayerBirthDate(self);
+-        if (bornOnDate > 1579)
+-        {
+-            return true;
+-        }
+-        String cuRewardOption = getConfigSetting("GameServer", "combatUpgradeReward");
+-        obj_id reward = createObjectInInventoryAllowOverload("object/tangible/event_perk/frn_loyalty_award_plaque_silver.iff", self);
+-        if (!isIdValid(reward))
+-        {
+-            return false;
+-        }
+-        if (cuRewardOption.equals("2"))
+-        {
+-            reward = createObjectInInventoryAllowOverload("object/tangible/event_perk/frn_loyalty_award_plaque_gold.iff", self);
+-            if (!isIdValid(reward))
+-            {
+-                return false;
+-            }
+-        }
++        detachScript(self, "cureward.cureward");
+         return true;
+     }
+     public int handleRetryRewardNextLogin(obj_id self, dictionary params) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+index 9a0e664..4f56ee9 100644
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -74,6 +74,14 @@ public class skill extends script.base_script
+     public static final string_id PROSE_SKILL_LEARNED = new string_id(CONVOFILE, "prose_skill_learned");
+     public static final string_id PROSE_TRAIN_FAILED = new string_id(CONVOFILE, "prose_train_failed");
+     public static final string_id SID_EXPERTISE_WRONG_PROFESSION = new string_id("spam", "expertise_wrong_profession");
++    public static boolean isRetiredNgeProgressionSkillName(String skillName) throws InterruptedException
++    {
++        return skillName != null &&
++            (skillName.startsWith("class_") ||
++                skillName.equals("expertise") ||
++                skillName.startsWith("expertise_") ||
++                skillName.startsWith("internal_expertise_"));
++    }
+     public static boolean isRetiredPostNgeSpySkill(String skillName) throws InterruptedException
+     {
+         return skillName != null &&
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index 598fcdd..0a63d88 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -699,6 +699,7 @@ public class base_player extends script.base_script
+         recalculateLevel(self);
+         removeObjVar(self, "clickRespec");
+         removeObjVar(self, "npcRespec");
++        script.player.live_conversions.retirePostNgePlayerMigrationState(self);
+         detachScript(self, group.SCRIPT_GROUP_MEMBER);
+         if (!hasScript(self, dot.SCRIPT_PLAYER_DOT))
+         {
+@@ -1476,6 +1477,7 @@ public class base_player extends script.base_script
+     }
+     public int OnLogin(obj_id self) throws InterruptedException
+     {
++        script.player.live_conversions.retirePostNgePlayerMigrationState(self);
+         if (gcw.isPostNgeQueuedBattlefieldRetired())
+         {
+             retirePostNgeQueuedBattlefieldPlayerState(self);
+@@ -1551,18 +1553,6 @@ public class base_player extends script.base_script
+             removeObjVar(self, "comingFromTutorial");
+             attachScript(self, "theme_park.newbie_tutorial.new_player_ribbon");
+         }
+-        if (!hasObjVar(self, "combatLevel") && hasObjVar(self, "clickRespec.combatLevel"))
+-        {
+-            setObjVar(self, "combatLevel", getIntObjVar(self, "clickRespec.combatLevel"));
+-            removeObjVar(self, "clickRespec.combatLevel");
+-        }
+-        if (getConfigSetting("GameServer", "combatUpgradeReward") != null)
+-        {
+-            if (!hasScript(self, "cureward.cureward"))
+-            {
+-                attachScript(self, "cureward.cureward");
+-            }
+-        }
+         obj_id bldg = getTopMostContainer(self);
+         if (isIdValid(bldg))
+         {
+@@ -9914,31 +9904,13 @@ public class base_player extends script.base_script
+                 CustomerServiceLog("CharacterTransfer", "OnUploadCharacter() : FAILED because of CTS completed or in progress for character");
+                 return SCRIPT_OVERRIDE;
+             }
+-            String skillTemplate = getSkillTemplate(self);
+-            if (skillTemplate == null || skillTemplate.equals("") || skillTemplate.equals("a"))
+-            {
+-                CustomerServiceLog("CharacterTransfer", "OnUploadCharacter() : skillTemplate not set! (pre-NGE source characters must choose profession prior to transfer) TRANSFER FAILED");
+-                return SCRIPT_OVERRIDE;
+-            }
+-            characterData.put("skillTemplate", skillTemplate);
+-            int combatLevel = getLevel(self);
+-            characterData.put("combatLevel", combatLevel);
+-            String workingSkill = getWorkingSkill(self);
+-            if (workingSkill == null || workingSkill.equals(""))
+-            {
+-                CustomerServiceLog("CharacterTransfer", "OnUploadCharacter() : workingSkill not set! (pre-NGE source characters must choose profession prior to transfer) TRANSFER FAILED");
+-                return SCRIPT_OVERRIDE;
+-            }
+-            characterData.put("workingSkill", workingSkill);
+-            CustomerServiceLog("CharacterTransfer", "OnUploadCharacter() : skillTemplate == " + skillTemplate + ", workingSkill == " + workingSkill + ", combatLevel == " + combatLevel);
+-            characterData.put("commands", getCommandListingForPlayer(self));
++            CustomerServiceLog("CharacterTransfer", "OnUploadCharacter() : using PRE-CU skill-box authority; NGE template, level, working-skill, and raw-command fields are intentionally omitted");
+             characterData.put("skills", getSkillListingForPlayer(self));
+             final String[] strObjVarLists = 
+             {
+                 "badge",
+                 factions.FACTION,
+                 groundquests.questBaseObjVar,
+-                "live_conversions",
+                 space_flags.IMPERIAL_CORELLIA,
+                 space_flags.IMPERIAL_NABOO,
+                 space_flags.IMPERIAL_TATOOINE,
+@@ -9950,14 +9922,11 @@ public class base_player extends script.base_script
+                 space_flags.REBEL_TATOOINE,
+                 space_quest.QUEST_STATUS,
+                 township.OBJVAR_NOVA_ORION_FACTION,
+-                pgc_quests.PGC_GRANTED_ROADMAP_REWARDS_OBJVAR,
+                 "spaceTrackFlagListName",
+                 "veteran_rewards",
+                 "_notskill.schematics",
+                 "_notskill.mods",
+-                "respec_voucher",
+                 "mand.acknowledge",
+-                respec.EXPERTISE_VERSION_OBJVAR,
+                 "publish_gift",
+                 "legacy",
+                 temp_schematic.VAR_TEMP_SCHEMATIC_BASE,
+@@ -9967,9 +9936,6 @@ public class base_player extends script.base_script
+                 "hoth.flawless_reward",
+                 "instance_player_protected_data",
+                 "bornOnGalaxyTitleSet",
+-                "beast_master",
+-                "playerRespec",
+-                "respecsBought",
+                 player_structure.HOUSE_PACKUP_ARRAY_OBJVAR,
+                 "space.dantooine_landing_permission",
+                 "lotOverlimit",
+@@ -10073,16 +10039,6 @@ public class base_player extends script.base_script
+                 {
+                     characterData.put("matchMakingCharacterProfileId", matchMakingCharacterProfileId);
+                 }
+-                byte[] playerObjectWorkingSkill = getByteStreamFromAutoVariable(playerObject, "workingSkill");
+-                if (playerObjectWorkingSkill != null && playerObjectWorkingSkill.length > 0)
+-                {
+-                    characterData.put("workingSkill", playerObjectWorkingSkill);
+-                }
+-                byte[] playerObjectSkillTemplate = getByteStreamFromAutoVariable(playerObject, "skillTemplate");
+-                if (playerObjectSkillTemplate != null && playerObjectSkillTemplate.length > 0)
+-                {
+-                    characterData.put("skillTemplate", playerObjectSkillTemplate);
+-                }
+                 byte[] collections = getByteStreamFromAutoVariable(playerObject, "collections");
+                 if (collections != null && collections.length > 0)
+                 {
+@@ -10609,36 +10565,28 @@ public class base_player extends script.base_script
+             dictionary characterData = dictionary.unpack(packedData);
+             if (characterData != null)
+             {
+-                String skillTemplate = characterData.getString("skillTemplate");
+-                String workingSkill = characterData.getString("workingSkill");
+-                int combatLevel = characterData.getInt("combatLevel");
+-                CustomerServiceLog("CharacterTransfer", "setSkillTemplate(" + self + ", " + skillTemplate + ") (combatLevel == " + combatLevel + ", workingSkill == " + workingSkill + ")");
+-                setObjVar(self, "clickRespec.combatLevel", combatLevel);
+-                setObjVar(self, "clickRespec.workingSkill", workingSkill);
+-                setObjVar(self, "clickRespec.cts", true);
+-                setSkillTemplate(self, skillTemplate);
+                 String[] skills = characterData.getStringArray("skills");
+-                for (String skill : skills) {
+-                    if (!hasSkill(self, skill)) {
+-                        if (grantSkill(self, skill)) {
+-                            CustomerServiceLog("CharacterTransfer", "grantSkill(" + self + ", " + skill + ")");
+-                        } else {
+-                            CustomerServiceLog("CharacterTransfer", "grantSkill(" + self + ", " + skill + ") FAILED");
+-                            return SCRIPT_OVERRIDE;
++                if (skills != null)
++                {
++                    for (String transferredSkill : skills) {
++                        if (skill.isRetiredNgeProgressionSkillName(transferredSkill)) {
++                            CustomerServiceLog("CharacterTransfer", "ignored retired NGE progression skill " + transferredSkill + " for PRE-CU character " + self);
++                            continue;
+                         }
+-                    }
+-                }
+-                String[] commands = characterData.getStringArray("commands");
+-                for (String command : commands) {
+-                    if (!hasCommand(self, command)) {
+-                        if (grantCommand(self, command)) {
+-                            CustomerServiceLog("CharacterTransfer", "grantCommand(" + self + ", " + command + ")");
+-                        } else {
+-                            CustomerServiceLog("CharacterTransfer", "grantCommand(" + self + ", " + command + ") FAILED");
+-                            return SCRIPT_OVERRIDE;
++                        if (!hasSkill(self, transferredSkill)) {
++                            if (grantSkill(self, transferredSkill)) {
++                                CustomerServiceLog("CharacterTransfer", "grantSkill(" + self + ", " + transferredSkill + ")");
++                            } else {
++                                CustomerServiceLog("CharacterTransfer", "grantSkill(" + self + ", " + transferredSkill + ") FAILED");
++                                return SCRIPT_OVERRIDE;
++                            }
+                         }
+                     }
+                 }
++                if (characterData.containsKey("commands"))
++                {
++                    CustomerServiceLog("CharacterTransfer", "ignored legacy raw command list; PRE-CU commands are rebuilt from transferred skill boxes and retained quest scripts");
++                }
+                 dictionary experiencePoints = characterData.getDictionary("experience_points");
+                 if (experiencePoints != null)
+                 {
+@@ -10784,16 +10732,6 @@ public class base_player extends script.base_script
+                         byte[] matchMakingCharacterProfileId = characterData.getByteArray("matchMakingCharacterProfileId");
+                         setAutoVariableFromByteStream(playerObject, "matchMakingCharacterProfileId", matchMakingCharacterProfileId);
+                     }
+-                    if (characterData.containsKey("workingSkill"))
+-                    {
+-                        byte[] playerObjectWorkingSkill = characterData.getByteArray("workingSkill");
+-                        setAutoVariableFromByteStream(playerObject, "workingSkill", playerObjectWorkingSkill);
+-                    }
+-                    if (characterData.containsKey("skillTemplate"))
+-                    {
+-                        byte[] playerObjectSkillTemplate = characterData.getByteArray("skillTemplate");
+-                        setAutoVariableFromByteStream(playerObject, "skillTemplate", playerObjectSkillTemplate);
+-                    }
+                     if (characterData.containsKey("collections"))
+                     {
+                         byte[] collections = characterData.getByteArray("collections");
+@@ -11196,11 +11134,13 @@ public class base_player extends script.base_script
+         }
+         catch(Throwable t)
+         {
++            script.player.live_conversions.retirePostNgePlayerMigrationState(self);
+             removeObjVar(self, "cts");
+             utils.removeLocalVar(self, "ctsBeingUnpacked");
+             CustomerServiceLog("CharacterTransfer", "OnDownloadCharacter() : an exception was thrown!  TRANSFER FAILED : " + t);
+             return SCRIPT_OVERRIDE;
+         }
++        script.player.live_conversions.retirePostNgePlayerMigrationState(self);
+         CustomerServiceLog("CharacterTransfer", "OnDownloadCharacter() complete");
+         removeObjVar(self, "cts");
+         removeObjVar(self, "preserve_existing_lightsaber_crystal_owner_objvar");
+diff --git a/sku.0/sys.server/compiled/game/script/player/live_conversions.java b/sku.0/sys.server/compiled/game/script/player/live_conversions.java
+index e8e4c1d..838104f 100644
+--- a/sku.0/sys.server/compiled/game/script/player/live_conversions.java
++++ b/sku.0/sys.server/compiled/game/script/player/live_conversions.java
+@@ -32,6 +32,36 @@ public class live_conversions extends script.base_script
+     public static final String UPDATE_COLLECTION_SLOT_TO_GRANT = "slot_to_grant";
+     public static final String UPDATE_COLLECTION_INCREMENT_AMOUNT = "increment_amount";
+     public static final String FORCE_RESPEC_OBJVAR = "configEnforcedRespecVersion";
++    public static final boolean POST_NGE_PLAYER_MIGRATION_RUNTIME_RETIRED = true;
++    public static boolean isPostNgePlayerMigrationRuntimeRetired() throws InterruptedException
++    {
++        return POST_NGE_PLAYER_MIGRATION_RUNTIME_RETIRED;
++    }
++    public static void retirePostNgePlayerMigrationState(obj_id player) throws InterruptedException
++    {
++        if (!POST_NGE_PLAYER_MIGRATION_RUNTIME_RETIRED || !isIdValid(player) || !exists(player) || !isPlayer(player))
++        {
++            return;
++        }
++        setSkillTemplate(player, "");
++        setWorkingSkill(player, "");
++        removeObjVar(player, "combatLevel");
++        removeObjVar(player, "clickRespec");
++        removeObjVar(player, "npcRespec");
++        removeObjVar(player, "playerRespec");
++        removeObjVar(player, "respecsBought");
++        removeObjVar(player, "respec_voucher");
++        removeObjVar(player, FORCE_RESPEC_OBJVAR);
++        removeObjVar(player, VAR_FLAGS);
++        if (hasScript(player, "cureward.cureward"))
++        {
++            detachScript(player, "cureward.cureward");
++        }
++        if (hasScript(player, "player.live_conversions"))
++        {
++            detachScript(player, "player.live_conversions");
++        }
++    }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+         return SCRIPT_CONTINUE;
+@@ -43,17 +73,12 @@ public class live_conversions extends script.base_script
+     }
+     public int OnLogin(obj_id self) throws InterruptedException
+     {
+-        runOncePerTravelConversions(self);
++        detachScript(self, "player.live_conversions");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnNewbieTutorialResponse(obj_id self, String action) throws InterruptedException
+     {
+-        if (action.equals("clientReady"))
+-        {
+-            updateBountyHunterMissions(self);
+-            updateChangedQuests(self);
+-            updateCollectionSlots(self);
+-        }
++        detachScript(self, "player.live_conversions");
+         return SCRIPT_CONTINUE;
+     }
+     public void runOncePerSessionConversions(obj_id player) throws InterruptedException

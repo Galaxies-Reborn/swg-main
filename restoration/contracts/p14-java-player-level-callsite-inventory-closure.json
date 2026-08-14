@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-player-level-callsite-inventory-closure",
+  "status": "ready",
+  "scope": "Close the residual Java getLevel(player/self/owner) frontier by inventorying every direct call and proving that none supplies player combat level as PRE-CU gameplay authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 player progression is skill-box and XP-pool based; player combat level is not an equipment, combat, profession, respec, pet, battlefield, or reward authority.",
+      "Retained creature, pet, encounter, target-dummy, and display-object levels remain valid content inputs when the object being measured is not a player.",
+      "The inherited NGE Java tree retains compatibility implementations, but player-capable level reads must be dominated by PRE-CU routing, a hard retirement boundary, or a central NGE-command denial before execution."
+    ]
+  },
+  "inventory": {
+    "pattern": "getLevel\\s*\\(\\s*(player|self|owner)\\s*\\)",
+    "javaSources": 5717,
+    "callSites": 56,
+    "sourceFiles": 24,
+    "inventorySha256": "e150caf5e5bd5160a6e5dc6f32c65918d8b87bef0fafbe302e9e023654fd3bc0",
+    "sourceSetSha256": "3a7e60b44fd598b6340a3949dd7126da2751b8e3e2a4d9f3d98fdc6bd22d0dfb",
+    "sourceContentSha256": "c149d5e85bd366060bf9ca1325e5eb0c3e9b4657ce0bb997ebd5e4012972916c",
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/ai/ai.java": 1,
+      "sku.0/sys.server/compiled/game/script/ai/beast.java": 1,
+      "sku.0/sys.server/compiled/game/script/ai/beast_control_device.java": 1,
+      "sku.0/sys.server/compiled/game/script/ai/pet.java": 2,
+      "sku.0/sys.server/compiled/game/script/ai/smuggler_medic.java": 1,
+      "sku.0/sys.server/compiled/game/script/ai/smuggler_spawn_enemy.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/beast_lib.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/combat.java": 10,
+      "sku.0/sys.server/compiled/game/script/library/heavyweapons.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/respec.java": 9,
+      "sku.0/sys.server/compiled/game/script/library/utils.java": 1,
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.java": 2,
+      "sku.0/sys.server/compiled/game/script/player/live_conversions.java": 3,
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": 7,
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": 2,
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_supply_drop_controller.java": 1,
+      "sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java": 1,
+      "sku.0/sys.server/compiled/game/script/systems/skills/auto_level.java": 2,
+      "sku.0/sys.server/compiled/game/script/systems/tcg/barn_beast.java": 1,
+      "sku.0/sys.server/compiled/game/script/systems/tcg/target_creature.java": 1,
+      "sku.0/sys.server/compiled/game/script/working/balancetest.java": 1,
+      "sku.0/sys.server/compiled/game/script/working/dantest.java": 4,
+      "sku.0/sys.server/compiled/game/script/working/difficultytest.java": 1,
+      "sku.0/sys.server/compiled/game/script/working/reecetest.java": 1
+    }
+  },
+  "classification": {
+    "nonPlayerContentObject": {
+      "callSites": 8,
+      "inventorySha256": "caa0251178c58df2247f7562f9d20d956f593b489cba265e168aea2f86a74200",
+      "authority": "AI actors, pets, beasts, TCG barn displays, and target-dummy objects; self is not player progression authority."
+    },
+    "precuBypassedCombatFallback": {
+      "callSites": 8,
+      "inventorySha256": "3e754e50c9f5cb574c09272439e3fdd9d4d70e8fe5046c250fb235e33bb31cd1",
+      "authority": "The two action-cost overloads return through precuHamCostModel before level scaling, while all six defense fallbacks select a fixed player branch before the non-player level expression."
+    },
+    "retiredProgression": {
+      "callSites": 15,
+      "inventorySha256": "239932ae6ef67798c6e9f8406b17cb985f15abd691c056ade0adabb80b136b8d",
+      "authority": "NGE respec, auto-level, live-conversion, and CTS profession restoration are fail-closed; two compatibility helpers containing level reads have no production caller."
+    },
+    "retiredNgeCombat": {
+      "callSites": 11,
+      "inventorySha256": "918bb1efab47d99c896eddfecd931b407dbdccdacd3756a7e6a7a74f3f6c53b5",
+      "authority": "Bounty Hunter, Force Sensitive, Officer, Smuggler, and species NGE actions are denied to players by combatStandardAction before the level-bearing handler or its helper runs."
+    },
+    "retiredRetainedContent": {
+      "callSites": 7,
+      "inventorySha256": "2d12a534727244b2409d128b24c7e23aeb58e9f920dda561f0930e1768072541",
+      "authority": "Beast Master creation, player heavy-weapon DOT tiers, queued battlefields, and Officer supply drops return through their retirement boundaries before player or owner level is read."
+    },
+    "dormantAdminDebug": {
+      "callSites": 7,
+      "inventorySha256": "785eca0d0899660eb08c58c25df9d935adbaba5816d71b93d78d2b89b2104418",
+      "authority": "Legacy working scripts are absent from production template attachment; the only QA-listed script is God-level gated and self-detaches from non-admin players."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-core3-action-preparation-authority.json",
+    "p14-core3-hit-resolution-closure.json",
+    "p14-respec-autolevel-entrypoint-retirement.json",
+    "p14-post-nge-player-migration-authority-retirement.json",
+    "p14-post-nge-beast-master-creation-player-runtime-retirement.json",
+    "p14-precu-queued-battlefield-retirement.json",
+    "p14-post-nge-passive-profession-runtime-retirement.json",
+    "p14-native-nge-command-series-retirement.json",
+    "p14-precu-species-innate-authority.json",
+    "p14-player-owned-retained-content-controller-closure.json",
+    "p14-precu-admin-skill-authority.json",
+    "p14-precu-target-dummy-defense-authority.json",
+    "p14-precu-tcg-barn-display-authority.json",
+    "p14-precu-combat-expertise-isolation.json",
+    "p14-precu-smuggler-content-expertise-authority.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 0,
+    "allCallSitesClassified": true,
+    "playerLevelGameplayAuthorityCallSites": 0,
+    "laterZonesQuestsConversationsAndNpcCompatibilityPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceAudit": "passed; all 56 residual Java player/self/owner level reads classified with zero player-level PRE-CU authority",
+    "gameplayBuildReused": "No gameplay source or data changed; the authenticated 5,717-source x64 deployment at the pinned dsrc/native revisions remains authoritative.",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T01:59:18.0272649-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinaryBytes": 22587656,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete direct Java getLevel(player/self/owner) callsite inventory and every player-capable admission path leading toward those calls",
+    "preserved": "PRE-CU skill-box progression, authenticated HAM/cadence/hit authority, NPC and creature level behavior, target-dummy and display-object content, expansion zones, quests, conversations, and non-player compatibility",
+    "notClaimedComplete": "unrelated gameplay systems outside the residual Java player/self/owner level-read frontier remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

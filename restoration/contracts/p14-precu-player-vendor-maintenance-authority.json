@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-player-vendor-maintenance-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14.1 player-vendor maintenance rates and Merchant skill ownership while removing the active NGE Trader/expertise authority from billing and status display.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/tangible/components/vendor/VendorDataComponent.cpp",
+    "findings": [
+      "Publish 14.1 charges 15 credits per vendor-maintenance hour.",
+      "Master Merchant reduces the rate to 60 percent; Merchant Sales II reduces it to 80 percent when the owner is not a master.",
+      "Map registration adds a flat 6 credits per hour after the Merchant reduction.",
+      "The inherited script instead treated every novice Artisan as a later Trader, multiplied the registration cost, and applied expertise_vendor_cost_decrease."
+    ]
+  },
+  "expected": {
+    "baseHourlyRate": 15,
+    "masterMerchantRate": 9,
+    "salesTwoRate": 12,
+    "registrationHourlySurcharge": 6,
+    "registeredBaseRate": 21,
+    "registeredMasterRate": 15,
+    "registeredSalesTwoRate": 18,
+    "billingCalculations": 1,
+    "statusCalculations": 1,
+    "ngeExpertiseReads": 0,
+    "genericTraderChecks": 0,
+    "hiringModifierRateChecks": 0,
+    "maintenanceLoopPreserved": true,
+    "poolDecayRepairAndStatusPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "vendor": "dsrc/sku.0/sys.server/compiled/game/script/terminal/vendor.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "46cde098fa000be953c668eebc18980bece1dc89b8a82ed36b02cf085476bb1e",
+      "vendor": "d65bf2ecee16e79574960c7af5e4ad0f4945af53539f0fb819696c2131fde2e9",
+      "skills": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0"
+    },
+    "compiledClassSha256": {
+      "vendor": "0a62903baf826651fc1361be7f057f0404a1f10ae19f18fe58170c8fc66320ce"
+    },
+    "sourceTest": "passed; both active maintenance calculations use explicit Master Merchant and Merchant Sales II ownership, preserve the 15-credit base rate and flat 6-credit registration surcharge, and contain no generic Trader, hiring-modifier, or expertise authority",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and terminal/vendor.class was emitted at 2026-08-04T20:36:13Z",
+    "fullServerBuild": "passed in 734.3 seconds from pushed parent ed4cc8f and direct dsrc 4b7a96e59",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for terminal/vendor.java against the read-only direct-source mount",
+    "bytecodeAudit": "passed; terminal/vendor.class contains crafting_merchant_master and crafting_merchant_sales_02 constants at both billing/status call sites and contains no expertise_vendor_cost_decrease constant",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused player-vendor source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 29911,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "generic later-Trader, NGE expertise, and multiplicative registration authority in both active player-vendor maintenance calculations",
+    "preserved": "maintenance heartbeat accounting, vendor pools and withdrawals, decay and repair, Master Merchant and Sales II benefits, map registration, status display, vendor items, search, sales tax, lifecycle, XP, and retained vendor content",
+    "notClaimedComplete": "reverse engineering, armor, healing, movement, performance, and other content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}

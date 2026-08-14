@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-automatic-player-reward-retirement",
+  "status": "ready",
+  "scope": "Retire automatic post-Publish-14 login gifts and combat-level rewards while preserving retained expansion items, quests, conversations, and explicit veteran replacement purchases.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "findings": [
+      "The inherited publish-gift table begins at Publish 27 and therefore cannot define a Publish 14.1 login entitlement.",
+      "The inherited level reward helper awards items at combat levels 20 and 70, but player combat level is not a PRE-CU progression or reward authority.",
+      "Retained later-expansion items and quests remain valid content; only their automatic post-NGE login and level grant paths are retired."
+    ]
+  },
+  "diagnosis": {
+    "publishGiftTableRows": 23,
+    "distinctPublishNumbers": 19,
+    "firstPublishNumber": 27,
+    "lastPublishNumber": 45,
+    "nonemptyGiftItems": 22,
+    "distinctGiftItems": 22,
+    "automaticCombatLevelRewardTiers": 2,
+    "automaticCombatLevelRewards": [
+      {
+        "combatLevel": 20,
+        "template": "object/tangible/deed/vehicle_deed/speederbike_flash_deed.iff"
+      },
+      {
+        "combatLevel": 70,
+        "template": "object/tangible/veteran_reward/mount_lava_flea.iff"
+      }
+    ],
+    "retainedPublishGiftItemScripts": 13,
+    "retainedPublishGiftCollectionScripts": 3
+  },
+  "expected": {
+    "loginPublishGiftGrantReachable": false,
+    "combatLevelRewardGrantReachable": false,
+    "queuedLegacyRewardCallbacksCreateItems": false,
+    "staleLevelRewardStateCleanedOnInitialize": true,
+    "retainedExpansionGiftItemsAndScriptsPreserved": true,
+    "retainedExpansionQuestsPreserved": true,
+    "explicitVeteranReplacementPurchasePreserved": true,
+    "smugglerExpansionBootstrapPreserved": true,
+    "smugglerExpansionBootstrapUsesPrecuProfessionGate": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "player/base/base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671"
+    },
+    "compiledClassSha256": {
+      "player/base/base_player.class": "ddc9b56f176b6505f9b65d96b32dcafb541fd099fa0c046d54bfef6075f4af23"
+    },
+    "fullJavaCompile": "passed and reverified in the cumulative M325 Docker build from pushed direct source; completed 2026-08-04",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed for player/base/base_player.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "publishGiftDataSha256": "f73cfba1cbd8cdb21e84a608a88c34fd47ba8a72896fa11515a2d358b6150ff5",
+    "professionPredicateSourceSha256": "86909a18bbb9fcd72f6ff6969c78dd52095580c7d9637289e3cdbcb152f3695c",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 1,
+    "compiledBytecodeProbes": "passed: stale level.reward cleanup is present; grantLevelSpecificRewards, createLevelReward, and givePublishGift compile to immediate returns; OnInitialize invokes cleanup and retains Smuggler and mission initialization",
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, ABI, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "automatic Publish 27-45 login gifts, combat-level 20 and 70 item rewards, queued legacy helper calls, and stale level.reward markers",
+    "preserved": "existing items, retained publish-gift scripts and quests, explicit paid veteran replacement, PRE-CU-gated Smuggler quest bootstrap, later zones and conversations, and user-verified mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

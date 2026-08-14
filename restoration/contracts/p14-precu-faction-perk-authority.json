@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-faction-perk-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14 faction-point recruiter categories, rank-scaled standing capacity, transactional reward delivery, and hireling lifecycle while retiring the reachable NGE global credit-priced GCW catalog, class/level gates, dynamic population pricing, recruiter vendor surface, and camp field requisition surface.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterScreenplay.lua",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterConvoHandler.lua",
+      "MMOCoreORB/src/server/zone/managers/faction/FactionManager.cpp"
+    ],
+    "findings": [
+      "Publish 14 recruiters expose faction-specific furniture, weapon/armor, installation, uniform, hireling, and schematic categories; purchases consume faction standing rather than credits and leave the 200-point membership reserve.",
+      "Aligned standing capacity scales with the authored rank cost at twenty times the current rank cost, with a 1000-point floor; unaligned or opposing standing remains capped at 1000.",
+      "Installations, uniforms, and hirelings require declared status, Imperial uniforms remain faction-specific, and hirelings are delivered as NPC control devices."
+    ]
+  },
+  "expected": {
+    "purchaseCurrency": "faction standing",
+    "membershipStandingReserve": 200,
+    "alignedStandingCap": "max(1000, authored current-rank cost * 20)",
+    "unalignedStandingCap": 1000,
+    "categories": [
+      "furniture",
+      "weapons_armor",
+      "installation",
+      "uniform",
+      "hireling",
+      "schematic"
+    ],
+    "factionSpecificTables": true,
+    "ngeGlobalRewardTableReachable": false,
+    "ngeEquipmentTableReachable": false,
+    "creditPaymentReachable": false,
+    "classCombatLevelOrSkillGateReachable": false,
+    "expertiseDiscountReachable": false,
+    "dynamicPopulationPriceReachable": false,
+    "speciesPrejudicePreserved": true,
+    "purchaseRevalidatedAtSelection": true,
+    "failedStandingDeductionRollsBackReward": true,
+    "recruiterVendorSurface": false,
+    "campFieldRequisitionSurface": false,
+    "ownerRadialCampDisbandPreserved": true,
+    "missionTerminalPathChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/faction_perk.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/camping/camp_controlpanel.java"
+  ],
+  "buildEvidence": {
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "overlayPatch": "restoration/patches/dsrc/364-p14-precu-faction-perk-authority.patch",
+    "overlayPatchBytes": 60746,
+    "overlayPatchSha256": "639d0ff3612cbe3e635bf90e9886811c7b54709f931c7b8bd6b3a2a48dd85d34",
+    "sourceSha256": {
+      "script.library.factions": "0407778e49051f2668e75cafa4e477f3aee3930eb6ed19acea5939c1932a897d",
+      "script.library.faction_perk": "7baf89bd7af8946652592ac55756c29ae4f57c3a620b51f1b7323943fd943f99",
+      "script.npc.faction_recruiter": "3b2d9aacae615d10f857a2ecbbadf666eaed03a97fb2a1cdd83f380639a0c4a8",
+      "script.systems.camping.camp_controlpanel": "3c838fc170357e36175556a63057f3537582999c6b584c6207ae2f9d5f0b48f2"
+    },
+    "staticContract": "passed against the clean materialization",
+    "isolatedX64JavaCompile": "passed clean canonical compile (5717 sources, 5751 classes, Java 11 x64, Java 8 source target)",
+    "compiledClassSha256": {
+      "script.library.factions": "7a98acbf36b8ebb0e3962b8ec743856d258ee5029e6a39594ecc9a851483fa1c",
+      "script.library.faction_perk": "c82125cc106a0832d3c04990318f5343fb46252f0fd6abfe8b800d3bfd56b2f8",
+      "script.npc.faction_recruiter": "5bea597b67c233cc6bfc15604fb6401f13389d60eff62f0cf74c26c274352f07",
+      "script.systems.camping.camp_controlpanel": "e4a6d6ef978ca9e7f91af510e4d192052680eaf5ae6599d5b3e9a00f1791ab32"
+    },
+    "cleanMaterialization": "passed (395 patches, 1118 acceptance files)",
+    "cleanMaterializationPatches": 395,
+    "cleanMaterializationAcceptanceFiles": 1118,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "fullX64Build": "passed the 708.8-second canonical direct-source Docker x64 build from parent 26f5e73340004121a891238c0a78d9710288e8e8, dsrc ebaf48f8f434d18f0c9e0e655b81fc51244bda7d, and src 1d891e3f7a543872a5518292a4efa6635129c651",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "cumulativeSourceExtension": "M325 preserves the PRE-CU faction-point catalog and transaction while replacing only the retained lieutenant comm-link's NGE player-level reinforcement formula.",
+    "deploymentProbe": "passed direct source/work comparisons, faction Java bytecode probes, native symbol probes, six-binary x64 checks, health/readiness, and live mapped-binary verification"
+  },
+  "runtimeEvidence": {
+    "result": "passed; swg-precu restarted healthy and reported Cluster swg is ready for players with fifteen configured SwgGameServer scene processes, all fifteen mapped to the canonical binary",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "liveGameProcesses": 15,
+    "liveGameProcessesMappedBuiltBinary": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 30,
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, UnsatisfiedLink, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
+    "directSourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source (read-only); swg-precu-work-x64 -> /swg-precu",
+    "missionTerminalContinuity": "The user verified the live mission terminal immediately before this milestone; mission sources are excluded from the overlay and authenticated as untouched by the contract."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "reachable recruiter purchase currency, global NGE reward catalog, NGE purchase admission/price modifiers, rank-scaled standing caps, purchase rollback, recruiter vendor precedence, camp field requisition, and faction hireling control-device release",
+    "retainedContent": "faction membership and declaration, authored faction-specific perk tables, species prejudice, rank titles and promotion, bases, later-zone NPCs and quests, and mission terminals",
+    "notClaimedComplete": "faction perk row/content balancing beyond the retained weapon table and space rewards remain separate audit boundaries"
+  },
+  "requiredBeforeReady": []
+}

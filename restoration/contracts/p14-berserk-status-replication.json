@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-berserk-status-replication",
+  "status": "ready",
+  "scope": "Replicate the existing Publish 14 Berserk I and II timed state into the client buff panel without adding the later-era melee damage modifiers carried by the retained NGE-derived berserk rows.",
+  "sourceFiles": {
+    "player": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "berserkOneFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java",
+    "berserkTwoFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_berserk_two_command_fixture.java",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+  },
+  "presentation": {
+    "buffName": "precu_berserk_status",
+    "icon": "command.berserk",
+    "visible": true,
+    "debuff": false,
+    "dynamicDuration": true,
+    "gameplayEffects": [],
+    "state": "STATE_NONE"
+  },
+  "lifecycle": {
+    "berserkOneDurationSeconds": 20,
+    "berserkTwoDurationSeconds": 40,
+    "application": "apply the presentation-only buff before the existing HAM transaction; abort without a debit if replication fails",
+    "rollback": "remove the presentation buff if the HAM debit unexpectedly fails",
+    "expiry": "remove the presentation buff before clearing STATE_BERSERK and its absolute-expiry objvar",
+    "relogin": "remove stale orphaned presentation state or reapply it for the exact remaining absolute-expiry interval",
+    "cleanup": "both identity-bound fixtures remove the presentation buff and prove that it is absent"
+  },
+  "overlay": "restoration/patches/dsrc/329-p14-berserk-status-replication.patch",
+  "buildEvidence": {
+    "result": "passed",
+    "cleanApplyCheck": "passed against the four-file pre-overlay backup; reverse check passed against the materialized source",
+    "javaCompile": "passed at Java 7 class level; base_player.class SHA256 E643908BD7AB3BB0797B167440068B6B629B2F98C9B345F4469EB811D6AEEC46; Berserk I fixture BEE2AE8B655E2D60B88A764FD4F3FA0EB1F37D82EE636CB0038033443185354B; Berserk II fixture 760459C2B44796EC8463D0D092ED7A1C69112636A425F3D29280B1FB1BCCBAD3",
+    "tabCompile": "passed with 1993 rows; buff.iff SHA256 DC336B6325BD4A0AB5CB84066DBFC79E22C17AB5C141821DA9DAE52B59E934C2",
+    "assetTests": "passed; the compiled presentation row and Center of Being regression suite reported 8/8 green",
+    "runtimeTreSha256": "C4F82ACBBE863FB127D42EC2E5A392E27646B7C0CB9D7B81851DDED6B2247919"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "observedAt": "2026-07-30",
+    "character": "Eteb Eso",
+    "clientProcessId": 5728,
+    "clientExecutableSha256": "4AA5170517853456C6DB929A52AF3EDCA3637DDD3FE8BC108EE6BC43534A0033",
+    "bridgeProtocol": 255,
+    "renderer": "DX11 gl11 only",
+    "observations": [
+      "The first ordinary Berserk I attempt succeeded after the authentic random gate and displayed You go berserk!.",
+      "Health, Action, and Mind debited while the player HAM frame retained its full width.",
+      "The raw client buff map contained precu_berserk_status under the expected CRC; exactly one positive command.berserk icon and one rendered widget appeared in the dedicated right-side status panel.",
+      "The raw buff map, icon count, rendered-widget count, and panel visibility all returned to zero after the 20-second absolute-expiry lifecycle completed.",
+      "The live screenshot is SHA256 C53BC582110339BB5D5DE677750D07CC1AC51197E765F5F0273A875A1349C3C4.",
+      "The clean runtime owns the HUD and gameplay tables in precu_runtime.tre; Stage-X64Client removes all archive-owned loose copies and retains only the generated DX11 HLSL programs as loose overrides."
+    ]
+  }
+}

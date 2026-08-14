@@ -1,0 +1,126 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/utils.java b/sku.0/sys.server/compiled/game/script/library/utils.java
+index 7fa5af4..508f02f 100644
+--- a/sku.0/sys.server/compiled/game/script/library/utils.java
++++ b/sku.0/sys.server/compiled/game/script/library/utils.java
+@@ -5772,13 +5772,14 @@ public class utils extends script.base_script
+             while (st.hasMoreTokens())
+             {
+                 classId = st.nextToken();
+-                tmp = "@skl_n:class_" + classId + "\0";
++                int requiredClass = stringToInt(classId);
++                tmp = getPrecuRetainedItemClassName(requiredClass) + "\0";
+                 if (st.hasMoreTokens())
+                 {
+                     tmp += "\n\\>117\0";
+                 }
+                 requiredText += tmp;
+-                if (isProfession(player, stringToInt(classId)))
++                if (isPrecuRetainedItemClass(player, requiredClass))
+                 {
+                     qualifies = true;
+                     break;
+@@ -5797,7 +5798,7 @@ public class utils extends script.base_script
+         java.util.StringTokenizer st = new java.util.StringTokenizer(requiredClasses, ",");
+         while (st.hasMoreTokens())
+         {
+-            if (isProfession(player, stringToInt(st.nextToken())))
++            if (isPrecuRetainedItemClass(player, stringToInt(st.nextToken())))
+                 return true;
+         }
+         if (!silent)
+@@ -6222,6 +6223,25 @@ public class utils extends script.base_script
+                 return false;
+         }
+     }
++    public static boolean isPrecuRetainedItemClass(obj_id player, int profession) throws InterruptedException
++    {
++        // Retained expansion scout devices encode the later Spy class as 5.
++        // Ranger is the Publish 14.1 advanced tracking, camouflage, and
++        // trapping profession; keep this translation local to item admission.
++        if (profession == SPY)
++        {
++            return isIdValid(player) && isPlayer(player) && hasSkill(player, "outdoors_ranger_novice");
++        }
++        return isProfession(player, profession);
++    }
++    public static String getPrecuRetainedItemClassName(int profession) throws InterruptedException
++    {
++        if (profession == SPY)
++        {
++            return "@skl_n:outdoors_ranger_novice";
++        }
++        return "@skl_n:class_" + profession;
++    }
+     public static boolean meetsProfessionRequirement(obj_id player, String requirement) throws InterruptedException
+     {
+         if (!isIdValid(player) || requirement == null || requirement.equals(""))
+diff --git a/sku.0/sys.server/compiled/game/script/library/stealth.java b/sku.0/sys.server/compiled/game/script/library/stealth.java
+index 453bb1d..cfaa9b6 100644
+--- a/sku.0/sys.server/compiled/game/script/library/stealth.java
++++ b/sku.0/sys.server/compiled/game/script/library/stealth.java
+@@ -73,6 +73,8 @@ public class stealth extends script.base_script
+     public static final String DETECT_TIMES = "detectTimes";
+     public static final String CAMOUFLAGED_AT_LEVEL = "camouflagedAtLevel";
+     public static final String TRAP_LEVEL = "levelOfTrap";
++    public static final String PRECU_TRAPPING_SKILL_MOD = "trapping";
++    public static final String PRECU_CAMOUFLAGE_SKILL_MOD = "camouflage";
+     public static final String BIO_PROBE_TARGET_NAME = "trap.targetName";
+     public static final String BIO_PROBE_TRAP_TARGET = "trap.probeTarget";
+     public static final String BIO_PROBE_DECAYED = "probe.decayed";
+@@ -686,24 +688,20 @@ public class stealth extends script.base_script
+             return;
+         }
+         float baseChanceToDisarm = BASE_DISARM_CHANCE;
+-        int trapLevel = getIntObjVar(trap, TRAP_LEVEL);
+-        int trapSkillMod = getIntObjVar(trap, TRAP_DIFFICULTY);
+-        float trapperScore = trapLevel + trapSkillMod;
+-        int diffuserLevel = getLevel(player);
+-        int diffuserSkillMod = getEnhancedSkillStatisticModifier(player, "ranger_trap");
+-        int spyBonus = utils.isProfession(player, utils.SPY) ? 30 : 0;
+-        float diffuserScore = diffuserLevel + diffuserSkillMod + spyBonus;
++        float trapperScore = getIntObjVar(trap, TRAP_DIFFICULTY);
++        float diffuserScore = getEnhancedSkillStatisticModifier(player, PRECU_TRAPPING_SKILL_MOD);
+         float totalDisparity = diffuserScore - trapperScore;
+         float chanceToDetect = baseChanceToDisarm;
+         float detectRange = MAX_CHANCE_TO_DISARM - MIN_CHANCE_TO_DISARM;
+-        if (totalDisparity > 0)
+-        {
+-            chanceToDetect += (totalDisparity / MAX_HIDING_DETECT_SCORE) * detectRange;
+-        }
++        chanceToDetect += (totalDisparity / MAX_HIDING_DETECT_SCORE) * detectRange;
+         if (chanceToDetect > MAX_CHANCE_TO_DISARM)
+         {
+             chanceToDetect = MAX_CHANCE_TO_DISARM;
+         }
++        else if (chanceToDetect < MIN_CHANCE_TO_DISARM)
++        {
++            chanceToDetect = MIN_CHANCE_TO_DISARM;
++        }
+         if (rand(0.0f, 100.0f) < chanceToDetect)
+         {
+             if (hasObjVar(trap, stealth.TRAP_FREQUENCY))
+@@ -879,11 +877,10 @@ public class stealth extends script.base_script
+     }
+     public static void concealDevice(obj_id player, obj_id target) throws InterruptedException
+     {
+-        int camoSkill = getEnhancedSkillStatisticModifier(player, "camouflage");
+-        camoSkill += getEnhancedSkillStatisticModifier(player, "stealth");
++        int camoSkill = getEnhancedSkillStatisticModifier(player, PRECU_CAMOUFLAGE_SKILL_MOD);
+         setObjVar(target, CONCEALED_OBJECT, 1);
+         setObjVar(target, CAMO_SKILL, camoSkill);
+-        setObjVar(target, CAMOUFLAGED_AT_LEVEL, getLevel(player));
++        removeObjVar(target, CAMOUFLAGED_AT_LEVEL);
+         hideFromClient(target, true);
+     }
+     public static void unconcealDevice(obj_id player, obj_id target) throws InterruptedException
+@@ -1421,8 +1418,8 @@ public class stealth extends script.base_script
+         setOwner(trap, player);
+         setObjVar(trap, TRAP_FACTION, pvpGetAlignedFaction(player));
+         setObjVar(trap, TRAP_PVP_TYPE, pvpGetType(player));
+-        setObjVar(trap, TRAP_DIFFICULTY, getEnhancedSkillStatisticModifier(player, "ranger_trap"));
+-        setObjVar(trap, TRAP_LEVEL, getLevel(player));
++        setObjVar(trap, TRAP_DIFFICULTY, getEnhancedSkillStatisticModifier(player, PRECU_TRAPPING_SKILL_MOD));
++        removeObjVar(trap, TRAP_LEVEL);
+         if (hasObjVar(trap, "concealable"))
+         {
+             if (buff.hasBuff(player, "conceal_trap"))

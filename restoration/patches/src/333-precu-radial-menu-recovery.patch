@@ -1,0 +1,79 @@
+diff --git a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
+index 210b6b72..386001ad 100755
+--- a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
++++ b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
+@@ -2019,12 +2019,39 @@ uint32 PlayerCreatureController::getCurSyncStamp() const
+ 
+ // ----------------------------------------------------------------------
+ 
++void PlayerCreatureController::sendEmptyObjectMenuResponse(MessageQueueObjectMenuRequest const *msg)
++{
++	CreatureObject * const creatureOwner = NON_NULL(getCreature());
++	if (!msg || !creatureOwner->isAuthoritative())
++		return;
++
++	RadialMenuManager::DataVector emptyMenuInfo;
++	appendMessage(
++		CM_objectMenuResponse,
++		0.0f,
++		new MessageQueueObjectMenuRequest(
++			msg->getTargetId(),
++			creatureOwner->getNetworkId(),
++			emptyMenuInfo,
++			msg->m_sequence),
++		GameControllerMessageFlags::SEND | GameControllerMessageFlags::RELIABLE | GameControllerMessageFlags::DEST_AUTH_CLIENT);
++}
++
++// ----------------------------------------------------------------------
++
+ void PlayerCreatureController::handleObjectMenuRequest(MessageQueueObjectMenuRequest const *msg)
+ {
+ 	CreatureObject * const creatureOwner = NON_NULL(getCreature());
+ 	if (msg && creatureOwner->isAuthoritative())
+ 	{
+ 		ServerObject * const target = safe_cast<ServerObject *>(NetworkIdManager::getObjectById(msg->getTargetId()));
++		if (!target)
++		{
++			WARNING(true, ("Object menu request target [%s] is unavailable; returning an empty response", msg->getTargetId().getValueString().c_str()));
++			sendEmptyObjectMenuResponse(msg);
++			return;
++		}
++
+ 		if (target)
+ 		{
+ 			if (!target->isAuthoritative())
+@@ -2067,7 +2094,10 @@ void PlayerCreatureController::handleObjectMenuRequest(MessageQueueObjectMenuReq
+ 					// Holocron check.
+ 					Object const * const containedByObj = ContainerInterface::getContainedByObject(*target);
+ 					if(containedByObj && containedByObj->asServerObject() && ( containedByObj->asServerObject()->getGameObjectType() == SharedObjectTemplate::GOT_chronicles_quest_holocron || containedByObj->asServerObject()->getGameObjectType() == SharedObjectTemplate::GOT_chronicles_quest_holocron_recipe ) )
++					{
++						sendEmptyObjectMenuResponse(msg);
+ 						return; // No menus for Holocron contained items.
++					}
+ 
+ 					bool addedRotateMenuItems = false;
+ 					std::string positiveRotateDegree;
+@@ -2183,6 +2213,11 @@ void PlayerCreatureController::handleObjectMenuRequest(MessageQueueObjectMenuReq
+ 						new MessageQueueObjectMenuRequest(target->getNetworkId(), creatureOwner->getNetworkId(), resultMenuInfo, msg->m_sequence),
+ 						GameControllerMessageFlags::SEND|GameControllerMessageFlags::RELIABLE|GameControllerMessageFlags::DEST_AUTH_CLIENT);
+ 				}
++				else
++				{
++					WARNING(true, ("Object menu request target [%s] has no script object; returning an empty response", target->getNetworkId().getValueString().c_str()));
++					sendEmptyObjectMenuResponse(msg);
++				}
+ 			}
+ 		}
+ 	}
+diff --git a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.h b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.h
+index bb8780d0..03dcfc0a 100755
+--- a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.h
++++ b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.h
+@@ -99,6 +99,7 @@ private:
+ 	uint32 getCurSyncStamp   () const;
+ 	void updateMovementType  (float time);
+ 	void handleObjectMenuRequest(MessageQueueObjectMenuRequest const *msg);
++	void sendEmptyObjectMenuResponse(MessageQueueObjectMenuRequest const *msg);
+ 	void playerMovedAndNeedsToCancelWarmup( CreatureObject &owner );
+ 
+ 	static PlayerObject * getPlayerObjectInternal(CreatureObject const * creature);

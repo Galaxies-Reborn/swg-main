@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-level-mutation-callsite-inventory-closure",
+  "status": "ready",
+  "scope": "Close the residual Java native level-mutation and group-level service frontier by classifying every setLevel, recalculateLevel, and getGroupObjectLevel reference while preserving NPC and later-content level data.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "findings": [
+      "Publish 14.1 player progression is skill-box and XP-pool based; scripts cannot force a player onto an NGE level axis.",
+      "The hidden player con value is recalculated from the readied weapon family's PRE-CU combat-difficulty skill modifier and is not progression authority.",
+      "Authored NPC levels and retained later-content encounter levels remain valid non-player compatibility data."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\b(setLevel|recalculateLevel|getGroupObjectLevel)\\s*\\(",
+    "javaSources": 5717,
+    "callSites": 20,
+    "sourceFiles": 16,
+    "inventorySha256": "d375e213f0471ea192967a5f2c152daaf2c4f8528d5241abcc6984445b4685aa",
+    "sourceSetSha256": "391f70e0a22009009cb797c0cb5da97191fc3999f81e6f4f27b2fac96e83c7b4",
+    "sourceContentSha256": "a016e724a5adca0f20370d60957958074c383c7a81616754a1552398fb26de6c",
+    "methodCounts": {
+      "setLevel": 15,
+      "recalculateLevel": 3,
+      "getGroupObjectLevel": 2
+    },
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/base_class.java": 3,
+      "sku.0/sys.server/compiled/game/script/conversation/mtp_ragtag_ames_missd.java": 1,
+      "sku.0/sys.server/compiled/game/script/event/lost_squadron/stolen_fighter.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/beast_lib.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/combat.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/create.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/pet_lib.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/stealth.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/tcg.java": 1,
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.java": 1,
+      "sku.0/sys.server/compiled/game/script/systems/beast/beast_display.java": 1,
+      "sku.0/sys.server/compiled/game/script/theme_park/dantooine/imperial_outpost/masterspawner.java": 1,
+      "sku.0/sys.server/compiled/game/script/theme_park/dathomir/set_level_80.java": 2,
+      "sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/pirate.java": 1,
+      "sku.0/sys.server/compiled/game/script/theme_park/patrols/patrol_controller.java": 2,
+      "sku.0/sys.server/compiled/game/script/working/difficultytest.java": 1
+    }
+  },
+  "classification": {
+    "nativeScriptBridge": {
+      "callSites": 3,
+      "inventorySha256": "a06b4d77428881ae7a4935b537718269842a8cc51c4997a68b15d364cc235ce8",
+      "authority": "Generated Java wrappers only; native CreatureObject distinguishes players from non-player creatures."
+    },
+    "precuPlayerRefresh": {
+      "callSites": 1,
+      "inventorySha256": "89448d647ede1ce5c7d48ebfc755762d895046d66c0f58734e52684a9b335c71",
+      "authority": "Login initialization refreshes the hidden PRE-CU weapon-skill con value and cannot grant level XP or level-derived Health."
+    },
+    "retainedNonPlayerContent": {
+      "callSites": 14,
+      "inventorySha256": "96308f802db374331ea3b6659a15cf6f353588ce42e3dd75879a3880817f752d",
+      "authority": "Authored NPC, pet, Beast, hologram, patrol, tutorial, and expansion encounter levels remain available only to non-player objects."
+    },
+    "dormantCompatibility": {
+      "callSites": 2,
+      "inventorySha256": "df5f780fb8b56bea5c9f23178839905a4612b1d51a7b4a14bea0908b357460fb",
+      "authority": "One unattached working diagnostic and one uncalled legacy AI damage helper retain link-compatible references without production authority."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-native-precu-player-difficulty-authority.json",
+    "p14-native-nge-player-level-service-retirement.json",
+    "p14-precu-encounter-difficulty-authority.json",
+    "p14-java-player-level-callsite-inventory-closure.json",
+    "p14-precu-combat-routing-closure.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 0,
+    "scriptForcedPlayerLevel": false,
+    "playerLevelXpGranted": 0,
+    "playerLevelHealthGranted": 0,
+    "precuPlayerDifficultyRefreshes": true,
+    "retainedNpcLevelMutationPreserved": true,
+    "dormantLegacyDamageHelperReachable": false,
+    "workingDifficultyDiagnosticAttached": false,
+    "allCallSitesClassified": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "nativeSourceSha256": {
+      "CreatureObject.cpp": "488ba73664d20262d027b1191b37497071adf632eff5abe0f49c5274ee0a8be8",
+      "CreatureObject.h": "0ce57e5a1eccbe5dae444fe2c896e3b19c47726d6b227dbc5ff046815ae97747",
+      "ScriptMethodsObjectInfo.cpp": "b6cbf0796189c54d5be61291d032e665de41abc4893eb17beb62166e3a57a77e"
+    },
+    "sourceAudit": "passed; all 20 Java level-mutation/group-level service references classified with zero NGE player progression authority",
+    "gameplayBuildReused": "No gameplay source or data changed; the authenticated 5,717-source x64 deployment at the pinned dsrc/native revisions remains authoritative.",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T02:28:45.7475289-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinaryBytes": 22587656,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete Java setLevel, recalculateLevel, and getGroupObjectLevel inventory plus the native player/non-player mutation split, PRE-CU recalculation path, dormant helper reachability, and diagnostic attachment boundary",
+    "preserved": "PRE-CU skill-box progression and weapon-family con difficulty, authored NPC levels, retained later quests and encounters, pets, holograms, Beast display data, and link-compatible native/Java APIs",
+    "notClaimedComplete": "unrelated later-era gameplay systems outside the native level-service frontier remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

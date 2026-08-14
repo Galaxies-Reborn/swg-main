@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-cosmetic-familiar-authority",
+  "status": "ready",
+  "scope": "Keep retained reward familiars summonable as non-combat cosmetic companions while preventing their post-NGE combat-stat buffs and removed player combat level from taking authority over Publish 14.1 gameplay.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU Creature Handler and pet gameplay with retained later-content cosmetic rewards",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3References": {
+      "petControlDevice": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/intangible/PetControlDeviceImplementation.cpp",
+      "creatureManager": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/managers/creature/CreatureManagerImplementation.cpp",
+      "tameLifecycle": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/creature/events/TameCreatureTask.h"
+    },
+    "findings": [
+      "Pinned Publish 14.1 Core3 contains Creature Handler pets but no familiar or holopet player gameplay runtime.",
+      "The retained familiar definitions explicitly describe non-combat companions, yet the live familiar script applied permanent NGE primary-stat or combat-modifier buffs to their master.",
+      "Retaining the reward, summon, follow, trick, store, and travel lifecycle preserves later content without importing its combat progression authority."
+    ]
+  },
+  "diagnosis": {
+    "historicalDirectPlayerLevelReads": 1,
+    "historicalLevelFormula": "getLevel(master) / 10 clamped to 1..8",
+    "historicalLevelScaledBuffDefinitions": 24,
+    "historicalFixedCombatBuffDefinitions": 1,
+    "historicalCleanupReappliedBuffSeconds": 3600,
+    "historicalDetachCleanupValidityCheckInverted": true
+  },
+  "expected": {
+    "changedSourceFiles": 1,
+    "directPlayerLevelReads": 0,
+    "familiarBuffApplicationCalls": 0,
+    "staleFamiliarGroupRemovedOnSetup": true,
+    "familiarGroupRemovedOnStoreDetachAndDestroy": true,
+    "nonCombatFamiliarRowsPreserved": 21,
+    "familiarBuffMapRowsRetainedAsDataOnly": 6,
+    "levelScaledBuffDefinitionsRetainedAsDataOnly": 24,
+    "fixedLoveDayBuffDefinitionsRetainedAsDataOnly": 1,
+    "veteranRewardFamiliarRowsPreserved": 5,
+    "masterItemFamiliarDeedsPreserved": 7,
+    "summonFollowTrickAndStorageLifecyclePreserved": true,
+    "precuCreatureHandlerRuntimeChanged": false
+  },
+  "sourceFiles": {
+    "familiar": "dsrc/sku.0/sys.server/compiled/game/script/ai/familiar.java",
+    "pet": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet.java",
+    "petMaster": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_master.java",
+    "petLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pet_lib.java",
+    "travelLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/travel.java",
+    "rewardPetDeed": "dsrc/sku.0/sys.server/compiled/game/script/npc/pet_deed/reward_pet_deed.java",
+    "familiarBuffMap": "dsrc/sku.0/sys.server/compiled/game/datatables/familiar/familiar_buff.tab",
+    "nonCombatFamiliars": "dsrc/sku.0/sys.server/compiled/game/datatables/pet/non_combat_familiar.tab",
+    "buffDefinitions": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "veteranRewards": "dsrc/sku.0/sys.server/compiled/game/datatables/veteran_rewards/items.tab",
+    "masterItems": "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
+    "itemStats": "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "lineEndingPolicy": "the touched legacy CRLF blob normalized to the repository's declared LF policy",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "familiar": "659b992400ee7bf8bfabe647aa59c46c849685e9d9504ae4bcc8eb591fd436ff"
+    },
+    "fullJavaCompile": "passed from pushed direct source; familiar.class emitted 2026-08-04T12:25:18Z",
+    "compiledClassSha256": "d6e2a8c387776988e44fdb7fbcc693747f76010c18165ae2bac13334f4c58d52",
+    "bytecodeAudit": "removePetBuff and buff.removeBuff are present; zero getLevel or applyBuff symbols",
+    "fullServerBuild": "passed in 487.3 seconds from pushed direct source",
+    "architecture": "ELF 64-bit LSB x86-64; LoginServer, TaskManager, ConnectionServer, SwgDatabaseServer, PlanetServer, and SwgGameServer verified",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed for ai/familiar.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "petSha256": "9b241cdb4ea433f0a41999664dc35ff2f3bd0b8996cdb42b9ae1154b28563def",
+    "petMasterSha256": "09e385857c7d429bdc5a638d52afdfbf03e03c1f1e1238a5874cf1a4d7ba07be",
+    "petLibrarySha256": "d0b6a03365ed081075590dddb947d29b85ce9bffdad2712e66ef98727b51574b",
+    "travelLibrarySha256": "be9179c243db956ac7970934b2f06298126a791cbf39550f244a79ece47b4391",
+    "rewardPetDeedSha256": "6758b42393511d2752bd72f26780e3c4f16a4ce9fa5ed56bf88826ae779adf90",
+    "familiarBuffMapSha256": "b83f6365976fd379c02714cf68e7435ad901ca7b3e69c51752c7be57ca167bae",
+    "nonCombatFamiliarsSha256": "01095dfe02efee084745bd395bb75651fa28482e54fb5100ff12117b5ba827da",
+    "buffDefinitionsSha256": "ba786e08cafac4f027d5cb93102eaaeb3b66e2bd59543187ef5fb55ba50cce2d",
+    "veteranRewardsSha256": "1e2831edfa1473b4647067c75ba2fa765e44bbb400188d5888a76c193b84063b",
+    "masterItemsSha256": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+    "itemStatsSha256": "e83dc1529cafd1a3fb0b4f1d8aa6be6090374cd2a632779e41b460a037ea0a93"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 1,
+    "compiledClassPresent": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the live retained familiar script's NGE master-level and combat-buff authority, including its buff-reapplying cleanup defect",
+    "preserved": "all familiar definitions, veteran and later-content rewards, deeds and control devices, non-combat admission, summoning, ownership, following, tricks, storage, travel cleanup, Love Day content, and Publish 14.1 Creature Handler runtime",
+    "notClaimedComplete": "post-Publish-14 player invisibility is closed separately; dormant later combat mechanics remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

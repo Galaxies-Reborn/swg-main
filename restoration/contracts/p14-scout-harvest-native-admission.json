@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-scout-harvest-native-admission",
+  "status": "ready",
+  "scope": "Require an owned Novice Scout skill at the native command queue before any priority or immediate dispatch, and at every retained Java harvesting path, while removing the stale species-wide harvesting grant.",
+  "liveBeforeEvidence": {
+    "date": "2026-08-01",
+    "character": "Eteb Eso",
+    "characterObject": 1433054682,
+    "skills": [
+      "combat_brawler_novice",
+      "species_and_language_only"
+    ],
+    "noviceScoutOwned": false,
+    "harvestedResourcesObserved": [
+      "meat_insect_tatooine",
+      "hide_scaley_tatooine"
+    ],
+    "diagnosis": "The harvestCorpse command had no characterAbility requirement and all ten playable species granted creature_harvesting=25, permitting a native/stat-based path around the Java checks."
+  },
+  "expected": {
+    "requiredSkill": "outdoors_scout_novice",
+    "nativeCommandAbility": "harvestCorpse",
+    "noviceScoutHarvestingModifier": 15,
+    "speciesHarvestingModifier": 0,
+    "directNativeOwnedSkillGate": true,
+    "directCommandGate": true,
+    "radialGate": true,
+    "extractionGate": true,
+    "droidGate": true,
+    "runtimeProbeStateFree": true
+  },
+  "sourceFiles": {
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "corpseLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/corpse.java",
+    "corpseRadial": "dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java",
+    "outdoorsman": "dsrc/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java",
+    "droidHarvester": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/harvest_module.java",
+    "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
+    "runtimeProbe": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_scout_harvest_admission_runtime.java"
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/343-p14-scout-harvest-native-admission.patch",
+    "nativeOverlayPatch": "restoration/patches/src/348-p14-native-scout-harvest-admission.patch",
+    "nativeOverlayPatchBytes": 2431,
+    "nativeOverlayPatchSha256": "d5f8fc81698313e2a0058afe321ed36837e3aa5458a854eec9e85c2e8a1421fe",
+    "date": "2026-08-09",
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceSha256": {
+      "skills": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+      "commandTable": "2349ca3f4db04568e4d57d34d5512a440fe74f6a5072f14f485a980ba95fc7de",
+      "corpseLibrary": "9e9fd33a716fcfd65cb070f5a5499b787650403e3c362e86ba841ccca3767970",
+      "corpseRadial": "010ecb395a3f43fd0dfa5e6f2a3aa7add5893a9589a6227efe79b8c4df53c335",
+      "outdoorsman": "5fade155a14d8812230203d9d2aece390af24eabde173ff573bc18b1f2311729",
+      "droidHarvester": "7dfc0b5adfb6de29d0c3e2ce94e63757d186fb70d7557c27fd43b006784e72ef",
+      "commandQueue": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba",
+      "runtimeProbe": "2e6b2e5a4e042d3498ecc8be0c3efd01e2c90f4e78b26fd2c0f938703e3f633d"
+    },
+    "dataTablesCompiled": true,
+    "javaBytecodeGates": "passed",
+    "sourceAndBuildVolumeMatch": true,
+    "compiledSkillsIff": true,
+    "runtimeProbeJavaCompile": "passed",
+    "runtimeProbeClassSha256": "913e68a7682e7a7c60bfa1375ba9a2bd2a2f0d9c209869cd8925aff439cb83a7",
+    "architecture": "ELF 64-bit LSB shared object, x86-64",
+    "serverBinarySha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
+    "serverBinaryBuildId": "186028aec5352e367a12a74626984a4a5a7aeeb1",
+    "serverBinarySize": 22587592,
+    "container": "swg-precu",
+    "containerHealthy": true,
+    "clusterReady": true,
+    "liveProcessMatchesBinary": true,
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-09",
+    "container": "swg-precu",
+    "validatedBuildStartedAtUtc": "2026-08-10T02:16:10.510115161Z",
+    "sourceMountReadOnly": true,
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveBinaryInode": 12141854,
+    "liveBinarySize": 22587592,
+    "primaryClient": {
+      "processId": 52252,
+      "stationId": 91001,
+      "playerOid": 44003778,
+      "avatar": "PrecuRuntime",
+      "remainedOpenAndResponsive": true
+    },
+    "nonScoutProofClient": {
+      "processId": 56900,
+      "stationId": 1001,
+      "playerOid": 1433054682,
+      "avatar": "Eteb Eso",
+      "authoritative": true,
+      "closedAfterProbe": true
+    },
+    "databaseSkillSnapshot": {
+      "skills": [
+        "combat_brawler_novice",
+        "social_language_basic_comprehend",
+        "social_language_basic_speak",
+        "social_language_wookiee_comprehend",
+        "species_human"
+      ],
+      "noviceScoutOwned": false
+    },
+    "nativeAdmissionProbe": {
+      "script": "test.precu_scout_harvest_admission_runtime",
+      "action": "probe",
+      "authoritative": true,
+      "stationId": 1001,
+      "playerOid": 1433054682,
+      "noviceScoutOwned": false,
+      "commandOwned": false,
+      "queueCommandReturned": true,
+      "command": "harvestCorpse",
+      "target": 0,
+      "params": "meat",
+      "stateFree": true,
+      "nativeLogTimestamp": "20260810032022",
+      "nativeLogLine": "20260810032022:SwgGameServer:383:PreCuScoutHarvest:rejected owner=1433054682 command=harvestCorpse target=0",
+      "rejectedAtNativeEnqueueBeforeTargetValidation": true,
+      "result": "passed"
+    },
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}

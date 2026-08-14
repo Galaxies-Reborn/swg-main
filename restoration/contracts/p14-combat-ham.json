@@ -51,16 +51,52 @@
     "incapacitateWhenAnyPrimaryPoolIsEmpty": true,
     "recapacitateWhenAllPrimaryPoolsArePositive": true
   },
+  "regenerationAuthority": {
+    "contract": "contracts/p14-nine-attribute-runtime.json",
+    "boundary": "This combat-HAM contract owns atomic costs, pool damage, incapacitation, and recapacitation. The nine-attribute runtime owns primary-pool regeneration governors, posture multipliers, player/non-player combat eligibility, and direct incapacitated/dead suppression.",
+    "stanceRegenerationDeferred": false
+  },
   "initialWeaponFixture": {
     "template": "object/weapon/ranged/rifle/rifle_cdef.iff",
     "healthCost": 10,
     "actionCost": 15,
     "mindCost": 10
   },
+  "profiledCreatureWeaponFixture": {
+    "template": "object/weapon/creature/creature_default_weapon.iff",
+    "healthCost": 0,
+    "actionCost": 0,
+    "mindCost": 0,
+    "familyPolicy": "Every generated creature carrying precu.combatProfile and an object/weapon/creature/* strength-band weapon inherits the pinned Core3 creature-default zero-cost vector."
+  },
   "knownLimitations": {
     "commandActivation": "Production overrides are limited to the authenticated Marksman tier-I headShot1, bodyShot1, and legShot1 matrix. Every additional command remains separately gated.",
-    "weaponCoverage": "Pinned CDEF rifle, pistol, and carbine 10/15/10 fixtures cover the authenticated Marksman tier-I matrix. Additional weapon templates require provenance before activation.",
-    "woundsAndBattleFatigue": "Wounds, battle fatigue, stance-specific regeneration balance, healing balance, deathblow, and cloning remain later M3 work.",
+    "weaponCoverage": "Pinned CDEF rifle, pistol, and carbine 10/15/10 fixtures cover the authenticated Marksman tier-I matrix. Generated PRE-CU creature-profile weapons use the pinned Core3 creature-default 0/0/0 vector; additional player weapon templates require provenance before activation.",
+    "woundsAndBattleFatigue": "Wounds, battle fatigue, healing balance, deathblow, and cloning remain later M3 work. PRE-CU posture-specific regeneration is implemented by the nine-attribute runtime and is not deferred here.",
     "statMigrationUi": "The nine-value stat-migration message is wire-ready, but the Publish 14 client mediator remains a separate restoration slice."
-  }
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceSha256": {
+      "combatLibrary": "afe1fdf9e37767bff9cde61faa31e109c79759e917a89b74d9d770ceea8b3dbb",
+      "creatureCpp": "488ba73664d20262d027b1191b37497071adf632eff5abe0f49c5274ee0a8be8"
+    },
+    "sourceWorkParity": {
+      "result": "passed",
+      "checkedFiles": 2,
+      "matchedFiles": 2
+    },
+    "delegatedDeploymentEvidence": {
+      "contract": "contracts/p14-nine-attribute-runtime.json",
+      "expectation": "Build",
+      "authenticatedArtifacts": ["combat.class", "CreatureObject.cpp.o", "libserverGame.a", "SwgGameServer"],
+      "includesExactLiveProcessAndPostStartLogAudit": true,
+      "result": "passed"
+    },
+    "evidenceState": "The canonical zero-class Java/x64 deployment is authenticated through the nine-attribute Build verifier, including exact combat.class, CreatureObject.cpp.o, libserverGame.a, SwgGameServer, all fifteen live mappings, and clean post-start logs.",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
 }

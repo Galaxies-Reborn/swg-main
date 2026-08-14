@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-pet-control-authority",
+  "status": "ready",
+  "scope": "Replace NGE player-combat-level authority in the retained creature-pet tame and control-device call lifecycle with Publish 14.1 Creature Handler control rules.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/intangible/PetControlDeviceImplementation.cpp",
+      "MMOCoreORB/src/server/zone/managers/creature/CreatureManagerImplementation.cpp"
+    ],
+    "findings": [
+      "Creature control uses the owner's tame_level and keep_creature skill modifiers; it never compares the pet with player combat level.",
+      "A player without Creature Handler may control one docile creature through level 10, while an aggressive creature requires Creature Handler and positive tame_aggro.",
+      "Creature control compares the authored adult pet level and the sum of active creature levels with the control allowance.",
+      "The authenticated Publish-era skills table grants tame_level 12 at novice and accumulates to 70 at Creature Handler master."
+    ]
+  },
+  "expected": {
+    "playerCombatLevelReads": 0,
+    "retiredOwnerLevelDifferenceRule": true,
+    "retiredOwnerLevelDifference": 5,
+    "nonCreatureHandlerDocilePetCap": 10,
+    "nonCreatureHandlerAggressivePetAllowed": false,
+    "creatureHandlerControlSource": "tame_level",
+    "creatureHandlerMasterControlLevel": 70,
+    "aggressivePetSkillSource": "tame_aggro",
+    "activeCreatureLevelsCountAgainstControl": true,
+    "mountUsesUnderlyingCreatureType": true,
+    "droidDeedCallAdmissionIndependentOfPlayerLevel": true,
+    "droidFactionAndFamiliarControlDeviceAdmissionUnchanged": true,
+    "godBypassPreserved": true,
+    "locationDeathCapacityFactionAndDelayChecksPreserved": true
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/pet_lib.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/npc/pet_deed/droid_deed.java",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  ],
+  "buildEvidence": {
+    "currentSourceEvidenceRefreshedBy": "Milestone 330 PRE-CU droid detonation examine parity; PRE-CU call/store authority remains unchanged while the shared droid display range is corrected.",
+    "overlayPatch": "restoration/patches/dsrc/357-p14-precu-pet-control-authority.patch",
+    "overlayPatchBytes": 5435,
+    "overlayPatchSha256": "5af422dfd2bc6f5641468f09ab8bf1d85fc23cebec1f25902aab01de3179b3bc",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (Java 8 target)",
+    "isolatedClassSha256": {
+      "script.library.pet_lib": "034378b3fded3da15b736458240536411c574f8c61116af135b4e31319602ecf",
+      "script.ai.pet_control_device": "fdc377ebf39504b47c56654b14ae14ec348659f2684225023905034ff8f8e376"
+    },
+    "sourceSha256": {
+      "script.library.pet_lib": "f32ac6a4088db9ce54fbb5f6fe0785428a8c613b016d5ff94abd1037ce1c8ab5",
+      "script.ai.pet_control_device": "705beb8369583614f29dcc4c5066468537b83f816610957c74871b5f4a8edfbf",
+      "script.npc.pet_deed.droid_deed": "332ab9fa0a999597c3db52b4da4d39adef4e396589d8e94132a3a0c3002b1810",
+      "datatables.skill.skills": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0"
+    },
+    "compiledClassSha256": {
+      "script.library.pet_lib": "a589aec32150a5c7f5364ec8e1069c42a518da4a2f7beb645df1e6e5ca3ba036",
+      "script.ai.pet_control_device": "8ebc2be0b7785490041fb0f541f7d31c5bd73d940b3faadd7f90a2e76c64b7f1",
+      "script.npc.pet_deed.droid_deed": "92e1bbcfb74b36b7543cf7c79ded6fada9b500377bb7f940e22981cfdb054197"
+    },
+    "materializedBuild": "passed from E:/SWG/PRE-CU-Reborn/Artifacts/materialize-incubation311-build-a",
+    "cleanMaterializationPatches": 413,
+    "cleanMaterializationAcceptanceFiles": 1170,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildIdSha1": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-03",
+    "deployedAtUtc": "2026-08-03T21:49:26.134989081Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-incubation311-final-a",
+    "sourceMountReadOnly": true,
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 367,
+    "liveBinaryInode": 12110814,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "creature-pet tame-level calculation, control-device call admission, and the adjacent crafted-droid deed level-gate closure",
+    "notClaimedComplete": "other dormant post-NGE pet mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

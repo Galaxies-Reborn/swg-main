@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-metrics-level-authority",
+  "status": "ready",
+  "scope": "Make production combat-kill, XP-rate, and quest metrics describe PRE-CU skill-box combat difficulty instead of the removed NGE player combat level while preserving authored NPC level, metric schemas, and gameplay reward behavior.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/group/GroupObjectImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 derives player combat capability from learned weapon skill modifiers and skill boxes rather than an NGE profession level.",
+      "The shared PRE-CU encounter adapter maps learned combat skill-box investment to a hidden compatibility score and is already authoritative for group difficulty.",
+      "metrics.doKillMetrics is called by the active combat-XP path, metrics.doXpRateMetrics is called by XP awards, and metrics.doQuestMetrics is called by quest completion.",
+      "The production metric library retained four raw player-level reads even though its group metric already used PRE-CU group difficulty.",
+      "The defeated creature's authored getLevel(target) value remains correct descriptive content and is intentionally preserved."
+    ]
+  },
+  "expected": {
+    "rawPlayerLevelReadsInMetrics": 0,
+    "precuPlayerDifficultyReadsInMetrics": 4,
+    "authoredTargetLevelReadsInMetrics": 1,
+    "precuGroupDifficultyReadsInMetrics": 1,
+    "productionMetricEntrypoints": 3,
+    "productionMetricCallSites": 3,
+    "metricLogSchemasPreserved": true,
+    "xpAndQuestRewardsUnchanged": true,
+    "authoredNpcDifficultyPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "metrics": "dsrc/sku.0/sys.server/compiled/game/script/library/metrics.java",
+    "skill": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "xp": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "46cde098fa000be953c668eebc18980bece1dc89b8a82ed36b02cf085476bb1e",
+      "metrics": "42a172c5c4e8f2b7c16fb19bfd215388dcd1192192a0c9a3096599a602d855d1",
+      "skill": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+      "xp": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a",
+      "basePlayer": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671"
+    },
+    "compiledClassSha256": {
+      "metrics": "3054d4d7791a53b30478824b5894c65e8a2bf0a2343eb05f5bd9a64658c5abf2"
+    },
+    "sourceTest": "passed; all four player metric fields use PRE-CU skill difficulty, group difficulty remains PRE-CU, the one authored creature level remains, and all three production call sites and log schemas are preserved",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and metrics.class was emitted 2026-08-04T18:18:33Z",
+    "fullServerBuild": "passed in 709.6 seconds from pushed parent 59265d05ac7b901571d6f7e29e9b0acea5ca0469 and direct dsrc 707d63d536377eea4a6bd71ec294b988256a9120",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for metrics.java; source and Docker work SHA-256 are both 42a172c5c4e8f2b7c16fb19bfd215388dcd1192192a0c9a3096599a602d855d1",
+    "bytecodeAudit": "metrics.class contains exactly four skill.getPrecuEncounterDifficulty calls, one skill.getGroupLevel call, and one getLevel call for authored target difficulty; its SHA-256 is 3054d4d7791a53b30478824b5894c65e8a2bf0a2343eb05f5bd9a64658c5abf2",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused metrics source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassPresent": true,
+    "compiledClassSize": 10622,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the four raw NGE player combat-level fields in production kill, XP-rate, and quest metrics",
+    "preserved": "metric configuration and schemas, authored defeated-creature level, PRE-CU group difficulty, combat XP, quest XP and credits, kill accounting, expansion quest content, and all non-level metric fields",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

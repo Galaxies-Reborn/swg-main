@@ -1,0 +1,777 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 4b1e03b..afd4a06 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -1909,9 +1909,7 @@ public class combat_base extends script.base_script
+         }
+ 
+         String weaponTemplate = getTemplateName(weaponData.id);
+-        int weaponRow =
+-            dataTableSearchColumnForString(
+-                weaponTemplate, "templateName", PRECU_WEAPON_PROFILES);
++        int weaponRow = getPrecuWeaponProfileRow(weaponData);
+         if (weaponRow < 0)
+         {
+             recordPrecuLiveDiagnostic(
+@@ -2613,29 +2611,37 @@ public class combat_base extends script.base_script
+     public float getPrecuPrimaryHitChance(attacker_data attackerData, defender_data defenderData, weapon_data weaponData, combat_data actionData) throws InterruptedException
+     {
+         int actionRow = dataTableSearchColumnForString(actionData.actionName, "actionName", PRECU_COMBAT_OVERRIDES);
+-        if (actionRow < 0)
++        boolean profiledCreature =
++            hasObjVar(attackerData.id, "precu.combatProfile");
++        if (actionRow < 0 && !profiledCreature)
+         {
+             return -1.0f;
+         }
+-        int accuracyBonus = getPrecuActionAccuracyBonus(
+-            attackerData.id, actionRow);
+-        if (accuracyBonus <= 0 || !isIdValid(weaponData.id))
++        int accuracyBonus = actionRow >= 0 ?
++            getPrecuActionAccuracyBonus(attackerData.id, actionRow) : 0;
++        if (!isIdValid(weaponData.id))
+         {
+             return -1.0f;
+         }
+         String weaponTemplate = getTemplateName(weaponData.id);
+-        int weaponRow = dataTableSearchColumnForString(weaponTemplate, "templateName", PRECU_WEAPON_PROFILES);
++        int weaponRow = getPrecuWeaponProfileRow(weaponData);
+         if (weaponRow < 0)
+         {
+             return -1.0f;
+         }
+ 
+         String defenseSkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "defenseSkill");
++        String defenseSkill2 = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "defenseSkill2");
+         float accuracyTotal = getPrecuAttackerAccuracyTotal(attackerData, defenderData, weaponRow, accuracyBonus);
+ 
+         int defenseSkillValue = getLevel(defenderData.id);
+         defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, defenseSkill);
+         defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + defenseSkill);
++        if (defenseSkill2 != null && defenseSkill2.length() > 0)
++        {
++            defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, defenseSkill2);
++            defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + defenseSkill2);
++        }
+         if (defenseSkillValue > 125)
+         {
+             defenseSkillValue = 125;
+@@ -2645,11 +2651,16 @@ public class combat_base extends script.base_script
+             defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_defense");
+         }
+         defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_group_" + defenseSkill);
++        if (defenseSkill2 != null && defenseSkill2.length() > 0)
++        {
++            defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_group_" + defenseSkill2);
++        }
+         defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "dodge_attack");
+         defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_dodge_attack");
+ 
+-        int defenseLocomotion =
+-            getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion);
++        int defenseLocomotion = isPrecuRangedWeaponProfile(weaponRow) ?
++            getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion) :
++            getPrecuMeleeDefenseLocomotionModifier(defenderData.locomotion);
+         float defenseTotal = defenseSkillValue + defenseLocomotion;
+         float hitChance = getPrecuHitChanceEquation(accuracyTotal, defenseTotal);
+         recordPrecuLiveDiagnostic(attackerData.id, "action", actionData.actionName);
+@@ -2679,6 +2690,102 @@ public class combat_base extends script.base_script
+         }
+         return accuracyBonus;
+     }
++    public int getPrecuWeaponProfileRow(weapon_data weaponData)
++        throws InterruptedException
++    {
++        if (weaponData == null)
++        {
++            return dataTableSearchColumnForString(
++                "__family_default", "templateName", PRECU_WEAPON_PROFILES);
++        }
++        if (isIdValid(weaponData.id))
++        {
++            int exactRow = dataTableSearchColumnForString(
++                getTemplateName(weaponData.id),
++                "templateName",
++                PRECU_WEAPON_PROFILES);
++            if (exactRow >= 0)
++            {
++                return exactRow;
++            }
++        }
++        return getPrecuWeaponFamilyProfileRow(weaponData.weaponType);
++    }
++    public int getPrecuWeaponProfileRow(obj_id weapon)
++        throws InterruptedException
++    {
++        if (!isIdValid(weapon))
++        {
++            return getPrecuWeaponFamilyProfileRow(WEAPON_TYPE_UNARMED);
++        }
++        int exactRow = dataTableSearchColumnForString(
++            getTemplateName(weapon), "templateName", PRECU_WEAPON_PROFILES);
++        return exactRow >= 0 ? exactRow :
++            getPrecuWeaponFamilyProfileRow(getWeaponType(weapon));
++    }
++    public int getPrecuWeaponFamilyProfileRow(int weaponType)
++        throws InterruptedException
++    {
++        String family = "default";
++        switch (weaponType)
++        {
++            case WEAPON_TYPE_RIFLE:
++            family = "rifle";
++            break;
++            case WEAPON_TYPE_LIGHT_RIFLE:
++            family = "carbine";
++            break;
++            case WEAPON_TYPE_PISTOL:
++            family = "pistol";
++            break;
++            case WEAPON_TYPE_HEAVY:
++            case WEAPON_TYPE_GROUND_TARGETTING:
++            case WEAPON_TYPE_DIRECTIONAL:
++            family = "heavy";
++            break;
++            case WEAPON_TYPE_1HAND_MELEE:
++            family = "onehandmelee";
++            break;
++            case WEAPON_TYPE_2HAND_MELEE:
++            family = "twohandmelee";
++            break;
++            case WEAPON_TYPE_UNARMED:
++            family = "unarmed";
++            break;
++            case WEAPON_TYPE_POLEARM:
++            family = "polearm";
++            break;
++            case WEAPON_TYPE_THROWN:
++            family = "thrown";
++            break;
++            case WEAPON_TYPE_WT_1HAND_LIGHTSABER:
++            family = "onehandlightsaber";
++            break;
++            case WEAPON_TYPE_WT_2HAND_LIGHTSABER:
++            family = "twohandlightsaber";
++            break;
++            case WEAPON_TYPE_WT_POLEARM_LIGHTSABER:
++            family = "polearmlightsaber";
++            break;
++        }
++        return dataTableSearchColumnForString(
++            "__family_" + family, "templateName", PRECU_WEAPON_PROFILES);
++    }
++    public boolean isPrecuRangedWeaponProfile(int weaponRow)
++        throws InterruptedException
++    {
++        return weaponRow >= 0 && dataTableGetString(
++            PRECU_WEAPON_PROFILES,
++            weaponRow,
++            "categoryAccuracySkill").equals("ranged_accuracy");
++    }
++    public boolean isPrecuLightsaberWeaponType(int weaponType)
++        throws InterruptedException
++    {
++        return weaponType == WEAPON_TYPE_WT_1HAND_LIGHTSABER ||
++            weaponType == WEAPON_TYPE_WT_2HAND_LIGHTSABER ||
++            weaponType == WEAPON_TYPE_WT_POLEARM_LIGHTSABER;
++    }
+     public float getPrecuAttackerAccuracyTotal(attacker_data attackerData, defender_data defenderData, int weaponRow, int accuracyBonus) throws InterruptedException
+     {
+         String accuracySkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "accuracySkill");
+@@ -2696,7 +2803,10 @@ public class combat_base extends script.base_script
+         accuracySkillValue += getEnhancedSkillStatisticModifierUncapped(attackerData.id, categoryAccuracySkill);
+ 
+         float accuracyWeapon = getPrecuWeaponRangeModifier(attackerData, defenderData, weaponRow);
+-        int accuracyPosture = getPrecuRangedAttackLocomotionModifier(attackerData.locomotion);
++        boolean rangedProfile = isPrecuRangedWeaponProfile(weaponRow);
++        int accuracyPosture = rangedProfile ?
++            getPrecuRangedAttackLocomotionModifier(attackerData.locomotion) :
++            getPrecuMeleeAttackLocomotionModifier(attackerData.locomotion);
+         int accuracyWeaponPosture = 0;
+         if (isPrecuMovingLocomotion(attackerData.locomotion))
+         {
+@@ -2714,8 +2824,14 @@ public class combat_base extends script.base_script
+ 
+         int accuracyPrivateBonus = getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_attack_accuracy");
+         accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_accuracy_bonus");
+-        accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_ranged_accuracy_bonus");
+-        accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_aim");
++        accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(
++            attackerData.id,
++            rangedProfile ? "private_ranged_accuracy_bonus" :
++                "private_melee_accuracy_bonus");
++        if (rangedProfile)
++        {
++            accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_aim");
++        }
+         if (defenderData.isCreature)
+         {
+             accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "creature_hit_bonus");
+@@ -2754,15 +2870,11 @@ public class combat_base extends script.base_script
+         obj_id defenderWeapon = getHeldWeapon(defenderData.id);
+         if (!isIdValid(defenderWeapon))
+         {
+-            recordPrecuLiveDiagnostic(
+-                attackerData.id, "secondary.profile", "FALLBACK_NO_WEAPON");
+-            recordPrecuLiveDiagnostic(
+-                attackerData.id, "secondary.result", PRECU_SECONDARY_RESULT_FALLBACK);
+-            recordPrecuLiveDiagnostic(
+-                attackerData.id, "secondary.resultName", "FALLBACK");
+-            return PRECU_SECONDARY_RESULT_FALLBACK;
++            defenderWeapon = getCurrentWeapon(defenderData.id);
+         }
+-        if (jedi.isLightsaber(defenderWeapon))
++        if (isIdValid(defenderWeapon) &&
++            (jedi.isLightsaber(defenderWeapon) ||
++                isPrecuLightsaberWeaponType(getWeaponType(defenderWeapon))))
+         {
+             boolean canRicochet = !ai_lib.isTurret(attackerData.id) &&
+                 (combat.isRangedWeapon(weaponData.weaponType) || combat.isHeavyWeapon(weaponData.weaponType));
+@@ -2796,7 +2908,7 @@ public class combat_base extends script.base_script
+                 getPrecuDiagnosticResultName(saberResult));
+             return saberResult;
+         }
+-        int defenderWeaponRow = dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES);
++        int defenderWeaponRow = getPrecuWeaponProfileRow(defenderWeapon);
+         if (defenderWeaponRow < 0)
+         {
+             recordPrecuLiveDiagnostic(
+@@ -2804,7 +2916,8 @@ public class combat_base extends script.base_script
+             recordPrecuLiveDiagnostic(
+                 attackerData.id,
+                 "secondary.defenderWeaponTemplate",
+-                getTemplateName(defenderWeapon));
++                isIdValid(defenderWeapon) ? getTemplateName(defenderWeapon) :
++                    "__family_unarmed");
+             recordPrecuLiveDiagnostic(
+                 attackerData.id, "secondary.result", PRECU_SECONDARY_RESULT_FALLBACK);
+             recordPrecuLiveDiagnostic(
+@@ -2835,14 +2948,17 @@ public class combat_base extends script.base_script
+         }
+ 
+         int actionRow = dataTableSearchColumnForString(actionData.actionName, "actionName", PRECU_COMBAT_OVERRIDES);
+-        if (actionRow < 0 || !isIdValid(weaponData.id))
++        boolean profiledCreature =
++            hasObjVar(attackerData.id, "precu.combatProfile");
++        if ((actionRow < 0 && !profiledCreature) ||
++            !isIdValid(weaponData.id))
+         {
+             return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
+-        int accuracyBonus = getPrecuActionAccuracyBonus(
+-            attackerData.id, actionRow);
+-        int attackerWeaponRow = dataTableSearchColumnForString(getTemplateName(weaponData.id), "templateName", PRECU_WEAPON_PROFILES);
+-        if (accuracyBonus <= 0 || attackerWeaponRow < 0)
++        int accuracyBonus = actionRow >= 0 ?
++            getPrecuActionAccuracyBonus(attackerData.id, actionRow) : 0;
++        int attackerWeaponRow = getPrecuWeaponProfileRow(weaponData);
++        if (attackerWeaponRow < 0)
+         {
+             return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
+@@ -2865,7 +2981,8 @@ public class combat_base extends script.base_script
+                 attackerData.id, "secondary.profile", secondaryDefenseResult);
+             recordPrecuLiveDiagnostic(
+                 attackerData.id, "secondary.defenderWeaponTemplate",
+-                getTemplateName(defenderWeapon));
++                isIdValid(defenderWeapon) ? getTemplateName(defenderWeapon) :
++                    "__family_unarmed");
+             recordPrecuLiveDiagnostic(
+                 attackerData.id, "secondary.skillName", secondaryDefenseSkill);
+             recordPrecuLiveDiagnostic(
+@@ -2879,7 +2996,9 @@ public class combat_base extends script.base_script
+ 
+         float accuracyTotal = getPrecuAttackerAccuracyTotal(attackerData, defenderData, attackerWeaponRow, accuracyBonus);
+         int evadeCenter = getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_center_of_being");
+-        int evadePosture = getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion);
++        int evadePosture = isPrecuRangedWeaponProfile(attackerWeaponRow) ?
++            getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion) :
++            getPrecuMeleeDefenseLocomotionModifier(defenderData.locomotion);
+         int evadeTotal = evadeSkill + evadeCenter + evadePosture;
+         int attackRoll = rand(1, 500);
+         int defendRoll = rand(1, 200);
+@@ -2889,7 +3008,8 @@ public class combat_base extends script.base_script
+             attackerData.id, "secondary.profile", secondaryDefenseResult);
+         recordPrecuLiveDiagnostic(
+             attackerData.id, "secondary.defenderWeaponTemplate",
+-            getTemplateName(defenderWeapon));
++            isIdValid(defenderWeapon) ? getTemplateName(defenderWeapon) :
++                "__family_unarmed");
+         recordPrecuLiveDiagnostic(
+             attackerData.id, "secondary.skillName", secondaryDefenseSkill);
+         recordPrecuLiveDiagnostic(
+@@ -3040,6 +3160,28 @@ public class combat_base extends script.base_script
+             return 0;
+         }
+     }
++    public int getPrecuMeleeAttackLocomotionModifier(int locomotion)
++        throws InterruptedException
++    {
++        switch (locomotion)
++        {
++            case LOCOMOTION_SNEAKING:
++            return -20;
++            case LOCOMOTION_WALKING:
++            return 10;
++            case LOCOMOTION_RUNNING:
++            return 25;
++            case LOCOMOTION_KNEELING:
++            return -20;
++            case LOCOMOTION_PRONE:
++            case LOCOMOTION_CRAWLING:
++            return -90;
++            case LOCOMOTION_FLYING:
++            return -10;
++            default:
++            return 0;
++        }
++    }
+     public int getPrecuRangedDefenseLocomotionModifier(int locomotion) throws InterruptedException
+     {
+         switch (locomotion)
+@@ -3066,6 +3208,31 @@ public class combat_base extends script.base_script
+             return 0;
+         }
+     }
++    public int getPrecuMeleeDefenseLocomotionModifier(int locomotion)
++        throws InterruptedException
++    {
++        switch (locomotion)
++        {
++            case LOCOMOTION_WALKING:
++            return 10;
++            case LOCOMOTION_RUNNING:
++            return 25;
++            case LOCOMOTION_KNEELING:
++            return -20;
++            case LOCOMOTION_PRONE:
++            return -80;
++            case LOCOMOTION_CRAWLING:
++            return -95;
++            case LOCOMOTION_HOVERING:
++            return -5;
++            case LOCOMOTION_FLYING:
++            return -40;
++            case LOCOMOTION_KNOCKED_DOWN:
++            return -15;
++            default:
++            return 0;
++        }
++    }
+     public int getDefenderResult(attacker_data attackerData, defender_data defenderData, combat_data actionData, boolean autoAim) throws InterruptedException
+     {
+         if (combat.isAreaAttack(actionData.attackType))
+@@ -3940,6 +4107,14 @@ public class combat_base extends script.base_script
+             }
+         }
+         int precuResolvedTargetPool = actionData.precuTargetPool;
++        if (!precuMultiPoolDamage &&
++            precuResolvedTargetPool < 0 &&
++            precuResolvedTargetPool != PRECU_TARGET_POOL_NO_ATTRIBUTE &&
++            hasObjVar(attacker, "precu.combatProfile"))
++        {
++            precuResolvedTargetPool = combat.resolvePrecuTargetPool(
++                combat.PRECU_TARGET_POOL_RANDOM);
++        }
+         if (!precuMultiPoolDamage &&
+             precuResolvedTargetPool == combat.PRECU_TARGET_POOL_RANDOM)
+         {
+@@ -3966,10 +4141,7 @@ public class combat_base extends script.base_script
+                         precuResolvedTargetPool);
+             }
+             int armorPiercing = 0;
+-            String weaponTemplate =
+-                isIdValid(weaponData.id) ? getTemplateName(weaponData.id) : "";
+-            int weaponRow = dataTableSearchColumnForString(
+-                weaponTemplate, "templateName", PRECU_WEAPON_PROFILES);
++            int weaponRow = getPrecuWeaponProfileRow(weaponData);
+             if (weaponRow >= 0)
+             {
+                 armorPiercing = dataTableGetInt(
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 5657a78..55a0661 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -1,6 +1,11 @@
+ actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus	animationType	dotAttribute	postureDownChance	stateEffect1	stateChance1	stateStrength1	stateDuration1	stateDefense1	stateJediDefense1	stateResistance1	stateEffect2	stateChance2	stateStrength2	stateDuration2	stateDefense2	stateJediDefense2	stateResistance2	stateEffect3	stateChance3	stateStrength3	stateDuration3	stateDefense3	stateJediDefense3	stateResistance3	poolDamageRolls	poolDamageIncrement	knockdownChance	hitIncapacitatedTarget	fixedMinDamage	fixedMaxDamage	accuracySkillMod	healthDamageMultiplier	actionDamageMultiplier	mindDamageMultiplier
+ s	f	f	f	"e(NO_ATTRIBUTE=-2,HEALTH=0,ACTION=1,MIND=2,RANDOM=3,MULTI=4)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6,NEXT_ATTACK_DELAY=7)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6,NEXT_ATTACK_DELAY=7)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6,NEXT_ATTACK_DELAY=7)[NONE]"	i[0]	i[0]	i[0]	s	s	s	i[0]	f[0]	i[0]	i[0]	i[-1]	i[-1]	s	f[0]	f[0]	f[0]
+ __precu_runtime_probe	0	0	0	HEALTH	0	0	NONE
++creatureMeleeAttack	0	0	0	RANDOM	1	0	NONE
++creatureRangedAttack	0	0	0	RANDOM	1	0	NONE
++meleeHit	0	0	0	RANDOM	1	0	NONE
++rangedShot	0	0	0	RANDOM	1	0	NONE
++saberHit	0	0	0	RANDOM	1	0	NONE
+ healthShot2	0.5	1	0.5	HEALTH	2	50	RANGED	HEALTH
+ pistolMeleeDefense1	0.5	0.75	0.5	RANDOM	2	50	INTENSITY																										100
+ pistolMeleeDefense2	0.5	1	0.5	RANDOM	2	50	INTENSITY																										65
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+index 0650294..d8602df 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+@@ -1,9 +1,357 @@
+-templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	weaponFamily	postureMultiplier	secondaryDefenseSkill	secondaryDefenseResult	woundsRatio	armorPiercing
+-s	f	s	f	f	f	f	f	f	s	s	s	s	f	s	s	i	i
+-object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0	20	15	50	64	-80	rifle_accuracy	ranged_accuracy	ranged_defense	rifle	2.5	block	BLOCK	4	0
+-object/weapon/ranged/pistol/pistol_cdef.iff	3.5	pistol_speed	0	20	15	50	64	-80	pistol_accuracy	ranged_accuracy	ranged_defense	pistol	1.5	dodge	DODGE	4	0
+-object/weapon/ranged/carbine/carbine_cdef.iff	3.5	carbine_speed	0	20	15	50	64	-80	carbine_accuracy	ranged_accuracy	ranged_defense	carbine	2	counterattack	COUNTER	4	0
+-object/weapon/melee/unarmed/unarmed_default_player.iff	2	unarmed_speed	0	0	5	3	5	5	unarmed_accuracy	melee_accuracy	melee_defense	unarmed	1	unarmed_passive_defense	RANDOM	5	0
+-object/weapon/melee/polearm/lance_staff_wood_s2.iff	4.75	polearm_speed	0	10	3	10	5	10	polearm_accuracy	melee_accuracy	melee_defense	polearm	1	block	BLOCK	5	0
+-object/weapon/melee/sword/sword_rantok.iff	3.3	onehandmelee_speed	0	10	3	10	3	10	onehandmelee_accuracy	melee_accuracy	melee_defense	onehandmelee	1	dodge	DODGE	20	0
+-object/weapon/melee/2h_sword/2h_sword_cleaver.iff	4.1	twohandmelee_speed	0	-15	5	-15	5	-15	twohandmelee_accuracy	melee_accuracy	melee_defense	twohandmelee	1	counterattack	COUNTER	27	2
++templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	defenseSkill2	weaponFamily	postureMultiplier	secondaryDefenseSkill	secondaryDefenseResult	woundsRatio	armorPiercing
++s	f	s	f	f	f	f	f	f	s	s	s	s	s	f	s	s	i	i
++__family_default	4.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	melee_defense		default	1.0	unarmed_passive_defense	RANDOM	5	0
++__family_rifle	5.9	rifle_speed	0.0	-30.0	40.0	20.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	10	1
++__family_carbine	3.6	carbine_speed	0.0	-25.0	35.0	5.0	64.0	-60.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	10	0
++__family_pistol	3.6	pistol_speed	0.0	0.0	15.0	15.0	64.0	-70.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	10	0
++__family_heavy	7.8	heavyweapon_speed	0.0	-20.0	16.0	-20.0	64.0	-80.0	heavyweapon_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	unarmed_passive_defense	RANDOM	24	1
++__family_onehandmelee	4.5	onehandmelee_speed	0.0	3.0	3.0	3.0	4.0	4.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++__family_twohandmelee	4.8	twohandmelee_speed	0.0	0.0	3.0	0.0	5.0	0.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	22	2
++__family_unarmed	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	melee_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++__family_polearm	5.1	polearm_speed	0.0	3.0	3.0	4.5	5.5	5.5	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	14	0
++__family_thrown	5.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	1
++__family_onehandlightsaber	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++__family_twohandlightsaber	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++__family_polearmlightsaber	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/creature/creature_default_weapon.iff	2.0	unarmed_speed	0.0	7.0	5.0	7.0	5.0	7.0	unarmed_accuracy	melee_accuracy	unarmed_passive_defense	melee_defense	unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/melee/2h_sword/2h_sword_battleaxe.iff	4.5	twohandmelee_speed	0.0	5.0	5.0	5.0	5.0	5.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	17	2
++object/weapon/melee/2h_sword/2h_sword_battleaxe_quest.iff	4.5	twohandmelee_speed	0.0	7.0	3.0	7.0	4.0	7.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	17	2
++object/weapon/melee/2h_sword/2h_sword_blacksun_hack.iff	2.7	twohandmelee_speed	0.0	-3.0	3.0	-9.0	5.0	0.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	18	2
++object/weapon/melee/2h_sword/2h_sword_cleaver.iff	4.1	twohandmelee_speed	0.0	-15.0	5.0	-15.0	5.0	-15.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	27	2
++object/weapon/melee/2h_sword/2h_sword_katana.iff	3.0	twohandmelee_speed	0.0	1.0	3.0	1.0	4.0	1.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	30	2
++object/weapon/melee/2h_sword/2h_sword_katana_quest.iff	3.5	twohandmelee_speed	0.0	3.0	5.0	3.0	5.0	3.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	22	2
++object/weapon/melee/2h_sword/2h_sword_maul.iff	5.6	twohandmelee_speed	0.0	-36.0	3.0	-36.0	4.0	-36.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	25	2
++object/weapon/melee/2h_sword/2h_sword_maul_ranged.iff	5.6	twohandmelee_speed	0.0	-36.0	3.0	-36.0	32.0	-36.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	25	2
++object/weapon/melee/2h_sword/2h_sword_scythe.iff	4.7	twohandmelee_speed	0.0	10.0	5.0	10.0	6.0	10.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	30	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen2_ranged.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen3_ranged.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen4_ranged.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_gen5.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	45	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s1_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s1_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s1_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s1_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s10.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s10_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s10_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s10_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s10_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s11.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s11_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s11_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s11_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s11_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s12.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s12_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s12_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s12_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s12_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s13.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s13_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s13_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s13_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s13_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s2_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s2_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s2_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s2_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s3_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s3_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s3_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s3_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s4_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s4_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s4_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s4_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s5.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s5_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s5_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s5_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s5_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s6.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s6_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s6_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s6_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s6_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s7.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s7_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s7_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s7_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s7_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s8.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s8_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s8_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s8_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s8_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s9.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s9_gen1.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s9_gen2.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s9_gen3.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s9_gen4.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/2h_sword/crafted_saber/sword_lightsaber_two_handed_s9_gen4_ranged.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/axe/axe_heavy_duty.iff	5.0	twohandmelee_speed	0.0	0.0	3.0	0.0	5.0	0.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	15	2
++object/weapon/melee/axe/axe_vibroaxe.iff	5.0	twohandmelee_speed	0.0	-20.0	3.0	-20.0	5.0	-20.0	twohandmelee_accuracy	melee_accuracy	melee_defense		twohandmelee	1.0	counterattack	COUNTER	20	1
++object/weapon/melee/baton/baton_gaderiffi.iff	4.0	onehandmelee_speed	0.0	-8.0	3.0	-8.0	4.0	-8.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	25	0
++object/weapon/melee/baton/baton_stun.iff	2.8	onehandmelee_speed	0.0	0.0	2.0	0.0	4.0	0.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	10	0
++object/weapon/melee/baton/baton_stun_ranged.iff	2.8	onehandmelee_speed	0.0	0.0	2.0	0.0	32.0	0.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	10	0
++object/weapon/melee/baton/victor_baton_gaderiffi.iff	3.8	onehandmelee_speed	0.0	-13.0	3.0	-13.0	5.0	-13.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	16	1
++object/weapon/melee/knife/knife_dagger.iff	3.0	onehandmelee_speed	0.0	25.0	3.0	25.0	4.0	25.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	9	0
++object/weapon/melee/knife/knife_donkuwah.iff	4.5	onehandmelee_speed	0.0	3.0	3.0	3.0	4.0	3.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	6	0
++object/weapon/melee/knife/knife_janta.iff	3.0	onehandmelee_speed	0.0	3.0	3.0	3.0	4.0	3.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	6	0
++object/weapon/melee/knife/knife_stone.iff	3.0	onehandmelee_speed	0.0	5.0	3.0	5.0	4.0	5.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++object/weapon/melee/knife/knife_stone_noob.iff	3.0	onehandmelee_speed	0.0	-6.0	1.0	-10.0	4.0	-10.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++object/weapon/melee/knife/knife_survival.iff	3.25	onehandmelee_speed	0.0	30.0	3.0	30.0	4.0	30.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	8	0
++object/weapon/melee/knife/knife_vibroblade.iff	3.25	onehandmelee_speed	0.0	5.0	3.0	5.0	4.0	5.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	12	1
++object/weapon/melee/knife/knife_vibroblade_quest.iff	3.2	onehandmelee_speed	0.0	5.0	3.0	5.0	4.0	5.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	1
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_gen1.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_gen2.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_gen2_ranged.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_gen3.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_gen3_ranged.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_gen4.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_gen4_ranged.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0		melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s1.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s1_gen1.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s1_gen2.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s1_gen3.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s1_gen4.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s2.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s2_gen1.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s2_gen2.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s2_gen3.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s2_gen4.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/polearm/crafted_saber/sword_lightsaber_polearm_s2_gen4_ranged.iff	5.1	polearmlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/polearm/lance_controllerfp.iff	5.15	polearm_speed	0.0	10.0	3.0	10.0	5.0	10.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	14	0
++object/weapon/melee/polearm/lance_controllerfp_nightsister.iff	5.15	polearm_speed	0.0	7.0	3.0	7.0	5.0	7.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	14	0
++object/weapon/melee/polearm/lance_lightsaber_01.iff	5.1	polearmlightsaber_speed	0.0	20.0	5.0	15.0	7.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/polearm/lance_lightsaber_02.iff	5.1	polearmlightsaber_speed	0.0	20.0	5.0	15.0	7.0	5.0	polearmlightsaber_accuracy	melee_accuracy	melee_defense		polearmlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/polearm/lance_nightsister.iff	3.0	polearm_speed	0.0	7.0	5.0	7.0	6.0	7.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	18	1
++object/weapon/melee/polearm/lance_nightsister_npc_version.iff	3.0	polearm_speed	6.0	0.0	6.0	3.0	6.0	5.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	18	0
++object/weapon/melee/polearm/lance_staff_janta.iff	5.8	polearm_speed	0.0	6.0	3.0	6.0	5.0	6.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	7	0
++object/weapon/melee/polearm/lance_staff_janta_ranged.iff	5.8	polearm_speed	0.0	6.0	3.0	6.0	32.0	6.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	7	0
++object/weapon/melee/polearm/lance_staff_metal.iff	5.0	polearm_speed	0.0	0.0	3.0	0.0	5.0	0.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	7	0
++object/weapon/melee/polearm/lance_staff_metal_ranged.iff	5.0	polearm_speed	0.0	0.0	3.0	0.0	32.0	0.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	7	0
++object/weapon/melee/polearm/lance_staff_wood_s1.iff	4.75	polearm_speed	0.0	20.0	3.0	20.0	5.0	20.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	5	0
++object/weapon/melee/polearm/lance_staff_wood_s2.iff	4.75	polearm_speed	0.0	10.0	3.0	10.0	5.0	10.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	5	0
++object/weapon/melee/polearm/lance_vibrolance.iff	4.0	polearm_speed	0.0	-15.0	3.0	-15.0	5.0	-15.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	27	1
++object/weapon/melee/polearm/lance_vibrolance_ranged.iff	4.0	polearm_speed	0.0	-15.0	3.0	-15.0	32.0	-15.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	27	1
++object/weapon/melee/polearm/polearm_vibro_axe.iff	4.5	polearm_speed	0.0	-35.0	3.0	-35.0	7.0	-31.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	40	2
++object/weapon/melee/polearm/polearm_vibro_axe_ranged.iff	4.5	polearm_speed	0.0	-35.0	3.0	-35.0	32.0	-31.0	polearm_accuracy	melee_accuracy	melee_defense		polearm	1.0	block	BLOCK	40	2
++object/weapon/melee/special/blacksun_razor.iff	3.0	unarmed_speed	7.0	0.0	46.0	1.0	7.0	3.0	unarmed_accuracy	melee_accuracy	melee_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	8	1
++object/weapon/melee/special/vibroknuckler.iff	2.3	unarmed_speed	0.0	10.0	1.0	10.0	5.0	10.0	unarmed_accuracy	melee_accuracy	melee_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	25	1
++object/weapon/melee/sword/bestine_quest_sword.iff	3.5	onehandmelee_speed	0.0	0.0	0.0	0.0	0.0	0.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen2_ranged.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen3_ranged.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen4_ranged.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_gen5.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	45	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s1_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s1_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s1_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s1_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s10.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s10_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s10_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s10_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s10_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s11.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s11_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s11_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s11_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s11_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s12.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s12_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s12_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s12_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s12_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s12_gen4_ranged.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	32.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s13.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s13_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s13_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s13_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s13_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s2_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s2_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s2_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s2_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s3_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s3_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s3_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s3_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s4_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s4_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s4_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s4_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s5.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s5_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s5_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s5_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s5_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s6.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s6_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s6_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s6_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s6_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s7.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s7_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s7_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s7_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s7_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s8.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s8_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s8_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s8_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s8_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s9.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s9_gen1.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s9_gen2.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	19	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s9_gen3.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	25	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_one_handed_s9_gen4.iff	4.5	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	37	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s1_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s10_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s11_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s2_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s3_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s4_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s5_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s6_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s7_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s8_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_s9_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/crafted_saber/sword_lightsaber_training.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	6	2
++object/weapon/melee/sword/sword_01.iff	3.5	onehandmelee_speed	0.0	10.0	3.0	10.0	4.0	10.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++object/weapon/melee/sword/sword_01_noob.iff	4.0	onehandmelee_speed	0.0	-7.0	3.0	-5.0	4.0	-5.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++object/weapon/melee/sword/sword_01_ranged.iff	3.5	onehandmelee_speed	0.0	10.0	3.0	10.0	32.0	10.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++object/weapon/melee/sword/sword_02.iff	3.1	onehandmelee_speed	0.0	5.0	3.0	5.0	4.0	5.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	18	0
++object/weapon/melee/sword/sword_02_ranged.iff	3.1	onehandmelee_speed	0.0	5.0	3.0	5.0	32.0	5.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	18	0
++object/weapon/melee/sword/sword_blade_ryyk.iff	3.3	onehandmelee_speed	0.0	-15.0	3.0	-15.0	4.0	-15.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	22	0
++object/weapon/melee/sword/sword_curved_nyax.iff	4.0	onehandmelee_speed	0.0	7.0	3.0	7.0	4.0	7.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	15	0
++object/weapon/melee/sword/sword_lightsaber_anakin.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_andael.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_ben.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_dugald.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_leather.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_luke.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_luke_2h_test.iff	4.8	twohandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	twohandlightsaber_accuracy	melee_accuracy	melee_defense		twohandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_mace.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_nebu.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_obi.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_quigon.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_sleekblack.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_sleeksilver.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_lightsaber_vader.iff	4.8	onehandlightsaber_speed	0.0	20.0	3.0	15.0	5.0	5.0	onehandlightsaber_accuracy	melee_accuracy	melee_defense		onehandlightsaber	1.0	saber_block	RICOCHET	15	2
++object/weapon/melee/sword/sword_nyax.iff	4.5	onehandmelee_speed	7.0	0.0	7.0	3.0	7.0	4.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	15	0
++object/weapon/melee/sword/sword_nyax_ranged.iff	4.5	onehandmelee_speed	7.0	0.0	7.0	3.0	32.0	4.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	15	0
++object/weapon/melee/sword/sword_rantok.iff	3.3	onehandmelee_speed	0.0	10.0	3.0	10.0	3.0	10.0	onehandmelee_accuracy	melee_accuracy	melee_defense		onehandmelee	1.0	dodge	DODGE	14	0
++object/weapon/melee/unarmed/unarmed_default.iff	2.0	unarmed_speed	0.0	7.0	5.0	7.0	5.0	7.0	unarmed_accuracy	melee_accuracy	melee_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/melee/unarmed/unarmed_default_player.iff	2.0	unarmed_speed	0.0	0.0	5.0	3.0	5.0	5.0	unarmed_accuracy	melee_accuracy	melee_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/mine/wp_mine_anti_vehicle.iff	10.0	thrown_speed	0.0	0.0	0.0	0.0	32.0	0.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	3
++object/weapon/mine/wp_mine_drx55.iff	0.5	thrown_speed	0.0	0.0	0.0	0.0	32.0	0.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	25	3
++object/weapon/mine/wp_mine_xg.iff	1.0	thrown_speed	0.0	0.0	0.0	0.0	32.0	0.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	20	3
++object/weapon/ranged/carbine/carbine_cdef.iff	3.5	carbine_speed	0.0	20.0	15.0	50.0	64.0	-80.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	4	0
++object/weapon/ranged/carbine/carbine_cdef_corsec.iff	4.6	carbine_speed	0.0	0.0	45.0	0.0	65.0	0.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	4	0
++object/weapon/ranged/carbine/carbine_dh17.iff	3.5	carbine_speed	0.0	-35.0	35.0	15.0	64.0	-60.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	9	0
++object/weapon/ranged/carbine/carbine_dh17_black.iff	3.5	carbine_speed	0.0	-35.0	35.0	15.0	64.0	-60.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	10	0
++object/weapon/ranged/carbine/carbine_dh17_snubnose.iff	3.5	carbine_speed	0.0	-25.0	25.0	0.0	64.0	-80.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	9	0
++object/weapon/ranged/carbine/carbine_dxr6.iff	4.0	carbine_speed	0.0	-20.0	22.0	20.0	64.0	-80.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	25	1
++object/weapon/ranged/carbine/carbine_e11.iff	3.3	carbine_speed	0.0	-40.0	30.0	0.0	64.0	-80.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	10	1
++object/weapon/ranged/carbine/carbine_e11_quest.iff	6.8	carbine_speed	0.0	0.0	35.0	0.0	65.0	0.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	10	1
++object/weapon/ranged/carbine/carbine_e11_victor_quest.iff	6.8	carbine_speed	0.0	0.0	35.0	0.0	65.0	0.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	10	1
++object/weapon/ranged/carbine/carbine_ee3.iff	3.6	carbine_speed	0.0	-25.0	27.0	0.0	64.0	-80.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	7	0
++object/weapon/ranged/carbine/carbine_elite.iff	4.1	carbine_speed	0.0	-35.0	40.0	10.0	64.0	-50.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	12	1
++object/weapon/ranged/carbine/carbine_laser.iff	4.0	carbine_speed	0.0	-45.0	50.0	25.0	64.0	-40.0	carbine_accuracy	ranged_accuracy	ranged_defense		carbine	2.0	counterattack	COUNTER	25	2
++object/weapon/ranged/creature/creature_spit_heavy_flame.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_large_green.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_large_red.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_large_toxicgreen.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_large_yellow.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_lightning_ball.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_particle_beam.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_small_green.iff	2.0	unarmed_speed	0.0	-5.0	25.0	7.0	55.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_small_red.iff	2.0	unarmed_speed	0.0	-5.0	25.0	7.0	55.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_small_toxicgreen.iff	2.0	unarmed_speed	0.0	-5.0	25.0	7.0	55.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_small_yellow.iff	2.0	unarmed_speed	0.0	-5.0	25.0	7.0	55.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_spray_green.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_spray_red.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_spray_toxicgreen.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/creature/creature_spit_spray_yellow.iff	2.0	unarmed_speed	0.0	-5.0	15.0	7.0	45.0	-15.0	unarmed_accuracy	melee_accuracy	ranged_defense		unarmed	1.0	unarmed_passive_defense	RANDOM	5	0
++object/weapon/ranged/droid/droid_astromech_ranged.iff	2.0	rifle_speed	0.0	10.0	15.0	50.0	65.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	unarmed_passive_defense	BLOCK	10	1
++object/weapon/ranged/droid/droid_droideka_ranged.iff	2.0	rifle_speed	0.0	10.0	20.0	50.0	65.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	unarmed_passive_defense	BLOCK	10	1
++object/weapon/ranged/droid/droid_probot_ranged.iff	2.0	rifle_speed	0.0	10.0	20.0	50.0	65.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	unarmed_passive_defense	BLOCK	10	1
++object/weapon/ranged/grenade/grenade_bug_bomb.iff	6.0	thrown_speed	0.0	-10.0	20.0	10.0	32.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	26	2
++object/weapon/ranged/grenade/grenade_cryoban.iff	7.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	1
++object/weapon/ranged/grenade/grenade_fallback.iff	2.3	thrown_speed	0.0	-10.0	20.0	15.0	32.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	0
++object/weapon/ranged/grenade/grenade_fragmentation.iff	4.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	1
++object/weapon/ranged/grenade/grenade_fragmentation_light.iff	4.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	0
++object/weapon/ranged/grenade/grenade_glop.iff	5.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	0
++object/weapon/ranged/grenade/grenade_imperial_detonator.iff	6.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	1
++object/weapon/ranged/grenade/grenade_proton.iff	10.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	1
++object/weapon/ranged/grenade/grenade_thermal_detonator.iff	5.0	thrown_speed	0.0	-10.0	20.0	15.0	64.0	-30.0	thrown_accuracy	ranged_accuracy	ranged_defense		thrown	1.0	unarmed_passive_defense	RANDOM	10	2
++object/weapon/ranged/heavy/heavy_acid_beam.iff	10.5	heavy_acid_beam_speed	0.0	-20.0	8.0	-60.0	48.0	-120.0	heavy_acid_beam_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	unarmed_passive_defense	RANDOM	27	2
++object/weapon/ranged/heavy/heavy_lightning_beam.iff	6.0	heavy_lightning_beam_speed	0.0	-20.0	16.0	-20.0	64.0	-80.0	heavy_lightning_beam_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	unarmed_passive_defense	RANDOM	18	1
++object/weapon/ranged/heavy/heavy_particle_beam.iff	7.8	heavy_particle_beam_speed	0.0	-70.0	35.0	0.0	64.0	-20.0	heavy_particle_beam_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	unarmed_passive_defense	RANDOM	15	3
++object/weapon/ranged/heavy/heavy_rocket_launcher.iff	10.0	heavy_rocket_launcher_speed	0.0	-30.0	10.0	50.0	64.0	-80.0	heavy_rocket_launcher_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	unarmed_passive_defense	RANDOM	24	3
++object/weapon/ranged/pistol/pistol_cdef.iff	3.5	pistol_speed	0.0	20.0	15.0	50.0	64.0	-80.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	4	0
++object/weapon/ranged/pistol/pistol_cdef_corsec.iff	4.6	pistol_speed	0.0	0.0	15.0	15.0	45.0	5.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	4	0
++object/weapon/ranged/pistol/pistol_cdef_noob.iff	4.0	pistol_speed	0.0	0.0	15.0	30.0	64.0	-90.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	10	0
++object/weapon/ranged/pistol/pistol_d18.iff	3.0	pistol_speed	0.0	0.0	15.0	35.0	64.0	-60.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	6	0
++object/weapon/ranged/pistol/pistol_de_10.iff	4.0	pistol_speed	0.0	0.0	20.0	40.0	64.0	-80.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	15	1
++object/weapon/ranged/pistol/pistol_dh17.iff	3.2	pistol_speed	0.0	0.0	20.0	10.0	64.0	-60.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	10	0
++object/weapon/ranged/pistol/pistol_dl44.iff	3.4	pistol_speed	0.0	0.0	8.0	25.0	64.0	-80.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	7	0
++object/weapon/ranged/pistol/pistol_dl44_metal.iff	3.4	pistol_speed	0.0	0.0	5.0	15.0	64.0	-80.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	7	0
++object/weapon/ranged/pistol/pistol_dx2.iff	3.5	pistol_speed	0.0	25.0	8.0	-30.0	64.0	-90.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	12	1
++object/weapon/ranged/pistol/pistol_fwg5.iff	3.0	pistol_speed	0.0	0.0	20.0	32.0	64.0	-70.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	18	0
++object/weapon/ranged/pistol/pistol_fwg5_quest.iff	4.6	pistol_speed	0.0	0.0	15.0	15.0	64.0	5.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	10	0
++object/weapon/ranged/pistol/pistol_geonosian_sonic_blaster_loot.iff	4.0	pistol_speed	0.0	0.0	15.0	15.0	45.0	5.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	12	0
++object/weapon/ranged/pistol/pistol_launcher.iff	4.0	pistol_speed	0.0	0.0	15.0	3.0	64.0	0.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	25	0
++object/weapon/ranged/pistol/pistol_power5.iff	3.6	pistol_speed	0.0	0.0	10.0	5.0	64.0	-70.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	10	0
++object/weapon/ranged/pistol/pistol_republic_blaster.iff	3.0	pistol_speed	0.0	0.0	10.0	-32.0	64.0	0.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	25	1
++object/weapon/ranged/pistol/pistol_republic_blaster_quest.iff	4.6	pistol_speed	0.0	0.0	15.0	15.0	64.0	5.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	15	1
++object/weapon/ranged/pistol/pistol_scatter.iff	3.0	pistol_speed	0.0	-45.0	7.0	37.0	64.0	-95.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	30	1
++object/weapon/ranged/pistol/pistol_scout_blaster.iff	3.1	pistol_speed	0.0	20.0	19.0	0.0	64.0	-90.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	7	0
++object/weapon/ranged/pistol/pistol_scout_blaster_ammo_test_2.iff	4.0	pistol_speed	0.0	0.0	15.0	15.0	45.0	5.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	7	0
++object/weapon/ranged/pistol/pistol_scout_blaster_corsec.iff	4.0	pistol_speed	0.0	0.0	15.0	15.0	45.0	5.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	7	0
++object/weapon/ranged/pistol/pistol_srcombat.iff	3.75	pistol_speed	0.0	5.0	12.0	-20.0	48.0	-80.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	13	1
++object/weapon/ranged/pistol/pistol_striker.iff	3.4	pistol_speed	0.0	0.0	20.0	10.0	64.0	-70.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	10	0
++object/weapon/ranged/pistol/pistol_striker_noob.iff	5.0	pistol_speed	0.0	0.0	20.0	0.0	64.0	-80.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	10	0
++object/weapon/ranged/pistol/pistol_tangle.iff	3.7	pistol_speed	0.0	0.0	10.0	-10.0	48.0	-80.0	pistol_accuracy	ranged_accuracy	ranged_defense		pistol	1.5	dodge	DODGE	3	0
++object/weapon/ranged/rifle/rifle_acid_beam.iff	5.2	heavy_rifle_acid_speed	0.0	-10.0	16.0	-40.0	48.0	-120.0	heavy_rifle_acid_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	block	RANDOM	27	0
++object/weapon/ranged/rifle/rifle_beam.iff	4.8	rifle_speed	0.0	-50.0	40.0	0.0	64.0	-25.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	8	0
++object/weapon/ranged/rifle/rifle_berserker.iff	8.0	rifle_speed	0.0	0.0	35.0	0.0	65.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	16	0
++object/weapon/ranged/rifle/rifle_bowcaster.iff	6.3	rifle_speed	0.0	-30.0	45.0	0.0	64.0	-80.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	13	0
++object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0.0	20.0	15.0	50.0	64.0	-80.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	4	0
++object/weapon/ranged/rifle/rifle_dlt20.iff	6.0	rifle_speed	0.0	-70.0	60.0	30.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	0
++object/weapon/ranged/rifle/rifle_dlt20a.iff	6.0	rifle_speed	0.0	-50.0	45.0	20.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	0
++object/weapon/ranged/rifle/rifle_e11.iff	5.25	rifle_speed	0.0	-70.0	50.0	30.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	10	2
++object/weapon/ranged/rifle/rifle_ewok_crossbow.iff	8.0	rifle_speed	0.0	-40.0	45.0	0.0	65.0	-60.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	10	0
++object/weapon/ranged/rifle/rifle_flame_thrower.iff	5.0	heavy_flame_thrower_speed	0.0	12.0	50.0	-45.0	64.0	0.0	heavy_flame_thrower_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	block	RANDOM	20	0
++object/weapon/ranged/rifle/rifle_jawa_ion.iff	5.9	rifle_speed	0.0	-50.0	40.0	0.0	64.0	-80.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	8	1
++object/weapon/ranged/rifle/rifle_laser.iff	6.75	rifle_speed	0.0	-80.0	60.0	20.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	10	2
++object/weapon/ranged/rifle/rifle_laser_noob.iff	4.0	rifle_speed	0.0	-30.0	52.0	10.0	64.0	-60.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	10	0
++object/weapon/ranged/rifle/rifle_lightning.iff	4.7	heavy_rifle_lightning_speed	0.0	-10.0	30.0	23.0	64.0	0.0	heavy_rifle_lightning_accuracy	ranged_accuracy	ranged_defense		heavy	3.0	block	RANDOM	25	1
++object/weapon/ranged/rifle/rifle_sg82.iff	5.8	rifle_speed	0.0	-50.0	35.0	15.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	14	0
++object/weapon/ranged/rifle/rifle_spraystick.iff	2.3	rifle_speed	0.0	-20.0	30.0	0.0	64.0	-60.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	17	0
++object/weapon/ranged/rifle/rifle_t21.iff	7.0	rifle_speed	0.0	-70.0	50.0	6.0	64.0	10.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	28	3
++object/weapon/ranged/rifle/rifle_tenloss_dxr6_disruptor_loot.iff	7.5	rifle_speed	0.0	-69.0	54.0	90.0	64.0	15.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	27	2
++object/weapon/ranged/rifle/rifle_tusken.iff	7.0	rifle_speed	0.0	-60.0	60.0	20.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	1
++object/weapon/ranged/rifle/rifle_victor_tusken.iff	7.0	rifle_speed	0.0	-60.0	60.0	20.0	64.0	-50.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	1
++object/weapon/ranged/turret/turret_block_large.iff	1.0	rifle_speed	0.0	0.0	40.0	70.0	80.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	3
++object/weapon/ranged/turret/turret_block_small.iff	2.0	rifle_speed	0.0	0.0	40.0	70.0	80.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	3
++object/weapon/ranged/turret/turret_dish_large.iff	1.0	rifle_speed	0.0	0.0	40.0	70.0	80.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	3
++object/weapon/ranged/turret/turret_tower_large.iff	1.0	rifle_speed	0.0	0.0	40.0	70.0	80.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	block	BLOCK	9	3
++object/weapon/ranged/vehicle/vehicle_atst_ranged.iff	2.0	rifle_speed	0.0	0.0	25.0	50.0	65.0	0.0	rifle_accuracy	ranged_accuracy	ranged_defense		rifle	2.5	unarmed_passive_defense	BLOCK	10	3

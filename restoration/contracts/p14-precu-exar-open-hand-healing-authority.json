@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-exar-open-hand-healing-authority",
+  "status": "ready",
+  "scope": "Retain the Exar Kun Open Hand encounter while making its authored 125000-point sacrifice heal authoritative instead of allowing a post-NGE healing-reduction expertise statistic to rewrite it.",
+  "eraEvidence": {
+    "basis": "The expansion encounter is intentionally retained, but Publish 14.1 player progression has no NGE expertise_healing_reduction statistic. The encounter authors supplied a fixed heal amount and a separate eight-step sacrifice-buff ladder.",
+    "findings": [
+      "heroic_exar_kun.tab directly spawns heroic_exar_open_hand and attaches theme_park.heroic.exar_kun.open_hand.",
+      "The creature definition and mobile template remain live inputs for the spawned boss.",
+      "A successful sacrifice kills the selected cultist, increments encounter state, applies the corresponding sacrifice buff, heals Open Hand, and plays the retained effect.",
+      "The removed arithmetic was the only NGE expertise reference in open_hand.java and could reduce the authored 125000-point heal according to an expertise-derived stat on the boss."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "ngeExpertiseReferences": 0,
+    "authoredSacrificeHeal": 125000,
+    "sacrificeBuffTiers": 8,
+    "spawnRows": 1,
+    "spawnScript": "theme_park.heroic.exar_kun.open_hand",
+    "creatureLevel": 90,
+    "creatureDifficulty": "BOSS",
+    "sacrificeSelectionAndKillPreserved": true,
+    "sacrificeStateAndBuffsPreserved": true,
+    "clientEffectPreserved": true
+  },
+  "sourceFiles": {
+    "openHand": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/heroic/exar_kun/open_hand.java",
+    "spawnTable": "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/heroic_exar_kun.tab",
+    "creatures": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab",
+    "mobileTemplate": "dsrc/sku.0/sys.server/compiled/game/object/mobile/exar_kun_open_hand.tpf"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "lineEndingPolicy": "the touched legacy open_hand.java blob was normalized to the repository's declared LF policy and trailing whitespace was removed",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "openHand": "77af8ac8c04fcb427891efe82d09d3039e549ac4afa3ae268612157fbac0ab21",
+      "spawnTable": "a8449720359a80c9815f8c2b5cf9e292ec4ec7981264e3a12b158eb634444940",
+      "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
+      "mobileTemplate": "674c4da21edc565b8780a723b17d49490ef4dcbaf5c442a7d32deffb0a9fa53a"
+    },
+    "compiledClassSha256": "3c0bf3f0f682b44d9a299bddfcae69e44475a050c0d24d2b4ebec7f32d49ed7d",
+    "sourceTest": "passed; live spawn and creature reachability, the exact authored heal, cultist selection and death, encounter state, eight buff tiers, and client effect were authenticated without NGE expertise authority",
+    "focusedJavaCompile": "passed in an ephemeral in-memory output directory that was removed immediately; emitted bytecode retained sacrificeAdd and 125000 with no expertise_healing_reduction or enhanced-stat lookup symbol",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and open_hand.class was emitted at 2026-08-05T01:58:48.978781330Z",
+    "fullServerBuild": "passed in 622.6 seconds from pushed parent 816d545 and direct dsrc 80e3e88ac",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for open_hand.java, heroic_exar_kun.tab, creatures.tab, and exar_kun_open_hand.tpf; all four contract source hashes authenticated and open_hand.java matched at 77af8ac8c04fcb427891efe82d09d3039e549ac4afa3ae268612157fbac0ab21",
+    "bytecodeAudit": "passed; open_hand.class contains no expertise_healing_reduction or getEnhancedSkillStatisticModifierUncapped symbols and retains sacrificeAdd, the 125000 authored heal, incrementAddsKilled, getSacrificeBuff, and the bacta-bomb client effect",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused Open Hand source and bytecode gates, cumulative data/native/bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 8961,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "Open Hand's sacrifice heal can no longer be reduced by the post-NGE expertise_healing_reduction statistic.",
+    "preserved": "The retained Exar Kun spawn route, boss definition, encounter scheduling, cultist selection, cultist death, encounter counter, eight sacrifice buffs, heal effect, share-pain, and spark mechanics remain available.",
+    "notClaimedComplete": "Nandina's separate authored heal of Gorvo is closed separately by p14-precu-axkva-nandina-healing-authority; unrelated later-era healing mechanics remain in the broader PRE-CU precedence audit."
+  },
+  "requiredBeforeReady": []
+}

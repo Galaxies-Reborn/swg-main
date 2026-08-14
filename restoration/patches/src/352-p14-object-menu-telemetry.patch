@@ -1,0 +1,53 @@
+diff --git a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
+--- a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
++++ b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
+@@ -2037,6 +2037,11 @@ void PlayerCreatureController::sendEmptyObjectMenuResponse(MessageQueueObjectMen
+ 	if (!msg || !creatureOwner->isAuthoritative())
+ 		return;
+ 
++	LOG("PreCuObjectMenu", ("response actor=%s target=%s sequence=%u items=0 reason=empty",
++		creatureOwner->getNetworkId().getValueString().c_str(),
++		msg->getTargetId().getValueString().c_str(),
++		static_cast<unsigned int>(msg->m_sequence)));
++
+ 	RadialMenuManager::DataVector emptyMenuInfo;
+ 	appendMessage(
+ 		CM_objectMenuResponse,
+@@ -2055,6 +2060,11 @@ void PlayerCreatureController::handleObjectMenuRequest(MessageQueueObjectMenuReq
+ void PlayerCreatureController::handleObjectMenuRequest(MessageQueueObjectMenuRequest const *msg)
+ {
+ 	CreatureObject * const creatureOwner = NON_NULL(getCreature());
+ 	if (msg && creatureOwner->isAuthoritative())
+ 	{
++		LOG("PreCuObjectMenu", ("request actor=%s target=%s sequence=%u clientItems=%u",
++			creatureOwner->getNetworkId().getValueString().c_str(),
++			msg->getTargetId().getValueString().c_str(),
++			static_cast<unsigned int>(msg->m_sequence),
++			static_cast<unsigned int>(msg->getData().size())));
+ 		ServerObject * const target = safe_cast<ServerObject *>(NetworkIdManager::getObjectById(msg->getTargetId()));
+@@ -2074,6 +2084,12 @@ void PlayerCreatureController::handleObjectMenuRequest(MessageQueueObjectMenuReq
+ 					std::make_pair(
+ 						ContainerInterface::getTopmostContainer(*creatureOwner)->getNetworkId(),
+ 						ContainerInterface::getTopmostContainer(*target)->getNetworkId()));
++				LOG("PreCuObjectMenu", ("route actor=%s target=%s sequence=%u actorTop=%s targetTop=%s reason=target-not-authoritative",
++					creatureOwner->getNetworkId().getValueString().c_str(),
++					target->getNetworkId().getValueString().c_str(),
++					static_cast<unsigned int>(msg->m_sequence),
++					ContainerInterface::getTopmostContainer(*creatureOwner)->getNetworkId().getValueString().c_str(),
++					ContainerInterface::getTopmostContainer(*target)->getNetworkId().getValueString().c_str()));
+ 				GameServer::getInstance().sendToPlanetServer(rssMessage);
+ 			}
+ 			else
+@@ -2220,6 +2236,12 @@ void PlayerCreatureController::handleObjectMenuRequest(MessageQueueObjectMenuReq
+ 						}
+ 					}
+ 
++					LOG("PreCuObjectMenu", ("response actor=%s target=%s sequence=%u items=%u reason=script-complete",
++						creatureOwner->getNetworkId().getValueString().c_str(),
++						target->getNetworkId().getValueString().c_str(),
++						static_cast<unsigned int>(msg->m_sequence),
++						static_cast<unsigned int>(resultMenuInfo.size())));
++
+ 					appendMessage(
+ 						CM_objectMenuResponse,
+ 						0.0f,

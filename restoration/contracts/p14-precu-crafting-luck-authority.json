@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-crafting-luck-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14.1 crafting Luck as a bounded luck plus force_luck skill-modifier roll in assembly and experimentation, and fail closed the retained NGE generic lucky-proc ABI for non-crafting consumers.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/crafting/labratories/SharedLabratory.cpp",
+      "MMOCoreORB/src/server/zone/managers/crafting/CraftingManagerImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 assembly and experimentation add a random value bounded by the sum of the luck and force_luck skill modifiers to the ordinary crafting roll.",
+      "The authenticated crafting path does not derive Luck from a visible player combat level and does not read the later luck_modified expertise statistic.",
+      "Crafting Luck feeds the normal success bands; it does not create the retained NGE generic lucky critical-success proc.",
+      "The retained generic lucky helper also feeds later healing, junk-fencing, channel-heal, and theft proc behavior, so its ABI is retained but fails closed outside the authenticated crafting path."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 2,
+    "craftingLuckConsumers": 2,
+    "retainedGenericAbiOverloads": 3,
+    "genericNgeLuckyCallSitesFailClosed": 6,
+    "playerLevelReads": 0,
+    "luckModifiedReads": 0,
+    "forceLuckSkillBoxes": 4,
+    "forcedNgeCraftingCriticalProcs": 0,
+    "authoredRawCriticalChecksPreserved": 2,
+    "visiblePlayerCombatLevel": false,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/376-p14-precu-crafting-luck-authority.patch",
+      "bytes": 4154,
+      "sha256": "8c87d6219ac09a30b893ac67ab4fd7f5ad42989842a4db2116abac2433dc84ee"
+    },
+    "sourceSetSha256": "ed8ea21f5b581e0003b58f57d1e6a879255bd065551600531e151d0cd064019f",
+    "sourceContentSha256": "45e4df1684be38db1fc4a4d7ec715282404acc914153dbf158065213400239f6",
+    "sourceSha256": {
+      "script.library.craftinglib": "cba3f9eaa647f7070786eba53b8b34f3252d62717d11979f79825b639e9f335d",
+      "script.library.luck": "00591fc678fc7b36bc34eafffc12b41f9d26d4790fd517984d4c08a99f40cbdb"
+    },
+    "compiledClassSha256": {
+      "script.library.craftinglib": "112be2957484c32f144265a1233b3c05e9836c2bcb0a8e81ca0f7af7c090ff4e",
+      "script.library.luck": "c4aff38ea259f0dec55a120e353105399be57a5d8cdbe912285a713e3f773ebb"
+    },
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "currentSourceEvidenceRefreshedBy": "Milestone 343 PRE-CU crafting expertise authority; the authenticated Luck roll and its two result-band consumers remain unchanged while later expertise adjustments were removed from the same shared crafting library.",
+    "staticContract": "passed",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, craftinglib.class was emitted 2026-08-04T20:13:53Z, and luck.class was emitted 2026-08-04T20:13:54Z",
+    "fullServerBuild": "passed in 718.9 seconds from pushed parent 120d870 and direct dsrc 4c2da2e17",
+    "sourceWorkParity": "passed byte-for-byte for craftinglib.java and luck.java against the read-only direct-source mount",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "deploymentProbe": "passed mandatory direct-source parity, PRE-CU crafting-Luck bytecode probes, the focused crafting-expertise gate, cumulative PRE-CU gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "missionTerminalUserVerification": "working in-world immediately before this milestone; player ran into interaction range",
+    "missionSourceSha256": {
+      "mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "representativeSourceWorkParity": true,
+    "bytecodeProbes": [
+      "luck exposes getPrecuCraftingLuckRoll and reads force_luck",
+      "luck bytecode contains neither getLevel nor luck_modified",
+      "craftinglib calls getPrecuCraftingLuckRoll and contains no isLucky call"
+    ],
+    "postStartLogAudit": {
+      "lines": 321,
+      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
+    },
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "NGE player-level-capped crafting Luck, luck_modified crafting influence, forced generic lucky crafting criticals, and the six retained non-crafting generic NGE lucky proc consumers",
+    "notClaimedComplete": "post-Publish-14 player invisibility is closed separately; dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

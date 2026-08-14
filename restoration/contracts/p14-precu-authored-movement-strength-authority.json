@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-authored-movement-strength-authority",
+  "status": "ready",
+  "scope": "Make authored movement-table or explicit caller strength authoritative for active movement modifiers, removing the remaining NGE expertise multiplier without changing validation, immunity, persistence, recalculation, or cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/BurstRunCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun1Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun2Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun3Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/RetreatCommand.h"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 source tree contains no expertise authority.",
+      "Publish 14.1 movement abilities use their authored command/buff magnitude and PRE-CU skill mods; Force Run rank selects its authored buff and Retreat applies a fixed 1.822 speed/acceleration multiplier.",
+      "Retreat's group_burst_run skill mod changes HAM cost, not the authored 1.822 movement magnitude.",
+      "The inherited shared movement helper could still rescale table or caller strength through expertise_movement_buff_<name>, including stale later Spy and Force-sensitive rows."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "historicalExecutableExpertiseReads": 2,
+    "remainingExecutableExpertiseReads": 0,
+    "defaultStrengthSource": "datatables/movement/movement.iff",
+    "explicitCallerStrengthPreserved": true,
+    "defaultStrengthStoredByName": true,
+    "customStrengthStoredInScriptVar": true,
+    "validationAndImmunityPreserved": true,
+    "refreshAndRemovalPreserved": true,
+    "authoredExamples": {
+      "burstRun": 75.0,
+      "retreat": 82.2,
+      "fs_force_run": 125.0
+    },
+    "productionDirectCallSites": 5,
+    "lineEndingBloat": false
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "movement": "dsrc/sku.0/sys.server/compiled/game/script/library/movement.java",
+    "movementTable": "dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "46cde098fa000be953c668eebc18980bece1dc89b8a82ed36b02cf085476bb1e",
+      "movement": "b8d061191c34f84dc27e94e4a1c89f2086ff37a99e3c877ee1ccf9f78c944e53",
+      "movementTable": "47c71f95deb97b117e09830e089b9410bc1826d6a54dc9bdc499290b27f10fff"
+    },
+    "compiledClassSha256": {
+      "movement": "229e4bdab58d6489dd5ceeb92fabb1836b5815dbba77fdc3f9745d48a6c4829f"
+    },
+    "sourceTest": "passed; both executable NGE expertise reads are retired, table-backed and explicit strengths retain their original precedence, movement validation/immunity/persistence/refresh/removal remain present, and authored burstRun/retreat/fs_force_run rows are authenticated",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and movement.class was emitted at 2026-08-04T21:28:17Z",
+    "fullServerBuild": "passed in 715.2 seconds from pushed parent 4fef95f and direct dsrc 220d03f17",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for movement.java and movement.tab against the read-only direct-source mount; movement.java remains CRLF with an explicit -text policy and no whole-file line-ending churn",
+    "bytecodeAudit": "passed; movement.class contains no expertise_movement_buff_ constant and retains getStrength, MOVEMENT_OBJVAR, movement-immunity, and recalculation constants/calls",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused authored-movement source/table and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 12386,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, or Oracle error matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the shared movement helper's active NGE expertise multiplier for table-backed and explicit movement modifier strength",
+    "preserved": "movement target/type validation, on-foot restrictions, immunity, duplicate prevention, table and explicit strengths, script-var persistence, refresh, removal, dispel behavior, combat effects, PRE-CU Retreat, retained buffs, and expansion content",
+    "notClaimedComplete": "other combat expertise calculations, reverse engineering, armor, performance compatibility, and content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}

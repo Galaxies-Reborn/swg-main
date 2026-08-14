@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-faction-rank-authority",
+  "status": "ready",
+  "scope": "Restore the persisted and client-shared Publish 14 faction rank, promotion reserve, purchase transaction, and join/resign reset semantics instead of deriving faction rank from the NGE weekly GCW rating; close the complete Java OnPvpFactionChanged and OnPvpTypeChanged inventories so alternate state listeners cannot introduce later player progression or reward authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/faction/FactionManager.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterConvoHandler.lua",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterScreenplay.lua"
+    ],
+    "findings": [
+      "Publish 14 faction rank is an independently persisted creature value; it is not calculated from NGE weekly GCW rating, lifetime points, PvP kills, profession, or player combat level.",
+      "Promotion advances one rank only after the player can pay that rank's authored faction-point cost while retaining the 200-point membership minimum.",
+      "Joining and fully resigning reset faction rank to recruit rank zero. A failed rank write must not consume faction standing.",
+      "The complete Java source tree contains exactly four PvP state callbacks: three player handlers preserve declaration and covert/overt compatibility without progression or reward mutations, while one non-player turret handler reapplies authored turret faction attributes."
+    ]
+  },
+  "callbackInventory": {
+    "patterns": {
+      "faction": "\\bpublic\\s+int\\s+OnPvpFactionChanged\\s*\\(",
+      "type": "\\bpublic\\s+int\\s+OnPvpTypeChanged\\s*\\("
+    },
+    "canonicalRecord": "callbackKind|relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 4,
+    "sourceFiles": 3,
+    "playerHandlers": 3,
+    "nonPlayerTurretHandlers": 1,
+    "factionHandlers": 2,
+    "typeHandlers": 2,
+    "inventorySha256": "59cccb1306330c8f744ca4fe316b8ace4da6ffd65822df60c8688c1021457fe7",
+    "factionInventorySha256": "a19fd154fe69ada2284839a92346e5c6c08b14cf5c688c3c79fc8caf8a0e8fd6",
+    "typeInventorySha256": "2c6abc30471af7ae80313d3b25810657cc7b888455a55bc908e3717a52f63972",
+    "sourceSetSha256": "d889760247c4e443a913e15fc616857abb0adb3ce08c5c113e322301eb9f5fda",
+    "sourcePaths": [
+      "player/base/base_player.java",
+      "player/player_faction.java",
+      "systems/turret/turret_ai.java"
+    ]
+  },
+  "expected": {
+    "rankStorage": "CreatureObject shared persisted m_rank",
+    "minimumRank": 0,
+    "maximumRank": 15,
+    "rankReadUsesNgeGcwRating": false,
+    "nativeRankSetter": true,
+    "promotionCostSource": "datatables/faction/rank.iff COST",
+    "promotionStandingReserve": 200,
+    "promotionDeduction": "exact authored faction-point cost without bonus multipliers",
+    "failedRankWriteRefunded": true,
+    "joinRank": 0,
+    "resignRank": 0,
+    "clientSharedRankUpdated": true,
+    "ngeCreditPricedPerkCatalogChanged": true,
+    "missionTerminalPathChanged": false,
+    "pvpStateCallbacks": 4,
+    "pvpStatePlayerCallbacks": 3,
+    "pvpStateTurretCallbacks": 1,
+    "pvpStateRewardOrProgressionMutations": 0,
+    "newlyDeclaredTimestampWriters": 1,
+    "turretFactionReconfigurationCallbacks": 1,
+    "precuCovertOvertStatePreserved": true
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
+    "src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
+  ],
+  "buildEvidence": {
+    "overlayPatches": {
+      "dsrc": {
+        "path": "restoration/patches/dsrc/363-p14-precu-faction-rank-authority.patch",
+        "bytes": 4522,
+        "sha256": "5837020c29173041de3fe6cc4cd3f8504c3f843548b8fa61b627bfb064511a0a"
+      },
+      "src": {
+        "path": "restoration/patches/src/354-p14-precu-faction-rank-authority.patch",
+        "bytes": 3515,
+        "sha256": "f42e94928eba440377a0515ace445d91b9065c6eec183d56b87202c39e4421df"
+      }
+    },
+    "sourceSha256": {
+      "script.base_class": "ae62eca993f837ed6a555af902c8ac19569c0cda1a9e3e3c70b0ea77de239be0",
+      "script.library.factions": "0407778e49051f2668e75cafa4e477f3aee3930eb6ed19acea5939c1932a897d",
+      "CreatureObject.h": "0ce57e5a1eccbe5dae444fe2c896e3b19c47726d6b227dbc5ff046815ae97747",
+      "ScriptMethodsPvp.cpp": "b8624a68629559f245afab17fc6988393678ff88c0a7b44f9edf9379c3fefb77"
+    },
+    "supportingSourceSha256": {
+      "player/base/base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "player/player_faction.java": "89f5986734f05dbf7ff9e556a01e58dacb1e78ad188c2d2bdb905d82102199d0",
+      "systems/turret/turret_ai.java": "63ccf39acc95c375ad96b2fa20ca214bb770b162ced2a33bfe93ab4a435766d4"
+    },
+    "staticContract": "passed",
+    "javaCompile": "passed with javac -source 8 -target 8 and again in the full x64 build",
+    "compiledClassSha256": {
+      "script.base_class": "d1d45da1be236bb209fb92c990a32a06bf954099b7bd47e90f07aa1c6fdd544b",
+      "script.library.factions": "99fb342698f1ad96056bcf84f1329146423d8da08ef3444cac7362f907ee074b"
+    },
+    "cumulativeSourceExtension": "Milestones 294-314 cumulatively extend factions.java. Milestone 314 removes only post-NGE GCW rank ability skills, buffs, and aura runtime; PRE-CU faction rank remains unchanged.",
+    "nativeBuild": "passed",
+    "cleanMaterializationPatches": 394,
+    "cleanMaterializationAcceptanceFiles": 1115,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
+    "serverBinaryBuildId": "186028aec5352e367a12a74626984a4a5a7aeeb1",
+    "deploymentProbe": "passed source/work comparisons, Java bytecode probes, native symbol probe, x64 check, and live mapped-binary inode/size check",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
+    "containerStartedAt": "2026-08-11T12:54:35.817975127Z",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-perk294-final-b",
+    "missionTerminalContinuity": "The user verified the live combat mission terminal immediately before this milestone; mission source is outside this change set."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "native PRE-CU rank storage/read/write, rank range, promotion reserve and exact deduction, failed-write refund, join/resign rank reset, and the complete Java OnPvpFactionChanged/OnPvpTypeChanged callback inventories",
+    "retainedContent": "faction membership, covert/overt state, authored rank table and titles, faction recruiters, bases, hirelings, retained quests and zones",
+    "notClaimedComplete": "Milestone 294 closes the global NGE credit-priced catalog, faction-point categories, and rank-based standing caps; space rewards and unaudited faction content remain separate boundaries"
+  },
+  "requiredBeforeReady": []
+}

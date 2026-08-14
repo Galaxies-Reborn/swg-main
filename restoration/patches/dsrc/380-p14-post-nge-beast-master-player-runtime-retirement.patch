@@ -1,0 +1,235 @@
+diff --git a/sku.0/sys.server/compiled/game/script/ai/beast_control_device.java b/sku.0/sys.server/compiled/game/script/ai/beast_control_device.java
+index c027eca..da1b11e 100644
+--- a/sku.0/sys.server/compiled/game/script/ai/beast_control_device.java
++++ b/sku.0/sys.server/compiled/game/script/ai/beast_control_device.java
+@@ -15,6 +15,10 @@ public class beast_control_device extends script.base_script
+     public static final String CALLED_FOR_PET = "player.calledForPet";
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+     {
++        if (beast_lib.isRetiredPostNgeBeastMasterPlayer(player))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (ai_lib.aiIsDead(player))
+         {
+             return SCRIPT_CONTINUE;
+@@ -50,6 +54,10 @@ public class beast_control_device extends script.base_script
+     }
+     public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+     {
++        if (beast_lib.isRetiredPostNgeBeastMasterPlayer(player))
++        {
++            return SCRIPT_OVERRIDE;
++        }
+         if (ai_lib.aiIsDead(player) || getPerformanceType(player) != 0)
+         {
+             sendSystemMessage(player, new string_id("spam", "cant_do_it_state"));
+diff --git a/sku.0/sys.server/compiled/game/script/library/beast_lib.java b/sku.0/sys.server/compiled/game/script/library/beast_lib.java
+index 0193cda..0aa1738 100644
+--- a/sku.0/sys.server/compiled/game/script/library/beast_lib.java
++++ b/sku.0/sys.server/compiled/game/script/library/beast_lib.java
+@@ -323,6 +323,55 @@ public class beast_lib extends script.base_script
+             LOG("beast_lib", text);
+         }
+     }
++    public static boolean isPostNgeBeastMasterPlayerRuntimeRetired() throws InterruptedException
++    {
++        return true;
++    }
++    public static boolean isRetiredPostNgeBeastMasterPlayer(obj_id player) throws InterruptedException
++    {
++        return isPostNgeBeastMasterPlayerRuntimeRetired() &&
++            isIdValid(player) && isPlayer(player);
++    }
++    public static boolean isRetiredPostNgeBeastMasterPlayerAction(obj_id player, String actionName) throws InterruptedException
++    {
++        return isRetiredPostNgeBeastMasterPlayer(player) &&
++            actionName != null && actionName.startsWith("bm_");
++    }
++    public static void retirePostNgeBeastMasterPlayerState(obj_id player) throws InterruptedException
++    {
++        if (!isRetiredPostNgeBeastMasterPlayer(player))
++        {
++            return;
++        }
++        obj_id activeBeast = callable.getCallable(player, callable.CALLABLE_TYPE_COMBAT_PET);
++        if (isValidBeast(activeBeast) && isBeast(activeBeast))
++        {
++            obj_id bcd = getBeastBCD(activeBeast);
++            if (isValidBCD(bcd))
++            {
++                utils.setScriptVar(player, "beast.no_store_message", true);
++                storeBeast(bcd);
++            }
++            else
++            {
++                destroyObject(activeBeast);
++                setBeastOnPlayer(player, null);
++                setBeastmasterPet(player, null);
++            }
++        }
++        utils.removeScriptVar(player, "beast.no_store_message");
++        removeAttentionPenaltyDebuff(player);
++        int playerBuff = buff.getBuffOnTargetFromGroup(player, "bm_player_buff");
++        if (playerBuff != 0)
++        {
++            buff.removeBuff(player, playerBuff);
++        }
++        setBeastmasterPet(player, null);
++        if (hasScript(player, "player.player_beastmaster"))
++        {
++            detachScript(player, "player.player_beastmaster");
++        }
++    }
+     public static boolean isBeast(obj_id beast) throws InterruptedException
+     {
+         if (!isIdValid(beast) || !exists(beast))
+@@ -337,6 +386,10 @@ public class beast_lib extends script.base_script
+         {
+             return false;
+         }
++        if (isRetiredPostNgeBeastMasterPlayer(player))
++        {
++            return false;
++        }
+         int skill = getSkillStatisticModifier(player, "expertise_bm_base_mod");
+         if (skill > 0)
+         {
+@@ -446,6 +499,10 @@ public class beast_lib extends script.base_script
+         {
+             return null;
+         }
++        if (isRetiredPostNgeBeastMasterPlayer(player))
++        {
++            return null;
++        }
+         obj_id beast = callable.getCallable(player, callable.CALLABLE_TYPE_COMBAT_PET);
+         if (!isValidBeast(beast) || !beast_lib.isBeast(beast))
+         {
+@@ -1531,6 +1588,10 @@ public class beast_lib extends script.base_script
+             blog("createBeastFromBCD: Beast could not be made because the player is invalid.");
+             return null;
+         }
++        if (isRetiredPostNgeBeastMasterPlayer(player))
++        {
++            return null;
++        }
+         if (!isBeastMaster(player))
+         {
+             sendSystemMessage(player, SID_NOT_BEAST_MASTER);
+@@ -3222,6 +3283,11 @@ public class beast_lib extends script.base_script
+     }
+     public static void verifyAndUpdateCalledBeastStats(obj_id player) throws InterruptedException
+     {
++        if (isRetiredPostNgeBeastMasterPlayer(player))
++        {
++            retirePostNgeBeastMasterPlayerState(player);
++            return;
++        }
+         obj_id beast = getBeastOnPlayer(player);
+         if (!isIdValid(beast) || !exists(beast))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index 77625ac..aab98c7 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -608,7 +608,7 @@ public class base_player extends script.base_script
+         trial.bumpSession(self, "displayDefensiveMods");
+         messageTo(self, "setDisplayOnlyDefensiveMods", trial.getSessionDict(self, "displayDefensiveMods"), 5, false);
+         recomputeCommandSeries(self);
+-        beast_lib.verifyAndUpdateCalledBeastStats(self);
++        beast_lib.retirePostNgeBeastMasterPlayerState(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+@@ -834,6 +834,7 @@ public class base_player extends script.base_script
+         {
+             detachScript(self, "player.player_saga_quest");
+         }
++        beast_lib.retirePostNgeBeastMasterPlayerState(self);
+         if (!hasScript(self, "systems.skills.stealth.player_stealth"))
+         {
+             attachScript(self, "systems.skills.stealth.player_stealth");
+@@ -8297,7 +8298,7 @@ public class base_player extends script.base_script
+             skill.recalcPlayerPools(self, false);
+         }
+         recomputeCommandSeries(self);
+-        beast_lib.verifyAndUpdateCalledBeastStats(self);
++        beast_lib.retirePostNgeBeastMasterPlayerState(self);
+         trial.bumpSession(self, "displayDefensiveMods");
+         messageTo(self, "setDisplayOnlyDefensiveMods", trial.getSessionDict(self, "displayDefensiveMods"), 5, false);
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_beastmaster.java b/sku.0/sys.server/compiled/game/script/player/player_beastmaster.java
+index 7c4d860..03fa3f7 100644
+--- a/sku.0/sys.server/compiled/game/script/player/player_beastmaster.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_beastmaster.java
+@@ -18,6 +18,28 @@ public class player_beastmaster extends script.base_script
+             LOG("player_beastmaster.script", text);
+         }
+     }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        if (beast_lib.isRetiredPostNgeBeastMasterPlayer(self))
++        {
++            messageTo(self, "handleRetirePostNgeBeastMasterPlayerState", null, 0, false);
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        if (beast_lib.isRetiredPostNgeBeastMasterPlayer(self))
++        {
++            beast_lib.retirePostNgeBeastMasterPlayerState(self);
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int handleRetirePostNgeBeastMasterPlayerState(obj_id self, dictionary params) throws InterruptedException
++    {
++        beast_lib.retirePostNgeBeastMasterPlayerState(self);
++        return SCRIPT_OVERRIDE;
++    }
+     public int OnRemovingFromWorld(obj_id self) throws InterruptedException
+     {
+         if (!beast_lib.isValidBeast(beast_lib.getBeastOnPlayer(self)))
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 23f39d3..fbd275c 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -10576,6 +10576,10 @@ public class combat_actions extends script.systems.combat.combat_base
+     }
+     public int bm_paralytic_poison_recourse(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (beast_lib.isRetiredPostNgeBeastMasterPlayer(self))
++        {
++            return SCRIPT_OVERRIDE;
++        }
+         if (!buff.hasBuff(self, "bm_paralytic_poison_recourse"))
+         {
+             buff.applyBuff(self, self, "bm_paralytic_poison_recourse");
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 0002516..cae706f 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -89,6 +89,10 @@ public class combat_base extends script.base_script
+         }
+         return actionName.equals("steal") || actionName.startsWith("sp_");
+     }
++    public static boolean isRetiredPostNgeBeastMasterPlayerAction(obj_id self, String actionName) throws InterruptedException
++    {
++        return beast_lib.isRetiredPostNgeBeastMasterPlayerAction(self, actionName);
++    }
+     public boolean combatStandardAction(String actionName, obj_id self, obj_id target, String params, String successHandler, String failHandler) throws InterruptedException
+     {
+         return combatStandardAction(actionName, self, target, getCurrentWeapon(self), params, null, false, false, 0);
+@@ -191,6 +195,10 @@ public class combat_base extends script.base_script
+         {
+             return false;
+         }
++        if (isRetiredPostNgeBeastMasterPlayerAction(self, actionName))
++        {
++            return false;
++        }
+         combat.revealPrecuFeignDeath(self, "combatCommand");
+         if (combat.isStunned(self))
+         {

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-login-skill-progression-authority",
+  "status": "ready",
+  "scope": "Make authored Publish 14.1 skill-box purchase and training authoritative by retiring the normal-login recursive prerequisite grant that bypassed skill points, prerequisite ownership, XP, credits, and trainers.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "findings": [
+      "Publish 14.1 progression acquires individual skill boxes through authored prerequisite, skill-point, XP, credit, and trainer gates.",
+      "The inherited normal-login repair recursively granted every missing prerequisite with raw grantSkill calls and a 100-pass ceiling, outside the purchase and trainer paths.",
+      "The authoritative skill purchase and trainer paths already enforce the retained skill table and do not require login to synthesize ownership."
+    ]
+  },
+  "diagnosis": {
+    "historicalLoginRepairLoops": 1,
+    "historicalRawPrerequisiteGrantSites": 1,
+    "historicalRepairPassLimit": 100,
+    "skillTableRows": 2636,
+    "rowsWithPrerequisites": 1480,
+    "rowsWithXpCost": 1209,
+    "rowsWithMoneyCost": 972
+  },
+  "expected": {
+    "loginRecursivelyGrantsPrerequisites": false,
+    "loginRawSkillGrantSites": 0,
+    "loginRepairRevokesOwnedSkills": false,
+    "skillPointGatePreserved": true,
+    "prerequisiteGatePreserved": true,
+    "xpGateAndDeductionPreserved": true,
+    "trainerCreditGatePreserved": true,
+    "skillTablePreserved": true,
+    "characterTransferSkillBoxesPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "player/base/base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671"
+    },
+    "compiledClassSha256": {
+      "player/base/base_player.class": "ddc9b56f176b6505f9b65d96b32dcafb541fd099fa0c046d54bfef6075f4af23"
+    },
+    "fullJavaCompile": "passed and reverified in the cumulative M325 Docker build from pushed direct source; completed 2026-08-04",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed for player/base/base_player.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "skillLibrarySha256": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+    "skillTrainerSha256": "66a7c3a6a881b58faf774f2286a08ceec4142fae39cea44f5819d435ebdc84b4",
+    "skillDataSha256": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 1,
+    "compiledBytecodeProbes": "passed: OnLogin contains zero grantSkill or prerequisite-repair references while retaining the demo_combat cleanup",
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, ABI, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the recursive normal-login prerequisite repair and its raw skill-grant site",
+    "preserved": "owned skills, explicit skill purchase, skill points, prerequisites, XP, trainer credits, surrender, character transfer, quests, zones, later content, and user-verified mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

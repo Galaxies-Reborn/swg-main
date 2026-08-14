@@ -1,27 +1,166 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/gm.java b/sku.0/sys.server/compiled/game/script/library/gm.java
+index 26ecf3585..88ac8afc3 100755
+--- a/sku.0/sys.server/compiled/game/script/library/gm.java
++++ b/sku.0/sys.server/compiled/game/script/library/gm.java
+@@ -543,31 +543,20 @@ public class gm extends script.base_script
+         }
+         return _stateList;
+     }
+-    public static void cmdResetJedi(obj_id player) throws InterruptedException
+-    {
+-        if (isIdNull(player))
+-        {
+-            sendSystemMessage(getSelf(), "This command can only be used on players. Please target a player and try again.", null);
+-            return;
+-        }
+-        if (hasObjVar(player, "jedi.converted"))
+-        {
+-            removeObjVar(player, "jedi.converted");
+-            if (hasObjVar(player, "jedi.reverted"))
+-            {
+-                int numReverts = getIntObjVar(player, "jedi.reverted");
+-                numReverts = numReverts + 1;
+-                setObjVar(player, "jedi.reverted", numReverts);
+-            }
+-            else 
+-            {
+-                setObjVar(player, "jedi.reverted", 1);
+-            }
+-        }
+-        setObjVar(player, "jedi.usingSui", 1);
+-        attachScript(player, "player.player_jedi_conversion");
+-        return;
+-    }
++    public static void cmdResetJedi(obj_id player) throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !isPlayer(player))
++        {
++            sendSystemMessage(getSelf(), "This command can only be used on players. Please target a player and try again.", null);
++            return;
++        }
++        script.player.player_jedi_conversion.retireNgeJediConversionState(player);
++        if (hasScript(player, "player.player_jedi_conversion"))
++        {
++            detachScript(player, "player.player_jedi_conversion");
++        }
++        return;
++    }
+     public static String[] getPrecuProfessionList() throws InterruptedException
+     {
+         return skill.getPrecuPublicProfessionRoots();
 diff --git a/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.java b/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.java
+index 40195c34a..466599618 100755
 --- a/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.java
 +++ b/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.java
-@@ -14,7 +14,7 @@ public class player_jedi_conversion extends script.base_script
+@@ -12,19 +12,60 @@ public class player_jedi_conversion extends script.base_script
+     public player_jedi_conversion()
+     {
      }
++    public static void retireNgeJediConversionState(obj_id player) throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !isPlayer(player))
++        {
++            return;
++        }
++        if (hasObjVar(player, "jedi.conversionSui"))
++        {
++            int pid = getIntObjVar(player, "jedi.conversionSui");
++            if (pid > 0)
++            {
++                forceCloseSUIPage(pid);
++            }
++        }
++        String[] retiredObjVars =
++        {
++            "combatLevel",
++            "jedi.converted",
++            "jedi.reverted",
++            "jedi.usingSui",
++            "jedi.currentPoints",
++            "jedi.forceSensitivePoints",
++            "jedi.nonJediPoints",
++            "jedi.conversionSui",
++            "jedi.grantingSkill",
++            "jedi.revokeAllowed",
++            "jedi.currentXp"
++        };
++        for (String retiredObjVar : retiredObjVars)
++        {
++            removeObjVar(player, retiredObjVar);
++        }
++        String[] retiredScriptVars =
++        {
++            "last_force_skill_picked",
++            "last_jedi_skill_picked",
++            "last_regular_skill_picked",
++            "fullNameList",
++            "skill_list"
++        };
++        for (String retiredScriptVar : retiredScriptVars)
++        {
++            utils.removeScriptVar(player, retiredScriptVar);
++        }
++    }
      public int OnAttach(obj_id self) throws InterruptedException
      {
--        convertOldJedi(self);
-+        detachScript(self, "player.player_jedi_conversion");
++        retireNgeJediConversionState(self);
+         detachScript(self, "player.player_jedi_conversion");
          return SCRIPT_CONTINUE;
      }
      public void convertOldJedi(obj_id self) throws InterruptedException
-@@ -654,14 +654,12 @@ public class player_jedi_conversion extends script.base_script
+     {
+-        if (hasObjVar(self, "jedi.converted"))
+-        {
+-            detachScript(self, "player.player_jedi_conversion");
+-            return;
+-        }
+-        setObjVar(self, "combatLevel", 80);
++        retireNgeJediConversionState(self);
+         detachScript(self, "player.player_jedi_conversion");
          return;
+     }
+@@ -655,11 +696,13 @@ public class player_jedi_conversion extends script.base_script
      }
      public int OnLogin(obj_id self) throws InterruptedException
      {
--        setSkillTemplate(self, "a");
++        retireNgeJediConversionState(self);
          detachScript(self, "player.player_jedi_conversion");
          return SCRIPT_CONTINUE;
      }
      public int OnInitialize(obj_id self) throws InterruptedException
      {
--        setSkillTemplate(self, "a");
++        retireNgeJediConversionState(self);
          detachScript(self, "player.player_jedi_conversion");
          return SCRIPT_CONTINUE;
      }
+@@ -861,29 +904,7 @@ public class player_jedi_conversion extends script.base_script
+     }
+     public int OnDetach(obj_id self) throws InterruptedException
+     {
+-        if (hasObjVar(self, "jedi.usingSui"))
+-        {
+-            removeObjVar(self, "jedi.usingSui");
+-            utils.removeScriptVar(self, "last_force_skill_picked");
+-            utils.removeScriptVar(self, "last_jedi_skill_picked");
+-            utils.removeScriptVar(self, "last_regular_skill_picked");
+-        }
+-        if (hasObjVar(self, "jedi.currentPoints"))
+-        {
+-            removeObjVar(self, "jedi.currentPoints");
+-        }
+-        if (hasObjVar(self, "jedi.forceSensitivePoints"))
+-        {
+-            removeObjVar(self, "jedi.forceSensitivePoints");
+-        }
+-        if (hasObjVar(self, "jedi.nonJediPoints"))
+-        {
+-            removeObjVar(self, "jedi.nonJediPoints");
+-        }
+-        if (hasObjVar(self, "jedi.conversionSui"))
+-        {
+-            removeObjVar(self, "jedi.conversionSui");
+-        }
++        retireNgeJediConversionState(self);
+         return SCRIPT_CONTINUE;
+     }
+     public void completeTraining(obj_id self) throws InterruptedException

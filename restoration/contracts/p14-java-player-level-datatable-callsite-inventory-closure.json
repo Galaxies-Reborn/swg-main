@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-player-level-datatable-callsite-inventory-closure",
+  "status": "ready",
+  "scope": "Close every direct Java read of the NGE player-level datatables by proving that all five reads remain compatibility-only inside retired respec and live-conversion surfaces, while preserving the skill-investment PRE-CU difficulty adapter used by retained later content.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 player progression is driven by owned skill boxes and skill-specific XP, not player_level.iff combat-level thresholds.",
+      "The three old_player_level.iff reads are isolated in an uncalled legacy combat-level reconstruction helper.",
+      "The two player_level.iff reads are isolated in the retired NGE auto-level and live-conversion compatibility surfaces; retained expansion content uses a PRE-CU combat-skill investment adapter instead."
+    ]
+  },
+  "inventory": {
+    "pattern": "datatables/player/(old_)?player_level\\.iff",
+    "javaSources": 5717,
+    "callSites": 5,
+    "sourceFiles": 2,
+    "inventorySha256": "0c15885b58a47e079cb765237a352a4f8b8939449a1a066c20f15f978bba1b5c",
+    "sourceSetSha256": "764c96c4559f9a732785c4566e03403d14688aa86ae0777c8a7e083a2e6e2869",
+    "sourceContentSha256": "21327342b968b89fcee8a745098ea204934028f214a4e3d9bb224389138aa2df",
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/library/respec.java": 4,
+      "sku.0/sys.server/compiled/game/script/player/live_conversions.java": 1
+    }
+  },
+  "classification": {
+    "retiredRespecCompatibility": {
+      "callSites": 4,
+      "inventorySha256": "def6b132879a785e7331fdd130f07e7e928d3fbff348dd98bd6178fbe558aaf9",
+      "authority": "Three reads reconstruct a legacy combat level in an uncalled helper; one supplies NGE template auto-level XP in a compatibility helper whose normal player, CTS, item, and live-conversion entrypoints fail closed."
+    },
+    "retiredLiveConversionCompatibility": {
+      "callSites": 1,
+      "inventorySha256": "a2a27a03df04a3d9e18417641865314a55d2d0159d190f248213a101b7a2831e",
+      "authority": "The remaining read is in an uncalled roadmap free-skill helper on a script that detaches itself and is removed during player initialization and login."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-respec-autolevel-entrypoint-retirement.json",
+    "p14-post-nge-player-migration-authority-retirement.json",
+    "p14-java-skill-template-callsite-inventory-closure.json",
+    "p14-java-player-level-callsite-inventory-closure.json",
+    "p14-java-player-level-table-service-retirement.json",
+    "p14-native-nge-player-level-service-retirement.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 0,
+    "directPlayerLevelDatatableReads": 5,
+    "retiredRespecReads": 4,
+    "retiredLiveConversionReads": 1,
+    "unclassifiedReads": 0,
+    "getOldCombatLevelReferences": 1,
+    "grantNextTraderAndEntertainerSkillReferences": 1,
+    "runOncePerSessionConversionsReferences": 1,
+    "autoLevelPlayerReferences": 10,
+    "precuEncounterDifficultyReferences": 115,
+    "precuEncounterDifficultyReadsPlayerLevelDatatable": false,
+    "retainedLaterContentPreserved": true,
+    "playerLevelDatatablesPreservedAsCompatibilityData": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceSha256": {
+      "library/respec.java": "b24248616509197101c86b837c641500ffc0f186115c0c76e410a8289f6ce33b",
+      "player/live_conversions.java": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e",
+      "player/base/base_player.java": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "library/utils.java": "86909a18bbb9fcd72f6ff6969c78dd52095580c7d9637289e3cdbcb152f3695c",
+      "systems/skills/auto_level.java": "54eb4d4f6ea9994ba0fce86cfa67966693cf081c67a51a21eeeec9a0c60f738e",
+      "library/skill.java": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7"
+    },
+    "sourceAudit": "passed; all five direct Java NGE player-level datatable reads are classified in retired compatibility surfaces with zero unclassified reads",
+    "gameplayBuildReused": "No gameplay source or data changed; the authenticated 5,717-source x64 deployment at the pinned dsrc/native revisions remains authoritative.",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T03:37:26.6776976-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinaryBytes": 22587656,
+    "clientProcessId": 52252,
+    "clientResponsive": true,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all five direct Java old_player_level.iff and player_level.iff reads and their containment within retired NGE respec/live-conversion compatibility surfaces",
+    "preserved": "the data files for retained compatibility and the skill-box-investment PRE-CU encounter-difficulty adapter used by NGE zones, quests, conversations, and missions",
+    "notClaimedComplete": "unrelated later-era APIs and gameplay systems outside this direct datatable surface remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

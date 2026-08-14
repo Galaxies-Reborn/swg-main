@@ -59,6 +59,29 @@ function Get-Sha256
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Get-BracedBlock
+{
+    param([string]$Text, [string]$Signature)
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $open = $Text.IndexOf("{", $start, [StringComparison]::Ordinal)
+    if ($open -lt 0) { return "" }
+    $depth = 0
+    for ($index = $open; $index -lt $Text.Length; ++$index)
+    {
+        if ($Text[$index] -eq '{') { ++$depth }
+        elseif ($Text[$index] -eq '}')
+        {
+            --$depth
+            if ($depth -eq 0)
+            {
+                return $Text.Substring($start, $index - $start + 1)
+            }
+        }
+    }
+    return ""
+}
+
 $paths = @{}
 foreach ($property in $contract.sourceFiles.psobject.Properties)
 {
@@ -69,6 +92,13 @@ foreach ($entry in $paths.GetEnumerator())
     Assert-Contract (Test-Path -LiteralPath $entry.Value -PathType Leaf) `
         "p14.heal-mind.source.$($entry.Key)"
 }
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract ($dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceCommit) `
+    "p14.heal-mind.direct-source-pin"
 
 $command = Get-Row -Path $paths.commandTable -Key "healMind"
 Assert-Contract ($null -ne $command) "p14.heal-mind.command.unique"
@@ -93,11 +123,16 @@ Assert-Contract ($null -ne $skillRow -and
     "p14.heal-mind.skill.ownership"
 
 $basePlayer = Get-Content -LiteralPath $paths.basePlayer -Raw
+$healing = Get-Content -LiteralPath $paths.healingLibrary -Raw
 $fixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 $runnerPath = Join-Path $restorationRoot "scripts/Invoke-P14HealMindRuntime.ps1"
 $runner = Get-Content -LiteralPath $runnerPath -Raw
 $patchPath = Join-Path $restorationRoot `
     "patches/dsrc/242-p14-heal-mind-command.patch"
+$healMind = Get-BracedBlock -Text $basePlayer `
+    -Signature "public int healMind("
+$sourceAwareFourArgumentHeal = Get-BracedBlock -Text $healing `
+    -Signature "public static int healDamage(obj_id source, obj_id target, int attrib, int amount)"
 
 Assert-Contract ($basePlayer.Contains("public int healMind(") -and
     $basePlayer.Contains("PRECU_HEAL_MIND_COST = 250") -and
@@ -112,6 +147,37 @@ Assert-Contract ($basePlayer.Contains("pvpCanHelp(self, target)") -and
     $basePlayer.Contains("addShockWound(self, woundCost)") -and
     $basePlayer.Contains("pvpHelpPerformed(self, target)")) `
     "p14.heal-mind.production.transaction"
+$healMindObserver = $contract.productionContract.campHealingObserver
+Assert-Contract (
+    [int]$healMindObserver.notificationsPerSuccessfulUse -eq 1 -and
+    [string]$healMindObserver.notifyingPool -ceq "Mind" -and
+    [bool]$healMindObserver.transitiveFourArgumentSourceAwareDefault -and
+    -not [bool]$healMindObserver.redundantFiveArgumentCallRequired -and
+    [int]$healMindObserver.battleFatigueCreditsPerPositiveHeal -eq 1 -and
+    [bool]$healMindObserver.clampedAppliedDeltaZeroStillCountsAsAuthoredEvent -and
+    [int]$healMindObserver.rejectedOrNoDamageNotifications -eq 0 -and
+    [string]$healMindObserver.payload -ceq
+        "target receives healer object id plus native authoritative applied Mind delta" -and
+    -not [string]::IsNullOrEmpty($healMind) -and
+    [regex]::Matches(
+        $healMind,
+        '(?s)healing\.healDamage\s*\(\s*self\s*,\s*target\s*,\s*MIND\s*,\s*healPower\s*\)').Count -eq 1 -and
+    -not [regex]::IsMatch(
+        $healMind,
+        '(?s)healing\.healDamage\s*\([^;]+?\b(?:true|false)\s*\);') -and
+    $healMind.IndexOf(
+        'recordPrecuHealMindOutcome(self, fixture, "noMindDamage");',
+        [StringComparison]::Ordinal) -lt
+        $healMind.IndexOf(
+            "int healedMind = healing.healDamage(",
+            [StringComparison]::Ordinal) -and
+    -not [string]::IsNullOrEmpty($sourceAwareFourArgumentHeal) -and
+    $sourceAwareFourArgumentHeal.Contains(
+        "healDamage(source, target, attrib, amount, true)") -and
+    [regex]::Matches(
+        $sourceAwareFourArgumentHeal,
+        'pvp\.bfCreditForHealing\s*\(\s*source\s*,\s*delta\s*\)').Count -eq 1) `
+    "p14.heal-mind.production.transitive-observer-and-single-bf-credit"
 Assert-Contract ($fixture.Contains("PLAYER_OID = 44003778L") -and
     $fixture.Contains("PLAYER_STATION_ID = 91001") -and
     $fixture.Contains("PROTOCOL_VERSION = 1") -and
@@ -136,6 +202,8 @@ Assert-Contract ((Get-Sha256 $paths.skillTable) -ceq
     [string]$hashes.'skills.tab') "p14.heal-mind.hash.skills"
 Assert-Contract ((Get-Sha256 $paths.basePlayer) -ceq
     [string]$hashes.'base_player.java') "p14.heal-mind.hash.base-player"
+Assert-Contract ((Get-Sha256 $paths.healingLibrary) -ceq
+    [string]$hashes.'healing.java') "p14.heal-mind.hash.healing-library"
 Assert-Contract ((Get-Sha256 $paths.liveFixture) -ceq
     [string]$hashes.'precu_heal_mind_command_fixture.java') `
     "p14.heal-mind.hash.fixture"

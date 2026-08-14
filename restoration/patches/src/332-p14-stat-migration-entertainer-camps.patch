@@ -1,0 +1,41 @@
+diff --git a/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp b/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
+--- a/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
++++ b/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
+@@ -15,6 +15,7 @@
+ #include "serverGame/ServerObject.h"
+ #include "serverGame/ServerObjectTemplate.h"
+ #include "serverGame/ServerWorld.h"
++#include "serverGame/TriggerVolume.h"
+ #include "sharedFoundation/ConstCharCrcLowerString.h"
+ #include "sharedFoundation/ExitChain.h"
+ #include "sharedGame/CustomizationManager.h"
+@@ -184,15 +185,25 @@ bool ServerImageDesignerManager::makeChanges(SharedImageDesignerManager::Session
+ 		bool const statMigration = session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION;
+ 		Object const * const designerTopmost = ContainerInterface::getTopmostContainer(*designer);
+ 		Object const * const recipientTopmost = ContainerInterface::getTopmostContainer(*recipient);
+-		ServerObject const * const statMigrationSalon = designerTopmost ? designerTopmost->asServerObject() : nullptr;
++		ServerObject const * const statMigrationVenue = ServerWorld::findObjectByNetworkId(session.terminalId);
++		bool const statMigrationSalon =
++			statMigrationVenue && statMigrationVenue->getObjVars().hasItem("salon") &&
++			designerTopmost && designerTopmost->getNetworkId() == session.terminalId &&
++			recipientTopmost && recipientTopmost->getNetworkId() == session.terminalId;
++		TriggerVolume const * const entertainmentCampVolume =
++			statMigrationVenue && statMigrationVenue->getObjVars().hasItem("modules.entertainer")
++				? statMigrationVenue->getTriggerVolume("campsite")
++				: nullptr;
++		bool const statMigrationEntertainmentCamp =
++			entertainmentCampVolume &&
++			entertainmentCampVolume->hasObject(*designer) &&
++			entertainmentCampVolume->hasObject(*recipient);
+ 		bool const statMigrationSessionValid = !statMigration ||
+ 			(designer != recipient &&
+ 			designer->hasCommand("imagedesign") &&
+ 			!recipient->isInTutorial() &&
+ 			session.terminalId != NetworkId::cms_invalid &&
+-			statMigrationSalon && statMigrationSalon->getObjVars().hasItem("salon") &&
+-			designerTopmost && designerTopmost->getNetworkId() == session.terminalId &&
+-			recipientTopmost && recipientTopmost->getNetworkId() == session.terminalId &&
++			(statMigrationSalon || statMigrationEntertainmentCamp) &&
+ 			CommandCppFuncs::canCommitStatMigration(recipient->getNetworkId()));
+ 		if(!statMigrationSessionValid)
+ 		{

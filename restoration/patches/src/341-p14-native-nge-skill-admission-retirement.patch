@@ -1,0 +1,184 @@
+diff --git a/engine/server/library/serverGame/src/shared/core/Client.cpp b/engine/server/library/serverGame/src/shared/core/Client.cpp
+index 23dd89b..014a097 100644
+--- a/engine/server/library/serverGame/src/shared/core/Client.cpp
++++ b/engine/server/library/serverGame/src/shared/core/Client.cpp
+@@ -87,7 +87,6 @@
+ #include "sharedNetworkMessages/CreateAuctionMessage.h"
+ #include "sharedNetworkMessages/CreateImmediateAuctionMessage.h"
+ #include "sharedNetworkMessages/CreateProjectileMessage.h"
+-#include "sharedNetworkMessages/ExpertiseRequestMessage.h"
+ #include "sharedNetworkMessages/FactionRequestMessage.h"
+ #include "sharedNetworkMessages/FactionResponseMessage.h"
+ #include "sharedNetworkMessages/GalaxyLoopTimesResponse.h"
+@@ -1591,23 +1590,10 @@ void Client::receiveClientMessage(const GameNetworkMessage &message) {
+                 break;
+             }
+             case constcrc("ExpertiseRequestMessage") : {
+-                Archive::ReadIterator ri = static_cast<const GameNetworkMessage &>(message).getByteStream().begin();
+-                ExpertiseRequestMessage const m(ri);
+-
+-                std::vector <std::string> const &addExpertisesNamesList = m.getAddExpertisesList();
+-                bool clearAllExpertisesFirst = m.getClearAllExpertisesFirst();
+-                std::string addList;
+-                std::vector<std::string>::const_iterator i;
+-                for (i = addExpertisesNamesList.begin(); i != addExpertisesNamesList.end(); ++i) {
+-                    addList += " ";
+-                    addList += *i;
+-                }
+                 CreatureObject *playerObject = safe_cast<CreatureObject *>(getCharacterObject());
+                 if (playerObject) {
+-                    LOG("CustomerService", ("ExpertiseRequestMessage: %s has requested to add expertises [%s] %s", PlayerObject::getAccountDescription(playerObject).c_str(), addList.c_str(), clearAllExpertisesFirst
+-                                                                                                                                                                                               ? "(clearing first)"
+-                                                                                                                                                                                               : ""));
+-                    playerObject->processExpertiseRequest(addExpertisesNamesList, clearAllExpertisesFirst);
++                    LOG("PreCuRestore", ("Ignored retired NGE ExpertiseRequestMessage from %s",
++                        PlayerObject::getAccountDescription(playerObject).c_str()));
+                 }
+                 break;
+             }
+@@ -2330,4 +2316,3 @@ int Client::getBuddyPoints() const {
+ }
+ 
+ // ======================================================================
+-
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+index 4f22add..cb7e54e 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+@@ -247,7 +247,14 @@ const static std::string CREATURES_TABLE("datatables/mob/creatures.iff");
+ 
+ namespace CreatureObjectNamespace
+ {
+-	const int POINTS_PER_TIER = 4;
++	bool isRetiredNgeProgressionSkillName(std::string const & skillName)
++	{
++		return skillName.find("class_") == 0 ||
++			skillName == "expertise" ||
++			skillName.find("expertise_") == 0 ||
++			skillName.find("internal_expertise_") == 0;
++	}
++
+ 	// ----------------------------------------------------------------------
+ 
+ 	const char* s_inventoryTemplate  = "object/tangible/inventory/character_inventory.iff";
+@@ -2088,18 +2095,6 @@ void CreatureObject::onLoadedFromDatabase()
+ 
+ 	if (isAuthoritative() && isPlayerControlled())
+ 	{
+-		// make sure the player has no more expertise skills than they should have for their level
+-		// if they do, log them as a suspected cheater
+-		int const remainingExpertisePoints = getRemainingExpertisePoints();
+-
+-		if (remainingExpertisePoints < 0)
+-		{
+-			LOG("CustomerService",
+-				("SuspectedCheaterChannel: %s has more expertises than level %d allows. Amount over limit is %d.",
+-				PlayerObject::getAccountDescription(this).c_str(), getLevel(), -remainingExpertisePoints)
+-				);
+-		}
+-
+ 		// if we are a player, go through all the creature's equipment and update for
+ 		// bonus skill mods
+ 		std::vector<std::pair<std::string, int> > skillModBonuses;
+@@ -3676,6 +3671,13 @@ const bool CreatureObject::grantSkill(const SkillObject & newSkill)
+ {
+ 	if(isAuthoritative())
+ 	{
++		if (isPlayerControlled() && isRetiredNgeProgressionSkillName(newSkill.getSkillName()))
++		{
++			LOG("PreCuRestore", ("Rejected retired NGE progression skill %s for player %s",
++				newSkill.getSkillName().c_str(), getNetworkId().getValueString().c_str()));
++			return false;
++		}
++
+ 		//-- jww: simply return true if the skill is already in the vector
+ 		//--      this was the previous behavior, dunno if it should return false
+ 		if (hasSkill (newSkill))
+@@ -14695,79 +14697,20 @@ int CreatureObject::getExpertisePointsSpentForPlayerInTree(int tree)
+ 
+ int CreatureObject::getRemainingExpertisePoints() const
+ {
+-	int const numPointsAvail = ExpertiseManager::getExpertisePointsForLevel(getLevel());
+-
+-	CreatureObject::SkillList expertiseList;
+-	getExpertisesForPlayer(expertiseList);
+-	int const numPointsUsed = expertiseList.size() - 1; // subtract 1 for skill "expertise"
+-
+-	return numPointsAvail - numPointsUsed;
++	// Publish 14.1 has no expertise point pool and combat level must never
++	// create one through this retained compatibility accessor.
++	return 0;
+ }
+ 
+ //-----------------------------------------------------------------------
+ 
+ bool CreatureObject::processExpertiseRequest(std::vector<std::string> const &addExpertisesNamesList, bool clearAllExpertisesFirst)
+ {
+-	
+-	// if you are in god mode, grant the expertise without permission checks
+-	if(getClient()->isGod()) {
+-		for(std::vector<std::string>::const_iterator i = addExpertisesNamesList.begin(); i != addExpertisesNamesList.end(); ++i) {
+-			std::string const &s = *i;
+-			const SkillObject *skill = SkillManager::getInstance().getSkill(s);
+-			grantSkill(*skill);
+-			Chat::sendSystemMessage(*this, Unicode::narrowToWide(FormattedString<256>().sprintf("GOD MODE: Granting you expertise skill %s without regard for points, requisites, or permissions, because you are in God Mode.", skill->getSkillName().c_str())), Unicode::emptyString);
+-		}
+-		return true;
+-	}
+-	
+-	for(std::vector<std::string>::const_iterator i = addExpertisesNamesList.begin(); i != addExpertisesNamesList.end(); ++i)
+-	{
+-		std::string const &s = *i;
+-		const SkillObject *skill = SkillManager::getInstance().getSkill(s);
+-		if(skill)
+-		{
+-			//Check prerequisites
+-			SkillObject::SkillVector const prereqs = skill->getPrerequisiteSkills();
+-			for (SkillObject::SkillVector::const_iterator i = prereqs.begin(); i != prereqs.end(); ++i)
+-			{
+-				SkillObject const * prereq = (*i);
+-				if (!prereq || !hasSkill(*prereq))
+-				{
+-					DEBUG_WARNING(true, ("player %s tried to get expertise %s but doesn't have expertise %s", getNetworkId().getValueString().c_str(),
+-						skill->getSkillName().c_str(), prereq->getSkillName().c_str()));
+-					return false;
+-				}
+-			}
+-			//Check tier points
+-			//Check if the player has enough points for a skill of this tier
+-			int tree = ExpertiseManager::getExpertiseTree(s);
+-			int pointsInTree = getExpertisePointsSpentForPlayerInTree(tree);
+-			int tier = ExpertiseManager::getExpertiseTier(s);
+-			if (pointsInTree < (tier - 1) * POINTS_PER_TIER)
+-			{
+-				DEBUG_WARNING(true, ("player %s tried to get expertise %s but only has %d points in tree %d, needs %d", getNetworkId().getValueString().c_str(),
+-					s.c_str(), pointsInTree, tree, (tier - 1) * POINTS_PER_TIER
+-					));
+-				return false;
+-			}
+-
+-			if (getRemainingExpertisePoints() < 1)
+-			{
+-				LOG("CustomerService", 
+-					("SuspectedCheaterChannel: %s attempted to gain more expertise than allowed.",
+-					PlayerObject::getAccountDescription(this).c_str())
+-					);
+-
+-				return false;
+-			}
+-
+-			//Check faction column
+-
+-			//Grant skill
+-			grantSkill(*skill);
+-		}
+-	}
+-	return true;
++	UNREF(addExpertisesNamesList);
++	UNREF(clearAllExpertisesFirst);
++	LOG("PreCuRestore", ("Rejected retired NGE expertise request for player %s",
++		getNetworkId().getValueString().c_str()));
++	return false;
+ }
+ 
+ //-----------------------------------------------------------------------

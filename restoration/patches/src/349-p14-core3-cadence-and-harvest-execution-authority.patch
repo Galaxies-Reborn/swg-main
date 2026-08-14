@@ -1,0 +1,89 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+index 5960bd9..c5e60b1 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+@@ -556,13 +556,46 @@ void CommandQueue::executeCommandQueue()
+ void CommandQueue::doExecute(const CommandQueueEntry &entry )
+ {
+ 	CreatureObject * const creatureOwner = getServerOwner().asCreatureObject();
++	m_status            = Command::CEC_Success;
++	m_statusDetail      = 0;
++
+ 	if (creatureOwner != nullptr && entry.m_command != nullptr &&
+-		(entry.m_command->isPrimaryCommand() || isWeaponCadenceAttack(*entry.m_command)))
++		entry.m_command->m_commandName == "harvestCorpse" &&
++		creatureOwner->isPlayerControlled() &&
++		!canHarvestPrecuCreatureResources(*creatureOwner))
++	{
++		Chat::sendSystemMessage(
++			*creatureOwner,
++			Unicode::narrowToWide("You must have Novice Scout to harvest creature resources."),
++			Unicode::emptyString);
++		m_status = Command::CEC_Cancelled;
++		LOG("PreCuScoutHarvest", ("rejected phase=execute owner=%s command=%s target=%s",
++			creatureOwner->getNetworkId().getValueString().c_str(),
++			entry.m_command->m_commandName.c_str(),
++			entry.m_targetId.getValueString().c_str()));
++		return;
++	}
++
++	bool const primaryAttack = entry.m_command != nullptr &&
++		entry.m_command->isPrimaryCommand();
++	bool const classifiedAttack = entry.m_command != nullptr &&
++		isWeaponCadenceAttack(*entry.m_command);
++	if (creatureOwner != nullptr && (primaryAttack || classifiedAttack))
+ 	{
+ 		WeaponObject const * const weapon = creatureOwner->getCurrentWeapon();
++		char const * const speedSkill = weapon != nullptr ?
++			getPrecuWeaponSpeedSkill(*weapon) : "";
++		int const familySpeed = weapon != nullptr && speedSkill[0] != '\0' ?
++			creatureOwner->getEnhancedModValue(speedSkill) : 0;
++		int const privateSpeed = creatureOwner->getEnhancedModValue("private_speed_bonus");
++		int const privateMeleeSpeed = creatureOwner->getEnhancedModValue("private_melee_speed_bonus");
++		int const meleeSpeed = creatureOwner->getEnhancedModValue("melee_speed");
++		int const privateRangedSpeed = creatureOwner->getEnhancedModValue("private_ranged_speed_bonus");
++		int const rangedSpeed = creatureOwner->getEnhancedModValue("ranged_speed");
++		int const combatHaste = creatureOwner->getEnhancedModValue("combat_haste");
+ 		m_lastWeaponCadenceAttackTime = s_currentTime;
+ 		m_lastWeaponCadenceInterval = m_commandTimes[TimerClass_Execute];
+-		LOG("PreCuCombatCadence", ("execute time=%.3f owner=%s playerControlled=%d command=%s target=%s interval=%.3f weaponSpeed=%.3f queueSize=%u",
++		LOG("PreCuCombatCadence", ("execute time=%.3f owner=%s playerControlled=%d command=%s target=%s interval=%.3f weaponSpeed=%.3f queueSize=%u primary=%d classified=%d speedSkill=%s familySpeed=%d privateSpeed=%d privateMeleeSpeed=%d meleeSpeed=%d privateRangedSpeed=%d rangedSpeed=%d combatHaste=%d",
+ 			s_currentTime,
+ 			creatureOwner->getNetworkId().getValueString().c_str(),
+ 			creatureOwner->isPlayerControlled() ? 1 : 0,
+@@ -570,13 +603,32 @@ void CommandQueue::doExecute(const CommandQueueEntry &entry )
+ 			entry.m_targetId.getValueString().c_str(),
+ 			m_commandTimes[TimerClass_Execute],
+ 			weapon != nullptr ? weapon->getAttackTime() : 0.0f,
++			static_cast<unsigned int>(m_queue.size()),
++			primaryAttack ? 1 : 0,
++			classifiedAttack ? 1 : 0,
++			speedSkill,
++			familySpeed,
++			privateSpeed,
++			privateMeleeSpeed,
++			meleeSpeed,
++			privateRangedSpeed,
++			rangedSpeed,
++			combatHaste));
++	}
++	else if (creatureOwner != nullptr && entry.m_command != nullptr &&
++		creatureOwner->isPlayerControlled() && entry.m_command->m_addToCombatQueue)
++	{
++		LOG("PreCuCombatCadence", ("unclassified time=%.3f owner=%s command=%s target=%s declaredExecute=%.3f queueSize=%u",
++			s_currentTime,
++			creatureOwner->getNetworkId().getValueString().c_str(),
++			entry.m_command->m_commandName.c_str(),
++			entry.m_targetId.getValueString().c_str(),
++			entry.m_command->m_execTime,
+ 			static_cast<unsigned int>(m_queue.size())));
+ 	}
+ 
+ 	// execute command here
+-	m_status            = Command::CEC_Success;
+-	m_statusDetail      = 0;
+-	
++
+ 	// push the command on the stack
+ 	m_commandStack.push( &entry );
+ 

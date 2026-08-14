@@ -165,6 +165,7 @@ fi
 echo "Container address for eth0-bound services: ${SWG_CONTAINER_ADDRESS}"
 SWG_CLIENT_ASSETS_TRE="${SWG_CLIENT_ASSETS_TRE:-/client-assets/swgsource_3.0.tre}"
 SWG_START_CHAT="${SWG_START_CHAT:-true}"
+SWG_START_PLANETS="${SWG_START_PLANETS:-}"
 SWG_ANT_INIT_TARGETS="${SWG_ANT_INIT_TARGETS:-clean update_configs create_database compile}"
 SWG_ANT_BUILD_TARGETS="${SWG_ANT_BUILD_TARGETS:-compile}"
 SWG_STAGED_CLIENT_ASSETS_TRE=""
@@ -329,6 +330,8 @@ write_runtime_service_addresses() {
     echo "Setting internal SWG service address to ${node_address}..."
     sed -i -E "s|^(loginServerAddress=).*|\\1${node_address}|" exe/linux/default.cfg
     sed -i -E "s|^(centralServerAddress=).*|\\1${node_address}|" exe/linux/localOptions.cfg
+    sed -i -E "s|^(transferServerAddress=).*|\\1${node_address}|" exe/linux/localOptions.cfg
+    sed -i -E "s|^(clusterName=).*|\\1${SWG_CLUSTER_NAME}|" exe/linux/localOptions.cfg
 }
 
 ensure_runtime_symlinks() {
@@ -348,11 +351,63 @@ ensure_runtime_symlinks() {
 sync_runtime_config_files() {
     if [ -d "${SWG_SOURCE_DIR}/exe/linux" ] && [ "${SWG_SOURCE_DIR}" != "${SWG_WORK_DIR}" ]; then
         mkdir -p exe/linux
-        for config_file in logServerTargets.cfg taskmanager.rc; do
+        for config_file in localOptions.cfg logServerTargets.cfg taskmanager.rc; do
             cp -f "${SWG_SOURCE_DIR}/exe/linux/${config_file}" "exe/linux/${config_file}"
             sed -i 's/\r$//' "exe/linux/${config_file}"
         done
     fi
+}
+
+apply_runtime_scene_profile() {
+    local cfg="exe/linux/localOptions.cfg"
+    local requested
+    local scene
+    local scene_count
+    local line
+    local config_scene
+    local tmp="${cfg}.scene-profile-tmp"
+
+    if [ -z "${SWG_START_PLANETS}" ]; then
+        echo "Using the complete startPlanet profile from ${cfg}."
+        return 0
+    fi
+    if [ ! -f "${cfg}" ]; then
+        echo "Scene profile target is missing: ${cfg}" >&2
+        return 1
+    fi
+
+    requested="${SWG_START_PLANETS//,/ }"
+    for scene in ${requested}; do
+        case "${scene}" in
+            *[!A-Za-z0-9_]*)
+                echo "Invalid scene name in SWG_START_PLANETS: ${scene}" >&2
+                return 1
+                ;;
+        esac
+        scene_count="$(tr -d '\r' < "${cfg}" | grep -Fxc "startPlanet=${scene}" || true)"
+        if [ "${scene_count}" -ne 1 ]; then
+            echo "Requested scene must occur exactly once in ${cfg}: ${scene}" >&2
+            return 1
+        fi
+    done
+
+    : > "${tmp}"
+    while IFS= read -r line || [ -n "${line}" ]; do
+        line="${line%$'\r'}"
+        case "${line}" in
+            startPlanet=*)
+                config_scene="${line#startPlanet=}"
+                case " ${requested} " in
+                    *" ${config_scene} "*) printf '%s\n' "${line}" >> "${tmp}" ;;
+                esac
+                ;;
+            *)
+                printf '%s\n' "${line}" >> "${tmp}"
+                ;;
+        esac
+    done < "${cfg}"
+    mv "${tmp}" "${cfg}"
+    echo "Applied local scene profile: $(printf '%s' "${requested}" | xargs)"
 }
 
 stage_client_asset_tree() {
@@ -547,9 +602,10 @@ init_server() {
     run_ant ${SWG_ANT_INIT_TARGETS}
     verify_server_architecture
     ensure_runtime_symlinks
-    write_runtime_network_config
     sync_runtime_config_files
+    write_runtime_network_config
     write_runtime_service_addresses
+    apply_runtime_scene_profile
     write_client_asset_tree_config
     write_local_properties false
     set_cluster_public_address
@@ -576,9 +632,10 @@ run_server() {
     else
         run_ant update_database
         run_ant update_configs
-        write_runtime_network_config
         sync_runtime_config_files
+        write_runtime_network_config
         write_runtime_service_addresses
+        apply_runtime_scene_profile
         write_client_asset_tree_config
         set_cluster_public_address
     fi

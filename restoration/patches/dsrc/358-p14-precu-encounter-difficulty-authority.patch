@@ -1,0 +1,423 @@
+diff --git a/sku.0/sys.server/compiled/game/script/ai/ai.java b/sku.0/sys.server/compiled/game/script/ai/ai.java
+index 3fb136b..5e6ad37 100644
+--- a/sku.0/sys.server/compiled/game/script/ai/ai.java
++++ b/sku.0/sys.server/compiled/game/script/ai/ai.java
+@@ -2209,7 +2209,7 @@ public class ai extends script.base_script
+             chat.chat(self, SID_NPC_MEATLUMP_SPEAK);
+             float searchSize = 12.0f;
+             obj_id mob = null;
+-            int mobLevel = getLevel(giver) - 2;
++            int mobLevel = Math.max(1, skill.getPrecuEncounterDifficulty(giver) - 2);
+             location currentLoc = getLocation(giver);
+             location locGoodLocation = locations.getGoodLocationAroundLocationAvoidCollidables(currentLoc, searchSize, searchSize, searchSize, searchSize, false, false, 6.0f);
+             if (locGoodLocation == null)
+diff --git a/sku.0/sys.server/compiled/game/script/library/missions.java b/sku.0/sys.server/compiled/game/script/library/missions.java
+index e4cb31f..af15a06 100644
+--- a/sku.0/sys.server/compiled/game/script/library/missions.java
++++ b/sku.0/sys.server/compiled/game/script/library/missions.java
+@@ -32,9 +32,9 @@ public class missions extends script.base_script
+     public static final int DAILY_MISSION_XP_HIGH = 19;
+     public static final String DAILY_MISSION_OBJVAR = "missions.daily";
+     public static final String DAILY_MISSION_CLOCK_OBJVAR = "missions.dailyClock";
+-    public static final String PRECU_SKILL_TABLE = "datatables/skill/skills.iff";
+-    public static final int PRECU_MISSION_COMBAT_SCORE_MAX = 90;
+-    public static final int PRECU_ADVANCED_COMBAT_SKILL_WEIGHT = 3;
++    public static final String PRECU_SKILL_TABLE = skill.TBL_SKILL;
++    public static final int PRECU_MISSION_COMBAT_SCORE_MAX = skill.PRECU_COMBAT_SKILL_SCORE_MAX;
++    public static final int PRECU_ADVANCED_COMBAT_SKILL_WEIGHT = skill.PRECU_ADVANCED_COMBAT_SKILL_WEIGHT;
+     public static final float PRECU_MISSION_MEMBER_REWARD_BONUS = 0.10f;
+     public static final String PRECU_MISSION_GROUP_SIZE = "precuMission.groupSize";
+     public static final String PRECU_MISSION_GROUP_COMBAT_SCORE = "precuMission.groupCombatScore";
+@@ -44,46 +44,15 @@ public class missions extends script.base_script
+     public static final string_id DAILY_REWARD_XP = new string_id("base_player", "prose_mission_xp_amount");
+     public static boolean isPrecuCombatSkillBox(String skillName) throws InterruptedException
+     {
+-        if (skillName == null || skillName.length() == 0 || skillName.indexOf("_prereq") >= 0)
+-        {
+-            return false;
+-        }
+-        return skillName.startsWith("combat_") || skillName.startsWith("outdoors_creaturehandler_") || skillName.startsWith("outdoors_squadleader_") || skillName.startsWith("force_discipline_");
++        return skill.isPrecuCombatSkillBox(skillName);
+     }
+     public static boolean isPrecuBaseCombatSkillBox(String skillName) throws InterruptedException
+     {
+-        return skillName != null && (skillName.startsWith("combat_brawler_") || skillName.startsWith("combat_marksman_"));
++        return skill.isPrecuBaseCombatSkillBox(skillName);
+     }
+     public static int getPrecuCombatSkillScore(obj_id player) throws InterruptedException
+     {
+-        if (!isIdValid(player) || !exists(player) || !player.isLoaded() || !isPlayer(player))
+-        {
+-            return 0;
+-        }
+-        String[] learnedSkills = getSkillListingForPlayer(player);
+-        if (learnedSkills == null || learnedSkills.length == 0)
+-        {
+-            return 0;
+-        }
+-        int score = 0;
+-        for (String learnedSkill : learnedSkills)
+-        {
+-            if (!isPrecuCombatSkillBox(learnedSkill))
+-            {
+-                continue;
+-            }
+-            int points = dataTableGetInt(PRECU_SKILL_TABLE, learnedSkill, "POINTS_REQUIRED");
+-            if (points <= 0)
+-            {
+-                continue;
+-            }
+-            if (!isPrecuBaseCombatSkillBox(learnedSkill))
+-            {
+-                points *= PRECU_ADVANCED_COMBAT_SKILL_WEIGHT;
+-            }
+-            score += points;
+-        }
+-        return Math.min(score, PRECU_MISSION_COMBAT_SCORE_MAX);
++        return skill.getPrecuCombatSkillScore(player);
+     }
+     public static dictionary getPrecuMissionGroupRating(obj_id player) throws InterruptedException
+     {
+@@ -241,30 +210,10 @@ public class missions extends script.base_script
+     }
+     public static float alterMissionPayoutDivisor(obj_id player, float divisor, int missionLevel) throws InterruptedException
+     {
+-        int playerLevel = getLevel(player);
+-        int levelDelta = Math.abs(missionLevel - playerLevel);
+-        divisor = alterMissionPayoutDivisorDaily(player, divisor);
+-        if (utils.isProfession(player, utils.ENTERTAINER))
+-        {
+-            divisor += 10.0f;
+-        }
+-        if (utils.isProfession(player, utils.TRADER))
+-        {
+-            divisor += 20.0f;
+-        }
+-        if (levelDelta >= 10)
+-        {
+-            divisor += (float)levelDelta / 2;
+-        }
+         return divisor;
+     }
+     public static float alterMissionPayoutDivisorDaily(obj_id player, float divisor) throws InterruptedException
+     {
+-        int missionsCompleted = getPlayerDailyCount(player);
+-        if (missionsCompleted > DAILY_MISSION_CASH_REWARD)
+-        {
+-            divisor += missionsCompleted;
+-        }
+         return divisor;
+     }
+     public static float alterMissionPayoutDivisorDaily(obj_id player) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+index ae4619c..bda1e48 100644
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -64,6 +64,8 @@ public class skill extends script.base_script
+     public static final string_id PROSE_BAD_SPECIES = new string_id("base_player", "prose_bad_species");
+     public static final String TBL_SKILL = "datatables/skill/skills.iff";
+     public static final int SKILL_POINT_CAP = 250;
++    public static final int PRECU_COMBAT_SKILL_SCORE_MAX = 90;
++    public static final int PRECU_ADVANCED_COMBAT_SKILL_WEIGHT = 3;
+     public static final String SKILL_N = "skl_n";
+     public static final String CONVOFILE = "skill_teacher";
+     public static final string_id PROSE_SKILL_LEARNED = new string_id(CONVOFILE, "prose_skill_learned");
+@@ -738,14 +740,89 @@ public class skill extends script.base_script
+         ret.put(DICT_DELTA_PERCENT, deltaPercent);
+         return ret;
+     }
+-    public static int getGroupLevel(obj_id objPlayer) throws InterruptedException
++    public static boolean isPrecuCombatSkillBox(String skillName) throws InterruptedException
++    {
++        if (skillName == null || skillName.length() == 0 || skillName.indexOf("_prereq") >= 0)
++        {
++            return false;
++        }
++        return skillName.startsWith("combat_") || skillName.startsWith("outdoors_creaturehandler_") || skillName.startsWith("outdoors_squadleader_") || skillName.startsWith("force_discipline_");
++    }
++    public static boolean isPrecuBaseCombatSkillBox(String skillName) throws InterruptedException
++    {
++        return skillName != null && (skillName.startsWith("combat_brawler_") || skillName.startsWith("combat_marksman_"));
++    }
++    public static int getPrecuCombatSkillScore(obj_id player) throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !player.isLoaded() || !isPlayer(player))
++        {
++            return 0;
++        }
++        String[] learnedSkills = getSkillListingForPlayer(player);
++        if (learnedSkills == null || learnedSkills.length == 0)
++        {
++            return 0;
++        }
++        int score = 0;
++        for (String learnedSkill : learnedSkills)
++        {
++            if (!isPrecuCombatSkillBox(learnedSkill))
++            {
++                continue;
++            }
++            int points = dataTableGetInt(TBL_SKILL, learnedSkill, "POINTS_REQUIRED");
++            if (points <= 0)
++            {
++                continue;
++            }
++            if (!isPrecuBaseCombatSkillBox(learnedSkill))
++            {
++                points *= PRECU_ADVANCED_COMBAT_SKILL_WEIGHT;
++            }
++            score += points;
++        }
++        return Math.min(score, PRECU_COMBAT_SKILL_SCORE_MAX);
++    }
++    public static int getPrecuEncounterDifficulty(obj_id player) throws InterruptedException
+     {
+-        obj_id objGroup = getGroupObject(objPlayer);
+-        if (isIdValid(objGroup))
++        return Math.max(1, getPrecuCombatSkillScore(player));
++    }
++    public static int getPrecuGroupCombatDifficulty(obj_id playerOrGroup) throws InterruptedException
++    {
++        obj_id groupId = group.isGroupObject(playerOrGroup) ? playerOrGroup : getGroupObject(playerOrGroup);
++        if (!isIdValid(groupId))
++        {
++            return getPrecuEncounterDifficulty(playerOrGroup);
++        }
++        obj_id[] members = getGroupMemberIds(groupId);
++        if (members == null || members.length == 0)
+         {
+-            return getGroupObjectLevel(objGroup);
++            return getPrecuEncounterDifficulty(playerOrGroup);
+         }
+-        return getLevel(objPlayer);
++        int highestScore = 0;
++        float groupDifficulty = 0.0f;
++        for (obj_id member : members)
++        {
++            if (!isIdValid(member) || !exists(member) || !member.isLoaded() || !isPlayer(member))
++            {
++                continue;
++            }
++            int memberScore = getPrecuCombatSkillScore(member);
++            if (memberScore > highestScore)
++            {
++                groupDifficulty += memberScore - highestScore + (highestScore / 5.0f);
++                highestScore = memberScore;
++            }
++            else
++            {
++                groupDifficulty += memberScore / 5.0f;
++            }
++        }
++        return Math.max(1, Math.round(groupDifficulty));
++    }
++    public static int getGroupLevel(obj_id objPlayer) throws InterruptedException
++    {
++        return getPrecuGroupCombatDifficulty(objPlayer);
+     }
+     public static void checkForJediAbility(obj_id objPlayer, String strSkill, int intDelay) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/quest/task/ground/spawn.java b/sku.0/sys.server/compiled/game/script/quest/task/ground/spawn.java
+index cc1e6e7..f73f0d1 100644
+--- a/sku.0/sys.server/compiled/game/script/quest/task/ground/spawn.java
++++ b/sku.0/sys.server/compiled/game/script/quest/task/ground/spawn.java
+@@ -156,8 +156,9 @@ public class spawn extends script.quest.task.ground.base_task
+             int creatureLevel = 0;
+             if (doAutoLeveling)
+             {
+-                int minLevel = Math.max(1, getLevel(player) - minLevelDifference);
+-                int maxLevel = Math.max(minLevel, getLevel(player) + maxLevelDifference);
++                int playerDifficulty = skill.getPrecuEncounterDifficulty(player);
++                int minLevel = Math.max(1, playerDifficulty - minLevelDifference);
++                int maxLevel = Math.max(minLevel, playerDifficulty + maxLevelDifference);
+                 creatureLevel = rand(minLevel, maxLevel);
+                 if (creatureLevel > 90)
+                 {
+diff --git a/sku.0/sys.server/compiled/game/script/quest/util/dynamic_mob_opponent.java b/sku.0/sys.server/compiled/game/script/quest/util/dynamic_mob_opponent.java
+index 0a13746..5bb8ce0 100644
+--- a/sku.0/sys.server/compiled/game/script/quest/util/dynamic_mob_opponent.java
++++ b/sku.0/sys.server/compiled/game/script/quest/util/dynamic_mob_opponent.java
+@@ -106,13 +106,13 @@ public class dynamic_mob_opponent extends script.base_script
+             CustomerServiceLog("quest", "dynamic_mob_opponent.OnAttach() FAILED to find player enemy.");
+             return SCRIPT_CONTINUE;
+         }
+-        int mobLevel = getLevel(playerEnemy);
++        int mobLevel = skill.getPrecuEncounterDifficulty(playerEnemy);
+         if (mobLevel <= 0)
+         {
+-            CustomerServiceLog("quest", "dynamic_mob_opponent.setDynamicDataOnMob() Player level was less than or equal to 0. Making Dynamic Mob level 5");
++            CustomerServiceLog("quest", "dynamic_mob_opponent.setDynamicDataOnMob() PRE-CU combat-skill difficulty was less than or equal to 0. Making Dynamic Mob level 5");
+             mobLevel = 5;
+         }
+-        CustomerServiceLog("quest", "dynamic_mob_opponent.setDynamicDataOnMob() Dynamic Mob level is now: " + mobLevel);
++        CustomerServiceLog("quest", "dynamic_mob_opponent.setDynamicDataOnMob() Dynamic Mob PRE-CU difficulty is now: " + mobLevel);
+         setObjVar(self, create.INITIALIZE_CREATURE_DO_NOT_SCALE_OBJVAR, 1);
+         String creatureName = getStringObjVar(self, "creature_type");
+         if (creatureName != null && creatureName.length() > 0)
+diff --git a/sku.0/sys.server/compiled/game/script/quest/utility/dynamic_spawn_off_quest_item.java b/sku.0/sys.server/compiled/game/script/quest/utility/dynamic_spawn_off_quest_item.java
+index 9e2c576..5938b74 100644
+--- a/sku.0/sys.server/compiled/game/script/quest/utility/dynamic_spawn_off_quest_item.java
++++ b/sku.0/sys.server/compiled/game/script/quest/utility/dynamic_spawn_off_quest_item.java
+@@ -3,6 +3,7 @@ package script.quest.utility;
+ import script.dictionary;
+ import script.library.attrib;
+ import script.library.create;
++import script.library.skill;
+ import script.library.utils;
+ import script.location;
+ import script.obj_id;
+@@ -53,10 +54,10 @@ public class dynamic_spawn_off_quest_item extends script.base_script
+             CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Creature spawn count var INVALID on object: " + self);
+             return SCRIPT_CONTINUE;
+         }
+-        int combatLevel = getLevel(player);
++        int combatLevel = skill.getPrecuEncounterDifficulty(player);
+         if (combatLevel < 0 || combatLevel > 90)
+         {
+-            CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Player " + player + " has a level that is invalid. Player level is: " + combatLevel + ". Aborting the camp defense.");
++            CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Player " + player + " has an invalid PRE-CU combat-skill difficulty: " + combatLevel + ". Aborting the camp defense.");
+             return SCRIPT_CONTINUE;
+         }
+         for (int i = 0; i < spawnCount; i++)
+@@ -68,14 +69,14 @@ public class dynamic_spawn_off_quest_item extends script.base_script
+                 CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob: " + mob + " could not be created!");
+                 return SCRIPT_CONTINUE;
+             }
+-            CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match player level");
++            CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match PRE-CU combat-skill difficulty");
+             setObjVar(mob, create.INITIALIZE_CREATURE_DO_NOT_SCALE_OBJVAR, 1);
+             dictionary creatureDict = utils.dataTableGetRow(CREATURE_TABLE, creatureName);
+             if (creatureDict != null)
+             {
+                 create.initializeCreature(mob, creatureName, creatureDict, combatLevel);
+             }
+-            CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match player level.");
++            CustomerServiceLog("quest", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match PRE-CU combat-skill difficulty.");
+             setInvulnerable(mob, false);
+             clearCondition(mob, CONDITION_CONVERSABLE);
+             setMovementRun(mob);
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
+index 4fb4d1a..a6c8f9e 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
+@@ -150,7 +150,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+                 }
+             }
+             int intBountyDifficulty = getBountyDifficulty(objPlayer);
+-            int intPlayerDifficulty = getLevel(objPlayer);
++            int intPlayerDifficulty = intLevel;
+             int pvpBountyCount = 0;
+             for (obj_id objMissionDatum : objMissionData) {
+                 cleanMissionObject(objMissionDatum);
+diff --git a/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java b/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java
+index 026b7c3..f26c13e 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java
+@@ -149,14 +149,7 @@ public class spawn_base extends script.base_script
+     }
+     public int getPlayerSpawnDiffibculty(obj_id objPlayer) throws InterruptedException
+     {
+-        if (!isIdValid(getGroupObject(objPlayer)))
+-        {
+-            return getLevel(objPlayer);
+-        }
+-        else 
+-        {
+-            return skill.getGroupLevel(objPlayer);
+-        }
++        return skill.getGroupLevel(objPlayer);
+     }
+     public obj_id createTemplate(location locSpawnLocation, dictionary params, obj_id objPlayer) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/treasure_map/base/treasure_map.java b/sku.0/sys.server/compiled/game/script/systems/treasure_map/base/treasure_map.java
+index 8460626..eb67cd9 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/treasure_map/base/treasure_map.java
++++ b/sku.0/sys.server/compiled/game/script/systems/treasure_map/base/treasure_map.java
+@@ -611,11 +611,11 @@ public class treasure_map extends script.base_script
+             sendSystemMessage(player, "The treasure map failed to set the group level.", null);
+             return false;
+         }
+-        int intPlayerLevel = getLevel(player);
++        int intPlayerLevel = skill.getPrecuEncounterDifficulty(player);
+         if (intPlayerLevel == -1 || intPlayerLevel == 0)
+         {
+-            CustomerServiceLog("treasureMap", "a treasure map failed to use the player's correct combat level. [ setPlayerGroupLevel() ]");
+-            sendSystemMessage(player, "The treasure map failed to retrieve your current level.", null);
++            CustomerServiceLog("treasureMap", "a treasure map failed to use the player's PRE-CU combat-skill difficulty. [ setPlayerGroupLevel() ]");
++            sendSystemMessage(player, "The treasure map failed to retrieve your combat-skill difficulty.", null);
+             intPlayerLevel = 5;
+             return false;
+         }
+@@ -645,7 +645,7 @@ public class treasure_map extends script.base_script
+                 if (dist > MIN_DISTANCE_TO_MAP_OWNER) {
+                     continue;
+                 }
+-                int groupMemberLevel = getLevel(groupOid);
++                int groupMemberLevel = skill.getPrecuEncounterDifficulty(groupOid);
+                 if (groupMemberLevel > intPlayerLevel) {
+                     intPlayerLevel = groupMemberLevel;
+                 }
+@@ -710,7 +710,7 @@ public class treasure_map extends script.base_script
+             {
+                 break;
+             }
+-            int playerNearLevel = getLevel(playersNear[i]);
++            int playerNearLevel = skill.getPrecuEncounterDifficulty(playersNear[i]);
+             if (playerNearLevel > intPlayerLevel)
+             {
+                 exploiterLevel = playerNearLevel;
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/meatlump/quest_shuttle_comlink.java b/sku.0/sys.server/compiled/game/script/theme_park/meatlump/quest_shuttle_comlink.java
+index 2109f22..1ee9c14 100644
+--- a/sku.0/sys.server/compiled/game/script/theme_park/meatlump/quest_shuttle_comlink.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/meatlump/quest_shuttle_comlink.java
+@@ -260,7 +260,7 @@ public class quest_shuttle_comlink extends script.base_script
+         }
+         blog("spawnEnemies - Creating empty resizable obj_id array");
+         Vector ragtags = null;
+-        int mobLevel = (getLevel(player) - MOB_LEVEL_HANDICAP);
++        int mobLevel = Math.max(1, skill.getPrecuEncounterDifficulty(player) - MOB_LEVEL_HANDICAP);
+         blog("spawnEnemies - Mob Level for all Spawns: " + mobLevel);
+         for (int i = 0; i < NORMAL_MOB_COUNT; i++)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/outbreak/dynamic_spawn_off_quest_item.java b/sku.0/sys.server/compiled/game/script/theme_park/outbreak/dynamic_spawn_off_quest_item.java
+index 038ab2a..2910fa8 100644
+--- a/sku.0/sys.server/compiled/game/script/theme_park/outbreak/dynamic_spawn_off_quest_item.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/outbreak/dynamic_spawn_off_quest_item.java
+@@ -3,6 +3,7 @@ package script.theme_park.outbreak;
+ import script.dictionary;
+ import script.library.attrib;
+ import script.library.create;
++import script.library.skill;
+ import script.library.utils;
+ import script.obj_id;
+ 
+@@ -53,10 +54,10 @@ public class dynamic_spawn_off_quest_item extends script.base_script
+             CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Creature spawn count var INVALID on object: " + self);
+             return SCRIPT_CONTINUE;
+         }
+-        int combatLevel = getLevel(player);
++        int combatLevel = skill.getPrecuEncounterDifficulty(player);
+         if (combatLevel < 0 || combatLevel > 90)
+         {
+-            CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Player " + player + " has a level that is invalid. Player level is: " + combatLevel + ". Aborting the camp defense.");
++            CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Player " + player + " has an invalid PRE-CU combat-skill difficulty: " + combatLevel + ". Aborting the camp defense.");
+             return SCRIPT_CONTINUE;
+         }
+         for (int i = 0; i < spawnCount; i++)
+@@ -67,14 +68,14 @@ public class dynamic_spawn_off_quest_item extends script.base_script
+                 CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob: " + mob + " could not be created!");
+                 return SCRIPT_CONTINUE;
+             }
+-            CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match player level");
++            CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match PRE-CU combat-skill difficulty");
+             setObjVar(mob, create.INITIALIZE_CREATURE_DO_NOT_SCALE_OBJVAR, 1);
+             dictionary creatureDict = utils.dataTableGetRow(CREATURE_TABLE, creatureName);
+             if (creatureDict != null)
+             {
+                 create.initializeCreature(mob, creatureName, creatureDict, combatLevel);
+             }
+-            CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match player level.");
++            CustomerServiceLog("outbreak_themepark", "dynamic_spawn_off_quest_item.handleQuestFlavorObject() Mob level is set to match PRE-CU combat-skill difficulty.");
+             setInvulnerable(mob, false);
+             clearCondition(mob, CONDITION_CONVERSABLE);
+             setMovementRun(mob);

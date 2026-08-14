@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-authored-healing-buff-authority",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "scope": "Remove active NGE expertise chance, duration, healing, target, reduction, HOT, and aggro authority from retained combat/healing actions while preserving authored action values, buff-table fallback durations, medical hate, PvP help, effects, lifecycle, and the silent non-damage healing-health buff path.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/HealDamageCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/HealWoundCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/QuickHealCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/HealEnhanceCommand.h"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 source tree contains no expertise authority.",
+      "Publish 14.1 medicine admission and recovery cadence use authored medicine properties plus healing_ability, combat_healing_ability, healing_injury_speed, healing_range_speed, and healing_wound_speed skill mods.",
+      "Publish 14.1 healing applies the medicine or command heal power directly to the selected HAM pool; it does not multiply that power through later profession expertise.",
+      "Retained expansion combat/healing actions therefore keep their authored action and buff-table values but may not consult later expertise chance, duration, heal, HOT, target, reduction, or aggro modifiers."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 3,
+    "historicalExecutableExpertiseReads": 12,
+    "remainingBoundedExpertiseReads": 0,
+    "remainingHealingExpertiseReads": 0,
+    "authoredDurationCallSites": 4,
+    "authoredDurationDefinitions": 1,
+    "authoredNonZeroDurationPreserved": true,
+    "buffTableFallbackDurationPreserved": true,
+    "combatAttackerAndDefenderBuffsPreserved": true,
+    "healingAttackerAndDefenderBuffsPreserved": true,
+    "baseHealAmountSource": "action_data.addedDamage",
+    "hotMaximumSource": "action_data.addedDamage",
+    "hotDurationSource": "action_data.dotDuration",
+    "hotTickSource": "action_data.dotIntensity",
+    "medicalHateFormula": "delta / HEALING_AGGRO_REDUCER",
+    "lifeSiphonFormula": "round(damage * percentToHeal)",
+    "precuSkillAndMedicineAuthorityPreserved": true,
+    "retainedEffectsAndLifecyclePreserved": true,
+    "healingHealthBuffObserverNotifies": false
+  },
+  "sourceFiles": {
+    "combat": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "combat": "afe1fdf9e37767bff9cde61faa31e109c79759e917a89b74d9d770ceea8b3dbb",
+      "healing": "c2a5c827e1755e61d4ff22b209d0445e01cec05a0ea44e34eda224849b8a6f66",
+      "buffHandler": "83acdb0173e3c543035961ea1a6a12bcc2090e1c5ef76cdcdeaacc8b4fd9e1d0"
+    },
+    "compiledClassSha256": {
+      "combat": "5da62de49cb70514f1a113e9d5b73e62b39c9f19f770751e34503ce30e16b123",
+      "healing": "6525d260ac14a31810be4b17f4a3bc331d6e5de52a083438192b672f248fc358",
+      "buff_handler": "9c307e2122e990fa0e4320502eb995940df111ca33c2fac8dde2d04ff41aab1d"
+    },
+    "sourceTest": "passed; 12 active expertise reads and the private chance gate are retired, all four combat/healing buff sites use one authored-duration helper, nonzero action duration wins, zero duration falls back to the buff table, and heal/HOT/hate/life-siphon sources remain authored",
+    "fullJavaCompile": "passed clean canonical compilation of 5717 Java sources into 5751 classes",
+    "fullServerBuild": "passed in the Docker work volume as part of the 708.8-second clean deployment from parent 26f5e73340004121a891238c0a78d9710288e8e8, direct dsrc ebaf48f8f434d18f0c9e0e655b81fc51244bda7d, and native src 1d891e3f7a543872a5518292a4efa6635129c651",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for combat.java, healing.java, and buff_handler.java against the read-only direct-source mount, including the camp-healing observer extension",
+    "bytecodeAudit": "passed; combat.class and healing.class retain authored-duration authority, healing.class contains the explicit source-aware damage-healing path, and buff_handler.class keeps its timed healing-health exclusion silent",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused authored-healing/buff source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-11",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "combat": 104774,
+      "healing": 104339,
+      "buff_handler": 139366
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 30,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, UnsatisfiedLink, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the active expertise chance/duration surface shared by retained combat and healing buffs plus all direct expertise healing, HOT, target, reduction, and medical-hate calculations in library/healing.java",
+    "preserved": "authored combat-data values, buff-table default durations, direct and over-time healing, medical hate, PvP help, defender/medic buffs, DOT resistance, life siphon, medical spam, particles, and existing PRE-CU medicine/skill authority",
+    "notClaimedComplete": "other combat expertise calculations, reverse engineering, armor, movement, performance compatibility, and content-specific expertise references remain subject to later reachability audits"
+  }
+}

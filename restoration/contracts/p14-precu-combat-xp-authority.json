@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-combat-xp-authority",
+  "status": "ready",
+  "scope": "Replace NGE player-level combat XP, group XP, mission XP, free-trial XP, tutorial-level XP, and collection-level XP authority with the pinned Publish 14.1 creature and weapon-skill model; close the complete OnCollectionSlotModified and OnCollectionServerFirst callback inventories while preserving later collection content through PRE-CU-safe reward adapters.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/bin/scripts/managers/player_manager.lua",
+      "MMOCoreORB/src/server/zone/objects/mission/MissionObjectiveImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 combat XP begins with the defeated AiAgent authored baseXp, not the attacking player's combat level.",
+      "XP is apportioned by weapon damage and capped per weapon XP type at min(25, private_<weapon>_combat_difficulty / 100 + 1) multiplied by 300.",
+      "A grouped combatant receives the configured fixed 1.2 XP multiplier; the reward is not divided by group size.",
+      "Normal terminal mission completion awards credits; weapon and combat_general XP come from defeated mission creatures rather than an NGE daily mission-level award.",
+      "The complete Java source tree contains two production collection callbacks and two unattached developer diagnostics. Production completion retains authored badges, items, quests, commands, quest signals, and JTL skill-tier rewards; ground profession-level collection XP remains inert and later-only skill modifiers remain filtered."
+    ]
+  },
+  "callbackInventory": {
+    "patterns": {
+      "serverFirst": "\\bpublic\\s+int\\s+OnCollectionServerFirst\\s*\\(",
+      "slotModified": "\\bpublic\\s+int\\s+OnCollectionSlotModified\\s*\\("
+    },
+    "canonicalRecord": "callbackKind|relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 4,
+    "sourceFiles": 2,
+    "productionHandlers": 2,
+    "dormantDeveloperHandlers": 2,
+    "serverFirstHandlers": 2,
+    "slotModifiedHandlers": 2,
+    "inventorySha256": "ac13ea5763cc5a4cb0a9d3ace47b4f7ca92a406b81707e141ce6c98a2dc95832",
+    "serverFirstInventorySha256": "bf64fdcfac9e7368f849ed49983dbadee3eec8a53151ee4929dee002a4b58f3f",
+    "slotModifiedInventorySha256": "ae2b4ad38e8c6fec97abb4c4f90dd24baae5b66695e28036a90055e9dadf5e95",
+    "sourceSetSha256": "d060c07697f78e8523aaa8c351a2c6700d4410a0d9e508d97e5d861cd2915abe",
+    "sourcePaths": [
+      "hnguyen/cwdm_test.java",
+      "player/player_collection.java"
+    ]
+  },
+  "expected": {
+    "creatureXpAuthority": "combat.intCombatXP authored from the PRE-CU creature combat profile, with creature-level stat_balance fallback only when the authored value is absent",
+    "playerLevelReadsOnClosedSurface": 0,
+    "aiLevelDifferenceScaling": false,
+    "aggressionXpSurcharge": false,
+    "weaponXpDifficultyCap": 25,
+    "xpPerDifficulty": 300,
+    "groupXpMultiplier": 1.2,
+    "groupSizeXpDivisor": false,
+    "dailyMissionXp": false,
+    "missionCreditPathPreserved": true,
+    "missionBoardPopulationPreserved": true,
+    "freeTrialCombatLevelCap": false,
+    "npeTutorialCombatLevelCap": false,
+    "groundCollectionProfessionLevelXp": false,
+    "spaceCollectionXpUnchanged": true,
+    "collectionCallbacks": 4,
+    "collectionProductionCallbacks": 2,
+    "collectionDormantDeveloperCallbacks": 2,
+    "collectionDormantDeveloperProductionAttachments": 0,
+    "collectionDormantDeveloperProgressionMutations": 0,
+    "collectionProductionRewardDispatches": 5,
+    "collectionServerFirstBadgeGrants": 1,
+    "retainedCollectionCommandRows": 4,
+    "retainedCollectionLaterSkillModifierRows": 5,
+    "groundCollectionXpAwardPaths": 0,
+    "spaceCollectionSkillTierXpPreserved": true
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/missions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/group.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/360-p14-precu-combat-xp-authority.patch",
+    "overlayPatchBytes": 25748,
+    "overlayPatchSha256": "2d5eb579d68075836c7f062047ffd40b0308bc2acef88eb7b00178e5278efd9c",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (4 Java sources, Java 8 target)",
+    "isolatedClassSha256": {
+      "script.library.xp": "c2f917c30d3ffe4dbc195c83ed075d2b66a41542cf320654c5fd67bf101268f4",
+      "script.library.missions": "a6fb92fec18e5f5039e1821bcfdd3c33441b3fa41823df302e461b0ccd714dc7",
+      "script.library.group": "19b22f235fcb906ca16608da02fef6c68c493f7436d90de32050d2ffd9e2d82c",
+      "script.systems.missions.base.mission_base": "51b4b68503d840757bf0a876087f8ffe84b2749cab6a176e503630f89659b8e4"
+    },
+    "sourceSha256": {
+      "script.library.xp": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a",
+      "script.library.missions": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d",
+      "script.library.group": "2613971b109c5d551407992fb8764fade87815f0f443536149664686b88eda16",
+      "script.systems.missions.base.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03"
+    },
+    "supportingSourceSha256": {
+      "hnguyen/cwdm_test.java": "4c1e4121337db392fcdda9c4a95dbd1e38406094296d711d2e042f8777818b3d",
+      "player/player_collection.java": "7f1dd39f010e4336824632dba6b64fc77f519c42bebf287ea8e1057425561e0d",
+      "library/collection.java": "a4da8b416f8aaed91e3c8953fb925a6525f6c421c269ff0254a48c2be5393172",
+      "datatables/collection/rewards.tab": "7f45166db045f0f93711d216dbfcdad1c42ae2d503aa2d35830d84ea0b3fa5ad"
+    },
+    "fullJavaCompile": "passed the canonical clean compilation of all 5,717 direct Java sources into 5,751 classes",
+    "compiledClassSha256": {
+      "script.library.xp": "96c9b0f4fbc669d91362945b8d1535665d138c495776d14feb4b8abed1c5eae8",
+      "script.library.missions": "52004bae659e91c7a7d52b8c3c6ee324f39611b01b24b5a29d23c00021a98372",
+      "script.library.group": "51554faf15b40d883ad834ee4dc40b135520e246f35f13e51b8a550cdc3e4e42",
+      "script.systems.missions.base.mission_base": "5745405b377914a98040e5baa5f62136fae45c8e109c42b50bc7942f4a11b985",
+      "script.library.collection": "1a4547dc23971a50f6cb10209e6a521737d0d3a1c13770ad86c9b7baade7e99c"
+    },
+    "compiledClassBytes": {
+      "script.library.xp": 52329,
+      "script.library.missions": 7421,
+      "script.library.group": 19665,
+      "script.systems.missions.base.mission_base": 10735,
+      "script.library.collection": 38521
+    },
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "1f193e74179c5d6d58e7a612019e3b9d787ae4c61e48d422bb8de66c2b24e7dc",
+    "serverBinaryBuildId": "9f13c412302d47679fcdb0eb1b504ecca4e23b12",
+    "deploymentProbe": "passed the 1,421.8-second canonical Deploy-PrecuServer exact zero-class Java/native build, cumulative artifact probe, controlled x64 restart, player-readiness probe, and live mapped-binary verification from parent e04741fa5564270376436487916095c5564dd90b",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "sourceMode": "direct dsrc/src branches mounted read-only; no host artifact or staging tree",
+    "startedAtUtc": "2026-08-11T03:40:43.480573272Z",
+    "state": "running healthy",
+    "clusterReadyCount": 1,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "deployedParentCommit": "e04741fa5564270376436487916095c5564dd90b",
+    "deployedDsrcCommit": "c7aa3324d2f0450848a8beea8a6e179b24559dfc",
+    "deployedSrcCommit": "c5698b7737d012ac3b75f6d37b170e3d0320781c",
+    "liveGameProcessPid": 395,
+    "liveBinaryInode": 12141727,
+    "liveBinaryBytes": 22561640,
+    "liveBinaryMapEntries": 2,
+    "coreProcesses": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "fatalExceptionSevereCount": 0,
+    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, Oracle-error, segmentation-fault, or core-dump matches",
+    "clientProcessId": 52252,
+    "clientProcessName": "Galaxies Reborn PRECU",
+    "clientResponsive": true,
+    "missionTerminalContinuity": "static mission-board/full-credit contract remains passed; collection progression now routes through PRE-CU-safe reward adapters"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "active ground combat XP seed, weapon-skill kill cap, group XP multiplier, daily mission XP, ground collection level XP, XP fly-text level gates, and the complete OnCollectionSlotModified/OnCollectionServerFirst callback inventories",
+    "notClaimedComplete": "other dormant later reward mechanics outside the separately closed loot-rarity and treasure-map authority remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

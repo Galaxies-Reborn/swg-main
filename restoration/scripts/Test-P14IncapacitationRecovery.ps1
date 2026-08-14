@@ -3,8 +3,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$SourceRoot,
 
-    [ValidateSet("Build", "Ready")]
-    [string]$Expectation = "Build"
+    [ValidateSet("Source", "Build", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -20,6 +20,12 @@ $contract =
         Join-Path $restorationRoot (
             [string]$manifest.contracts.
                 p14IncapacitationRecoveryLifecycle
+        )
+    ) -Raw | ConvertFrom-Json
+$nineAttributeContract =
+    Get-Content -LiteralPath (
+        Join-Path $restorationRoot (
+            [string]$manifest.contracts.p14NineAttributeRuntime
         )
     ) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
@@ -56,11 +62,42 @@ function Assert-Contract
     }
 }
 
+function Get-BracedBlock
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Signature
+    )
+
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $openBrace = $Text.IndexOf("{", $start, [StringComparison]::Ordinal)
+    if ($openBrace -lt 0) { return "" }
+    $depth = 0
+    for ($index = $openBrace; $index -lt $Text.Length; ++$index)
+    {
+        if ($Text[$index] -eq '{') { ++$depth }
+        elseif ($Text[$index] -eq '}')
+        {
+            --$depth
+            if ($depth -eq 0) { return $Text.Substring($start, $index - $start + 1) }
+        }
+    }
+    return ""
+}
+
 $pclib = Get-Content -LiteralPath $paths.playerLibrary -Raw
 $basePlayer = Get-Content -LiteralPath $paths.basePlayer -Raw
 $fixture = Get-Content -LiteralPath $paths.fixture -Raw
+$combatLibrary = Get-Content -LiteralPath $paths.combatLibrary -Raw
 
 Write-Host "Publish 14.1 incapacitation/recovery checks:"
+Assert-Contract -Condition (
+    @("implemented-build-pending", "ready") -contains [string]$contract.status -and
+    [string]$contract.runtimeContract.legacyCombatHealthRegenScriptVar -ceq
+        "fltNonCombatHealthRegen" -and
+    [string]$contract.runtimeContract.timerReadiness -match "incap.timeStamp") `
+    -Name "p14.incap.contract.status-and-regeneration-timer-dependency"
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq
         "b3f81c104acf9851def65bab5f0638e68a0cdede" -and
@@ -134,6 +171,45 @@ Assert-Contract -Condition (
         nativePostureCallbacksPreserved) `
     -Name "p14.incap.runtime.death-reset-and-native-recap-callback"
 
+$doCombatDebuffs = Get-BracedBlock -Text $combatLibrary `
+    -Signature "public static void doCombatDebuffs(obj_id self)"
+$clearCombatDebuffs = Get-BracedBlock -Text $combatLibrary `
+    -Signature "public static boolean clearCombatDebuffs(obj_id self)"
+$recapacitationDelay = Get-BracedBlock -Text $basePlayer `
+    -Signature "public int recapacitationDelay(obj_id self, dictionary params)"
+$staleVar = '"fltNonCombatHealthRegen"'
+$staleRemove = 'utils.removeScriptVar(self, "fltNonCombatHealthRegen");'
+Assert-Contract -Condition (
+    [regex]::Matches($combatLibrary, [regex]::Escape($staleVar)).Count -eq 2 -and
+    [regex]::Matches($combatLibrary, [regex]::Escape($staleRemove)).Count -eq 2 -and
+    -not [regex]::IsMatch($combatLibrary,
+        'setRegenRate\s*\([^;\r\n]*\bHEALTH\b|setScriptVar\s*\([^;\r\n]*"fltNonCombatHealthRegen"') -and
+    -not $combatLibrary.Contains("getHealthRegenRate(self)") -and
+    -not $combatLibrary.Contains('getFloatScriptVar(self, "fltNonCombatHealthRegen")')) `
+    -Name "p14.incap.regeneration.no-combat-health-override-writer"
+Assert-Contract -Condition (
+    [regex]::Matches($doCombatDebuffs, [regex]::Escape($staleRemove)).Count -eq 1 -and
+    [regex]::Matches($clearCombatDebuffs, [regex]::Escape($staleRemove)).Count -eq 1 -and
+    -not $doCombatDebuffs.Contains("hasScriptVar") -and
+    -not $clearCombatDebuffs.Contains("hasScriptVar") -and
+    $clearCombatDebuffs.Contains(
+        'return getGameTime() > utils.getIntScriptVar(self, "incap.timeStamp");')) `
+    -Name "p14.incap.regeneration.stale-var-remove-only-and-readiness-independent"
+$guardIndex = $recapacitationDelay.IndexOf(
+    '!utils.hasScriptVar(self, "incap.timeStamp")', [StringComparison]::Ordinal)
+$clearIndex = $recapacitationDelay.IndexOf(
+    'if (!combat.clearCombatDebuffs(self))', [StringComparison]::Ordinal)
+$recoverIndex = $recapacitationDelay.IndexOf(
+    'if (getAttrib(self, HEALTH) <= 0)', [StringComparison]::Ordinal)
+Assert-Contract -Condition (
+    $guardIndex -ge 0 -and $clearIndex -gt $guardIndex -and
+    $recapacitationDelay.Contains('params.getInt("recoveryTime")') -and
+    [regex]::IsMatch($recapacitationDelay,
+        'utils\.getIntScriptVar\s*\(\s*self,\s*"incap\.timeStamp"\s*\)') -and
+    $recapacitationDelay.Contains('"recapacitationDelay"') -and
+    $recoverIndex -gt $clearIndex) `
+    -Name "p14.incap.runtime.timestamp-guard-readiness-requeue-before-recovery"
+
 Assert-Contract -Condition (
     $fixture.Contains("PLAYER_OID = 44003778L") -and
     $fixture.Contains("PLAYER_STATION_ID = 91001") -and
@@ -147,16 +223,62 @@ Assert-Contract -Condition (
     $fixture.Contains("removeObjVar(player, ROOT)")) `
     -Name "p14.incap.fixture.identity-bound-three-pool-and-reversible"
 
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$combatHash = (Get-FileHash -LiteralPath $paths.combatLibrary -Algorithm SHA256).Hash.ToLowerInvariant()
 Assert-Contract -Condition (
-    [string]$contract.buildEvidence.result -ceq "passed" -and
-    [string]$contract.buildEvidence.sourceCommit -ceq
-        "b9e9986d6" -and
-    [string]$contract.buildEvidence.patchSha256 -ceq
-        "2452da7334a6220b60b1565ce7f08f858b3491ed4fef1474236cfdb36541de3c" -and
-    -not [string]::IsNullOrWhiteSpace(
-        [string]$contract.buildEvidence.compiledSha256.
-            "precu_incapacitation_recovery_fixture.class")) `
-    -Name "p14.incap.build.clean-java-evidence"
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.dsrcSourceCommit -and
+    $combatHash -ceq [string]$contract.buildEvidence.sourceSha256.combatLibrary) `
+    -Name "p14.incap.source.direct-pin-and-combat-library-hash"
+
+if ($Expectation -ceq "Source")
+{
+    Assert-Contract -Condition (
+        ([string]$contract.status -ceq "implemented-build-pending" -and
+            [string]$contract.buildEvidence.result -ceq "pending" -and
+            @($contract.requiredBeforeReady).Count -ge 1) -or
+        ([string]$contract.status -ceq "ready" -and
+            [string]$contract.buildEvidence.result -ceq "passed" -and
+            @($contract.requiredBeforeReady).Count -eq 0)) `
+        -Name "p14.incap.status.truthful-source-or-ready-transition"
+}
+else
+{
+    $delegated = $contract.buildEvidence.delegatedDeploymentEvidence
+    $delegatedArtifacts = @($delegated.authenticatedArtifacts | ForEach-Object { [string]$_ })
+    $expectedDelegatedArtifacts = @(
+        "combat.class",
+        "CreatureObject.cpp.o",
+        "libserverGame.a",
+        "SwgGameServer"
+    )
+    $nineCombatClass = $nineAttributeContract.buildEvidence.regenerationCompiledJavaArtifacts.artifacts."combat.class"
+    Assert-Contract -Condition (
+        [string]$delegated.contract -ceq "contracts/p14-nine-attribute-runtime.json" -and
+        [string]$delegated.expectation -ceq "Build" -and
+        ($delegatedArtifacts -join "`n") -ceq ($expectedDelegatedArtifacts -join "`n") -and
+        [bool]$delegated.includesExactLiveProcessAndPostStartLogAudit -and
+        [string]$delegated.result -ceq "passed" -and
+        [string]$contract.buildEvidence.currentCompiledSha256."combat.class" -ceq
+            [string]$nineCombatClass.sha256 -and
+        [string]$nineAttributeContract.buildEvidence.result -ceq "passed" -and
+        [string]$nineAttributeContract.runtimeEvidence.result -ceq "passed") `
+        -Name "p14.incap.build.exact-nine-attribute-deployment-delegation"
+
+    & (Join-Path $PSScriptRoot "Test-P14NineAttributeRuntime.ps1") `
+        -SourceRoot $SourceRoot `
+        -Expectation Build
+
+    Assert-Contract -Condition (
+        [string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$contract.buildEvidence.sourceWorkParity.result -ceq "passed" -and
+        [int]$contract.buildEvidence.sourceWorkParity.checkedFiles -eq 1 -and
+        [int]$contract.buildEvidence.sourceWorkParity.matchedFiles -eq 1 -and
+        [string]$contract.buildEvidence.currentCompiledSha256."combat.class" -match '^[a-f0-9]{64}$' -and
+        @($contract.requiredBeforeReady).Count -eq 0) `
+        -Name "p14.incap.build.current-java-and-deployment-evidence"
+}
 
 if ($Expectation -ceq "Ready")
 {

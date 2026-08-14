@@ -1,0 +1,1485 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/gcw.java b/sku.0/sys.server/compiled/game/script/library/gcw.java
+index 59f187d..715f26c 100644
+--- a/sku.0/sys.server/compiled/game/script/library/gcw.java
++++ b/sku.0/sys.server/compiled/game/script/library/gcw.java
+@@ -265,6 +265,13 @@ public class gcw extends script.base_script
+         // systems.battlefield implementation and faction-standing authority.
+         return true;
+     }
++    public static boolean isPostNgeFixedStaticBaseRetired()
++    {
++        // Chapter 2 added the fixed Corellia, Talus, and Naboo four-terminal
++        // control loop. PRE-CU retains player-placed faction headquarters,
++        // faction standing/rank, and open-world battlefields instead.
++        return true;
++    }
+     public static final String GCW_TUTORIAL_FLAG = "gcw_tutorial_flag.has_received_tutorial";
+     public static final String COLOR_REBELS = "\\" + colors_hex.COLOR_REBELS;
+     public static final String COLOR_IMPERIALS = "\\" + colors_hex.COLOR_IMPERIALS;
+@@ -845,15 +852,27 @@ public class gcw extends script.base_script
+     }
+     public static obj_id getPub30StaticBaseControllerId(obj_id subject) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return obj_id.NULL_ID;
++        }
+         return getFirstObjectWithScript(getLocation(trial.getTop(subject)), 500.0f, "systems.gcw.static_base.master");
+     }
+     public static int getPub30StaticBaseControllingFaction(obj_id subject) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return NO_CONTROL;
++        }
+         obj_id controller = getPub30StaticBaseControllerId(subject);
+         return getIntObjVar(controller, "gcw.static_base.base_status");
+     }
+     public static int getPub30StaticBaseTimeSinceLastCapture(obj_id subject) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return -1;
++        }
+         obj_id controller = getPub30StaticBaseControllerId(subject);
+         if (!hasObjVar(controller, "gcw.static_base.last_capture"))
+         {
+@@ -866,6 +885,10 @@ public class gcw extends script.base_script
+     }
+     public static void setPub30StaticBaseTimeSinceLastCapture(obj_id subject, int time) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
+         obj_id controller = getPub30StaticBaseControllerId(subject);
+         setObjVar(controller, "gcw.static_base.last_capture", time);
+     }
+@@ -875,6 +898,10 @@ public class gcw extends script.base_script
+     public static final int PHASE_2 = 14400;
+     public static int getPub30StaticBaseCapturePhase(obj_id subject) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return 0;
++        }
+         int lastCapture = getPub30StaticBaseTimeSinceLastCapture(subject);
+         if (lastCapture == -1)
+         {
+@@ -901,6 +928,10 @@ public class gcw extends script.base_script
+     }
+     public static int getPub30TimeToNextPhaseInt(obj_id subject) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return -1;
++        }
+         int lastCapture = getPub30StaticBaseTimeSinceLastCapture(subject);
+         int inPhase = getPub30StaticBaseCapturePhase(subject);
+         switch (inPhase)
+@@ -924,6 +955,10 @@ public class gcw extends script.base_script
+     }
+     public static int advancePub30StaticBaseCapturePhase(obj_id subject) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return 0;
++        }
+         int currentPhase = getPub30StaticBaseCapturePhase(subject);
+         if (currentPhase == 5)
+         {
+@@ -954,6 +989,10 @@ public class gcw extends script.base_script
+     }
+     public static int regressPub30StaticBaseCapturePhase(obj_id subject) throws InterruptedException
+     {
++        if (isPostNgeFixedStaticBaseRetired())
++        {
++            return 0;
++        }
+         int currentPhase = getPub30StaticBaseCapturePhase(subject);
+         if (currentPhase == 1)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_faction.java b/sku.0/sys.server/compiled/game/script/player/player_faction.java
+index 6f07016..f877b88 100644
+--- a/sku.0/sys.server/compiled/game/script/player/player_faction.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_faction.java
+@@ -16,8 +16,45 @@ public class player_faction extends script.base_script
+     public static final string_id SID_COVERT_TO_OVERT = new string_id("faction_recruiter", "covert_to_overt");
+     public static final string_id SID_OVERT_TO_COVERT = new string_id("faction_recruiter", "overt_to_covert");
+     public static final string_id SID_DUNGEON_NOCHANGE = new string_id("faction_recruiter", "dungeon_nochange");
+-    public static final String COLOR_REBELS = "\\" + colors_hex.COLOR_REBELS;
+-    public static final String COLOR_IMPERIALS = "\\" + colors_hex.COLOR_IMPERIALS;
++    public static final String COLOR_REBELS = "\\" + colors_hex.COLOR_REBELS;
++    public static final String COLOR_IMPERIALS = "\\" + colors_hex.COLOR_IMPERIALS;
++    public void cleanupRetiredFixedStaticBaseState(obj_id self) throws InterruptedException
++    {
++        if (!gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
++        String[] planets = {"corellia", "talus", "naboo"};
++        for (String planet : planets)
++        {
++            String waypointVar = "gcw.static_base.waypoint." + planet;
++            if (hasObjVar(self, waypointVar))
++            {
++                obj_id waypoint = getObjIdObjVar(self, waypointVar);
++                if (isIdValid(waypoint))
++                {
++                    destroyWaypointInDatapad(waypoint, self);
++                }
++                removeObjVar(self, waypointVar);
++            }
++        }
++        utils.removeScriptVarTree(self, "gcw.static_base");
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseState(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseState(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseState(self);
++        return SCRIPT_CONTINUE;
++    }
+     public int cmdPVP(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (factions.isInAdhocPvpArea(self))
+@@ -91,9 +128,14 @@ public class player_faction extends script.base_script
+     {
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnEnterRegion(obj_id self, String planet, String name) throws InterruptedException
+-    {
+-        if (name.startsWith("gcw_") && name.endsWith("_start"))
++    public int OnEnterRegion(obj_id self, String planet, String name) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseState(self);
++            return SCRIPT_CONTINUE;
++        }
++        if (name.startsWith("gcw_") && name.endsWith("_start"))
+         {
+             location baseLoc = new location();
+             baseLoc.area = planet;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/master.java b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/master.java
+index 7c7edbb..974d331 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/master.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/master.java
+@@ -1,6 +1,8 @@
+ package script.systems.gcw.static_base;
+ 
+-import script.obj_id;
++import script.obj_id;
++import script.library.gcw;
++import script.library.utils;
+ 
+ public class master extends script.base_script
+ {
+@@ -15,10 +17,32 @@ public class master extends script.base_script
+     public static final String VAR_MASTER = "gcw.static_base.master";
+     public static final String VAR_BASE_STATUS = "gcw.static_base.base_status";
+     public static final String VAR_BASE_LAST_CAPTURE = "gcw.static_base.last_capture";
+-    public static final String SCRIPT_VAR_VALIDATION = "gcw.static_base.validation";
+-    public static final String TABLE_TERMINAL_SPAWN = "datatables/gcw/static_base/terminal_spawn.iff";
+-    public int OnAttach(obj_id self) throws InterruptedException
+-    {
+-        return SCRIPT_CONTINUE;
+-    }
+-}
++    public static final String SCRIPT_VAR_VALIDATION = "gcw.static_base.validation";
++    public static final String TABLE_TERMINAL_SPAWN = "datatables/gcw/static_base/terminal_spawn.iff";
++    public void cleanupRetiredFixedStaticBase(obj_id self) throws InterruptedException
++    {
++        if (!gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
++        removeObjVar(self, "gcw.static_base");
++        removeObjVar(self, "scriptString");
++        utils.removeScriptVarTree(self, "gcw.static_base");
++        obj_id planet = getPlanetByName(getLocation(self).area);
++        if (isIdValid(planet))
++        {
++            utils.removeScriptVarTree(planet, "gcw.static_base");
++        }
++        detachScript(self, "systems.gcw.static_base.master");
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBase(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBase(self);
++        return SCRIPT_CONTINUE;
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_master.java b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_master.java
+index 73db671..888bec7 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_master.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_master.java
+@@ -1,8 +1,9 @@
+ package script.systems.gcw.static_base;
+ 
+ import script.dictionary;
+-import script.library.create;
+-import script.library.utils;
++import script.library.create;
++import script.library.gcw;
++import script.library.utils;
+ import script.location;
+ import script.obj_id;
+ import script.string_id;
+@@ -23,11 +24,54 @@ public class base_master extends script.base_script
+     public static final String VAR_BASE_STATUS = "gcw.static_base.base_status";
+     public static final String VAR_BASE_LAST_CAPTURE = "gcw.static_base.last_capture";
+     public static final String VAR_ACCESS_DELAY = "gcw.static_base.access_delay";
+-    public static final String SCRIPT_VAR_VALIDATION = "gcw.static_base.validation";
+-    public static final String TABLE_TERMINAL_SPAWN = "datatables/gcw/static_base/terminal_spawn.iff";
+-    public int OnAttach(obj_id self) throws InterruptedException
+-    {
+-        obj_id master = findMasterObject(self);
++    public static final String SCRIPT_VAR_VALIDATION = "gcw.static_base.validation";
++    public static final String TABLE_TERMINAL_SPAWN = "datatables/gcw/static_base/terminal_spawn.iff";
++    public void cleanupRetiredFixedStaticBase(obj_id self) throws InterruptedException
++    {
++        if (!gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
++        if (hasObjVar(self, VAR_TERMINAL_IDS))
++        {
++            obj_id[] terminals = getObjIdArrayObjVar(self, VAR_TERMINAL_IDS);
++            if (terminals != null)
++            {
++                for (obj_id terminal : terminals)
++                {
++                    if (!isIdValid(terminal))
++                    {
++                        continue;
++                    }
++                    if (terminal.isLoaded())
++                    {
++                        removePlanetaryMapLocation(terminal);
++                        destroyObject(terminal);
++                    }
++                    else
++                    {
++                        messageTo(terminal, "handleTerminalDestructionRequest", null, 0.0f, false);
++                    }
++                }
++            }
++        }
++        removeObjVar(self, "gcw.static_base");
++        utils.removeScriptVarTree(self, "gcw.static_base");
++        obj_id planet = getPlanetByName(getLocation(self).area);
++        if (isIdValid(planet))
++        {
++            utils.removeScriptVarTree(planet, "gcw.static_base");
++        }
++        detachScript(self, "systems.gcw.static_base.base_master");
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
++        obj_id master = findMasterObject(self);
+         if (!isIdValid(master))
+         {
+             dictionary d = new dictionary();
+@@ -40,9 +84,14 @@ public class base_master extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnInitialize(obj_id self) throws InterruptedException
+-    {
+-        obj_id master = findMasterObject(self);
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
++        obj_id master = findMasterObject(self);
+         if (!isIdValid(master))
+         {
+             dictionary d = new dictionary();
+@@ -55,8 +104,12 @@ public class base_master extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public obj_id findMasterObject(obj_id self) throws InterruptedException
+-    {
++    public obj_id findMasterObject(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return obj_id.NULL_ID;
++        }
+         obj_id[] objects = getObjectsInRange(getLocation(self), 100.0f);
+         if (objects == null || objects.length == 0)
+         {
+@@ -71,8 +124,13 @@ public class base_master extends script.base_script
+         }
+         return obj_id.NULL_ID;
+     }
+-    public void initializeBase(obj_id self, obj_id master) throws InterruptedException
+-    {
++    public void initializeBase(obj_id self, obj_id master) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return;
++        }
+         if (isIdValid(master))
+         {
+             setObjVar(self, VAR_MASTER, master);
+@@ -94,8 +152,13 @@ public class base_master extends script.base_script
+         }
+         messageTo(self, "handleTerminalSetup", null, 1.0f, false);
+     }
+-    public void beginTerminalSpawnSequence(obj_id self) throws InterruptedException
+-    {
++    public void beginTerminalSpawnSequence(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return;
++        }
+         float spawnTime = 10.0f;
+         if (hasObjVar(self, VAR_TERMINAL_IDS))
+         {
+@@ -104,8 +167,13 @@ public class base_master extends script.base_script
+         }
+         messageTo(self, "handleTerminalSpawnRequest", null, spawnTime, false);
+     }
+-    public void validateTerminals(obj_id self) throws InterruptedException
+-    {
++    public void validateTerminals(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return;
++        }
+         if (!hasObjVar(self, VAR_TERMINAL_IDS))
+         {
+             return;
+@@ -129,8 +197,13 @@ public class base_master extends script.base_script
+         utils.setScriptVar(self, SCRIPT_VAR_VALIDATION, validate);
+         messageTo(self, "handleTerminalValidation", null, 60.0f, false);
+     }
+-    public void destroyTerminals(obj_id self) throws InterruptedException
+-    {
++    public void destroyTerminals(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return;
++        }
+         if (!hasObjVar(self, VAR_TERMINAL_IDS))
+         {
+             return;
+@@ -150,8 +223,13 @@ public class base_master extends script.base_script
+             removeObjVar(self, VAR_TERMINAL_STATUS);
+         }
+     }
+-    public void testBaseStatusChange(obj_id self) throws InterruptedException
+-    {
++    public void testBaseStatusChange(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return;
++        }
+         int status = NO_CONTROL;
+         if (hasObjVar(self, VAR_BASE_STATUS))
+         {
+@@ -178,8 +256,13 @@ public class base_master extends script.base_script
+             beginBaseFactionSwitcheroo(self, testCase);
+         }
+     }
+-    public void beginBaseFactionSwitcheroo(obj_id self, int status) throws InterruptedException
+-    {
++    public void beginBaseFactionSwitcheroo(obj_id self, int status) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return;
++        }
+         setObjVar(self, VAR_BASE_STATUS, status);
+         setPlanetaryBaseStatus(self, status);
+         String faction = "imperial_";
+@@ -213,8 +296,13 @@ public class base_master extends script.base_script
+         messageTo(self, "handleBaseCleanupRequest", null, 0.0f, false);
+         messageTo(self, "handleBeginSpawnRequest", null, 2.0f, false);
+     }
+-    public int handleBaseInitializationRetry(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleBaseInitializationRetry(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
+         int tries = params.getInt("tries");
+         obj_id master = findMasterObject(self);
+         if (!isIdValid(master) && tries < 5)
+@@ -230,8 +318,13 @@ public class base_master extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleTerminalSetup(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleTerminalSetup(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
+         if (!hasObjVar(self, VAR_TERMINAL_IDS))
+         {
+             beginTerminalSpawnSequence(self);
+@@ -242,8 +335,13 @@ public class base_master extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleTerminalSpawnRequest(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleTerminalSpawnRequest(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
+         int status = NO_CONTROL;
+         if (hasObjVar(self, VAR_BASE_STATUS))
+         {
+@@ -300,8 +398,13 @@ public class base_master extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleTerminalValidationResponse(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleTerminalValidationResponse(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
+         int response = params.getInt("response");
+         int id = params.getInt("id");
+         int[] validate = utils.getIntArrayScriptVar(self, SCRIPT_VAR_VALIDATION);
+@@ -317,8 +420,13 @@ public class base_master extends script.base_script
+         utils.setScriptVar(self, SCRIPT_VAR_VALIDATION, validate);
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleTerminalValidation(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleTerminalValidation(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
+         int[] validate = utils.getIntArrayScriptVar(self, SCRIPT_VAR_VALIDATION);
+         if (validate == null || validate.length == 0)
+         {
+@@ -332,8 +440,13 @@ public class base_master extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleControlUpdate(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleControlUpdate(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBase(self);
++            return SCRIPT_CONTINUE;
++        }
+         int id = params.getInt("id");
+         int control = params.getInt("control");
+         int[] terminalStatus = null;
+@@ -375,8 +488,12 @@ public class base_master extends script.base_script
+         testBaseStatusChange(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public boolean setPlanetaryTerminalStatus(obj_id object, int[] terminalStatus) throws InterruptedException
+-    {
++    public boolean setPlanetaryTerminalStatus(obj_id object, int[] terminalStatus) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return false;
++        }
+         if (!isValidId(object))
+         {
+             return false;
+@@ -390,8 +507,12 @@ public class base_master extends script.base_script
+         }
+         return true;
+     }
+-    public boolean setPlanetaryBaseStatus(obj_id object, int baseStatus) throws InterruptedException
+-    {
++    public boolean setPlanetaryBaseStatus(obj_id object, int baseStatus) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return false;
++        }
+         if (!isValidId(object))
+         {
+             return false;
+@@ -405,8 +526,12 @@ public class base_master extends script.base_script
+         }
+         return true;
+     }
+-    public boolean setPlanetaryCaptureTime(obj_id object) throws InterruptedException
+-    {
++    public boolean setPlanetaryCaptureTime(obj_id object) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return false;
++        }
+         if (!isValidId(object))
+         {
+             return false;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_spawner.java b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_spawner.java
+index 7e648b7..f970c17 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_spawner.java
+@@ -2,8 +2,9 @@ package script.systems.gcw.static_base;
+ 
+ import script.dictionary;
+ import script.library.ai_lib;
+-import script.library.create;
+-import script.library.utils;
++import script.library.create;
++import script.library.gcw;
++import script.library.utils;
+ import script.location;
+ import script.obj_id;
+ import script.obj_var_list;
+@@ -18,20 +19,67 @@ public class base_spawner extends script.base_script
+     public static final String VAR_BASE_MASTER = "gcw.static_base.master";
+     public static final String VAR_BASE_STATUS = "gcw.static_base.base_status";
+     public static final int NO_CONTROL = 0;
+-    public static final int IMPERIAL_CONTROL = 1;
+-    public static final int REBEL_CONTROL = 2;
+-    public int OnAttach(obj_id self) throws InterruptedException
+-    {
+-        messageTo(self, "handleBeginSpawnRequest", null, 20.0f, false);
++    public static final int IMPERIAL_CONTROL = 1;
++    public static final int REBEL_CONTROL = 2;
++    public void cleanupRetiredFixedStaticBaseSpawns(obj_id self) throws InterruptedException
++    {
++        if (!gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
++        obj_var_list ovl = getObjVarList(self, SPAWNED_LIST);
++        if ((ovl != null) && (ovl.getNumItems() > 0))
++        {
++            int numItems = ovl.getNumItems();
++            for (int i = 0; i < numItems; i++)
++            {
++                obj_id spawned = getObjIdObjVar(self, SPAWNED + i);
++                if (!isIdValid(spawned))
++                {
++                    continue;
++                }
++                if (spawned.isLoaded())
++                {
++                    destroyObject(spawned);
++                }
++                else
++                {
++                    messageTo(spawned, "handleDestroyRequest", null, 0.0f, false);
++                }
++            }
++        }
++        removeObjVar(self, SPAWNED_LIST);
++        removeObjVar(self, "gcw.static_base");
++        utils.removeScriptVar(self, "spawnCounter");
++        detachScript(self, "systems.gcw.static_base.base_spawner");
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawns(self);
++            return SCRIPT_CONTINUE;
++        }
++        messageTo(self, "handleBeginSpawnRequest", null, 20.0f, false);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnInitialize(obj_id self) throws InterruptedException
+-    {
+-        messageTo(self, "handleBeginSpawnRequest", null, 20.0f, false);
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawns(self);
++            return SCRIPT_CONTINUE;
++        }
++        messageTo(self, "handleBeginSpawnRequest", null, 20.0f, false);
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleBeginSpawnRequest(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleBeginSpawnRequest(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawns(self);
++            return SCRIPT_CONTINUE;
++        }
+         location loc = getLocation(self);
+         String datatable = "datatables/gcw/static_base/base_spawn_" + loc.area + ".iff";
+         int numObjects = dataTableGetNumRows(datatable);
+@@ -54,8 +102,13 @@ public class base_spawner extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleBaseCleanupRequest(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleBaseCleanupRequest(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawns(self);
++            return SCRIPT_CONTINUE;
++        }
+         obj_var_list ovl = getObjVarList(self, SPAWNED_LIST);
+         obj_id[] objects = null;
+         if ((ovl != null) && (ovl.getNumItems() > 0))
+@@ -84,8 +137,13 @@ public class base_spawner extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleNpcDeath(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleNpcDeath(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawns(self);
++            return SCRIPT_CONTINUE;
++        }
+         int spawn_num = params.getInt("spawnNumber");
+         int obj_status = params.getInt("status");
+         obj_id spawn_obj = params.getObjId("spawnObj");
+@@ -106,8 +164,13 @@ public class base_spawner extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public void spawn(int x, String datatable, obj_id self) throws InterruptedException
+-    {
++    public void spawn(int x, String datatable, obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawns(self);
++            return;
++        }
+         if (!hasObjVar(self, VAR_BASE_STATUS))
+         {
+             return;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/spawned_object.java b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/spawned_object.java
+index 6014566..449d192 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/spawned_object.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/spawned_object.java
+@@ -1,16 +1,41 @@
+ package script.systems.gcw.static_base;
+ 
+-import script.dictionary;
+-import script.location;
++import script.dictionary;
++import script.library.gcw;
++import script.location;
+ import script.obj_id;
+ 
+ public class spawned_object extends script.base_script
+ {
+-    public spawned_object()
+-    {
+-    }
+-    public int OnIncapacitated(obj_id self, obj_id killer) throws InterruptedException
+-    {
++    public spawned_object()
++    {
++    }
++    public void cleanupRetiredFixedStaticBaseSpawn(obj_id self) throws InterruptedException
++    {
++        if (!gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
++        detachScript(self, "systems.gcw.static_base.spawned_object");
++        destroyObject(self);
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseSpawn(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseSpawn(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnIncapacitated(obj_id self, obj_id killer) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawn(self);
++            return SCRIPT_CONTINUE;
++        }
+         location loc = getLocation(self);
+         String datatable = "datatables/gcw/static_base/base_spawn_" + loc.area + ".iff";
+         obj_id master = getObjIdObjVar(self, "master");
+@@ -32,8 +57,13 @@ public class spawned_object extends script.base_script
+         messageTo(master, "handleNpcDeath", info, respawnTime, false);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnObjectDisabled(obj_id self, obj_id killer) throws InterruptedException
+-    {
++    public int OnObjectDisabled(obj_id self, obj_id killer) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseSpawn(self);
++            return SCRIPT_CONTINUE;
++        }
+         location loc = getLocation(self);
+         String datatable = "datatables/gcw/static_base/base_spawn_" + loc.area + ".iff";
+         obj_id master = getObjIdObjVar(self, "master");
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal.java b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal.java
+index 20f118f..9774357 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal.java
+@@ -30,27 +30,67 @@ public class control_terminal extends script.base_script
+     public static final String VAR_TERMINAL_ID = "gcw.static_base.terminal_id";
+     public static final String VAR_LAST_MESSAGE = "gcw.static_base.last_message";
+     public static final String VAR_ACCESS_DELAY = "gcw.static_base.access_delay";
+-    public static final String VAR_ICON_OBJECT = "gcw.static_base.icon_object";
+-    public static final String SCRIPT_VAR_CAPTURING = "gcw.static_base.control_terminal.capturing";
+-    public int OnAttach(obj_id self) throws InterruptedException
+-    {
+-        registerTerminalWithMap(self);
++    public static final String VAR_ICON_OBJECT = "gcw.static_base.icon_object";
++    public static final String SCRIPT_VAR_CAPTURING = "gcw.static_base.control_terminal.capturing";
++    public void cleanupRetiredFixedStaticBaseTerminal(obj_id self) throws InterruptedException
++    {
++        if (!gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
++        removePlanetaryMapLocation(self);
++        if (hasObjVar(self, VAR_ICON_OBJECT))
++        {
++            obj_id icon = getObjIdObjVar(self, VAR_ICON_OBJECT);
++            if (isIdValid(icon))
++            {
++                destroyObject(icon);
++            }
++        }
++        removeObjVar(self, "gcw.static_base");
++        utils.removeScriptVarTree(self, "gcw.static_base.control_terminal");
++        detachScript(self, "systems.gcw.static_base.control_terminal");
++        destroyObject(self);
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return SCRIPT_CONTINUE;
++        }
++        registerTerminalWithMap(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnInitialize(obj_id self) throws InterruptedException
+-    {
+-        registerTerminalWithMap(self);
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return SCRIPT_CONTINUE;
++        }
++        registerTerminalWithMap(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+-    {
++    public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return SCRIPT_OVERRIDE;
++        }
+         menu_info_data mid = mi.getMenuItemByType(menu_info_types.ITEM_USE);
+         mid.setLabel(SID_CONTROL_TERMINAL_MENU_USE);
+         mid.setServerNotify(true);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+-    {
++    public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return SCRIPT_OVERRIDE;
++        }
+         if (item == menu_info_types.ITEM_USE)
+         {
+             if (getDistance(self, player) > 3.0f)
+@@ -124,8 +164,13 @@ public class control_terminal extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public void startControlAttempt(obj_id self, obj_id player) throws InterruptedException
+-    {
++    public void startControlAttempt(obj_id self, obj_id player) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return;
++        }
+         int gameTime = getGameTime();
+         utils.setScriptVar(self, SCRIPT_VAR_CAPTURING, gameTime);
+         utils.setScriptVar(player, SCRIPT_VAR_CAPTURING, gameTime);
+@@ -141,8 +186,13 @@ public class control_terminal extends script.base_script
+         }
+         int pid = sui.smartCountdownTimerSUI(self, player, "gcwStaticBaseControlTerminal", SID_CONTROL_TERMINAL_SUI_PROMPT, 0, captureTime, "handleControlAttemptResults", 4.0f, flags);
+     }
+-    public void registerTerminalWithMap(obj_id self) throws InterruptedException
+-    {
++    public void registerTerminalWithMap(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return;
++        }
+         int terminalFaction = pvpGetAlignedFaction(self);
+         String color = "";
+         if (terminalFaction == (-615855020))
+@@ -158,8 +208,18 @@ public class control_terminal extends script.base_script
+         String sub_cat = "terminal_gcw_static_base";
+         addPlanetaryMapLocationIgnoreLocationCountLimits(self, name, (int)here.x, (int)here.z, planetary_map.CAT_TERMINAL, sub_cat, MLT_STATIC, planetary_map.NO_FLAG);
+     }
+-    public int handleControlAttemptResults(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleControlAttemptResults(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            obj_id player = params.getObjId("player");
++            if (isIdValid(player))
++            {
++                utils.removeScriptVarTree(player, "gcw.static_base.control_terminal");
++            }
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return SCRIPT_CONTINUE;
++        }
+         int pid = params.getInt("id");
+         obj_id player = params.getObjId("player");
+         if (!isIdValid(player))
+@@ -276,8 +336,13 @@ public class control_terminal extends script.base_script
+         registerTerminalWithMap(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleTerminalInitialization(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleTerminalInitialization(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return SCRIPT_CONTINUE;
++        }
+         obj_id master = params.getObjId("master");
+         int id = params.getInt("id");
+         int control = params.getInt("control");
+@@ -321,8 +386,13 @@ public class control_terminal extends script.base_script
+         registerTerminalWithMap(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleTerminalValidationRequest(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleTerminalValidationRequest(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseTerminal(self);
++            return SCRIPT_CONTINUE;
++        }
+         obj_id master = params.getObjId("master");
+         if (!isIdValid(master))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal_player.java b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal_player.java
+index f9580b8..51b006d 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal_player.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal_player.java
+@@ -1,7 +1,8 @@
+ package script.systems.gcw.static_base;
+ 
+-import script.dictionary;
+-import script.library.utils;
++import script.dictionary;
++import script.library.gcw;
++import script.library.utils;
+ import script.obj_id;
+ 
+ public class control_terminal_player extends script.base_script
+@@ -9,23 +10,57 @@ public class control_terminal_player extends script.base_script
+     public control_terminal_player()
+     {
+     }
+-    public static final String SCRIPT_VAR_ATTEMPT_ID = "gcw.static_base.control_terminal.attempt_id";
+-    public static final String SCRIPT_VAR_TERMINAL = "gcw.static_base.control_terminal.terminal";
+-    public int OnEnteredCombat(obj_id self) throws InterruptedException
+-    {
++    public static final String SCRIPT_VAR_ATTEMPT_ID = "gcw.static_base.control_terminal.attempt_id";
++    public static final String SCRIPT_VAR_TERMINAL = "gcw.static_base.control_terminal.terminal";
++    public void cleanupRetiredFixedStaticBaseCapture(obj_id self) throws InterruptedException
++    {
++        if (!gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            return;
++        }
++        utils.removeScriptVarTree(self, "gcw.static_base.control_terminal");
++        detachScript(self, "systems.gcw.static_base.control_terminal_player");
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseCapture(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseCapture(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnEnteredCombat(obj_id self) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseCapture(self);
++            return SCRIPT_CONTINUE;
++        }
+         cancelControlAttempt(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnLocomotionChanged(obj_id self, int newLocomotion, int oldLocomotion) throws InterruptedException
+-    {
++    public int OnLocomotionChanged(obj_id self, int newLocomotion, int oldLocomotion) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseCapture(self);
++            return SCRIPT_CONTINUE;
++        }
+         if (newLocomotion != LOCOMOTION_STANDING && newLocomotion != LOCOMOTION_KNEELING && newLocomotion != LOCOMOTION_PRONE)
+         {
+             cancelControlAttempt(self);
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnChangedPosture(obj_id self, int before, int after) throws InterruptedException
+-    {
++    public int OnChangedPosture(obj_id self, int before, int after) throws InterruptedException
++    {
++        if (gcw.isPostNgeFixedStaticBaseRetired())
++        {
++            cleanupRetiredFixedStaticBaseCapture(self);
++            return SCRIPT_CONTINUE;
++        }
+         if (after != POSTURE_UPRIGHT && after != POSTURE_CROUCHED && after != POSTURE_PRONE)
+         {
+             cancelControlAttempt(self);
+diff --git a/sku.0/sys.server/compiled/game/script/structure/municipal/starport.java b/sku.0/sys.server/compiled/game/script/structure/municipal/starport.java
+index eec8cbb..56be7b6 100644
+--- a/sku.0/sys.server/compiled/game/script/structure/municipal/starport.java
++++ b/sku.0/sys.server/compiled/game/script/structure/municipal/starport.java
+@@ -1,18 +1,39 @@
+ package script.structure.municipal;
+ 
+-import script.dictionary;
+-import script.library.player_structure;
++import script.dictionary;
++import script.library.gcw;
++import script.library.player_structure;
+ import script.library.travel;
+ import script.location;
+ import script.obj_id;
+ 
+ public class starport extends script.base_script
+ {
+-    public starport()
+-    {
+-    }
+-    public int OnAttach(obj_id self) throws InterruptedException
+-    {
++    public starport()
++    {
++    }
++    public boolean isRetiredFixedStaticBaseBeacon(obj_id self) throws InterruptedException
++    {
++        return gcw.isPostNgeFixedStaticBaseRetired() && "object/tangible/gcw/static_base/invisible_beacon.iff".equals(getTemplateName(self));
++    }
++    public void cleanupRetiredFixedStaticBaseBeacon(obj_id self) throws InterruptedException
++    {
++        if (!isRetiredFixedStaticBaseBeacon(self))
++        {
++            return;
++        }
++        travel.destroyBaseObjects(self);
++        travel.removeTravelPoint(self);
++        removeObjVar(self, travel.VAR_TRAVEL);
++        detachScript(self, "structure.municipal.starport");
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseBeacon(self))
++        {
++            cleanupRetiredFixedStaticBaseBeacon(self);
++            return SCRIPT_CONTINUE;
++        }
+         LOG("LOG_CHANNEL", "starport::OnAttach -- " + self);
+         if (player_structure.isCivic(self))
+         {
+@@ -27,8 +48,13 @@ public class starport extends script.base_script
+         travel.removeTravelPoint(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnInitialize(obj_id self) throws InterruptedException
+-    {
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseBeacon(self))
++        {
++            cleanupRetiredFixedStaticBaseBeacon(self);
++            return SCRIPT_CONTINUE;
++        }
+         LOG("LOG_CHANNEL", "starport::OnIntialize -- " + self);
+         if (player_structure.isCivic(self))
+         {
+@@ -57,8 +83,13 @@ public class starport extends script.base_script
+         travel.destroyBaseObjects(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int msgArrivalLocation(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int msgArrivalLocation(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseBeacon(self))
++        {
++            cleanupRetiredFixedStaticBaseBeacon(self);
++            return SCRIPT_CONTINUE;
++        }
+         LOG("LOG_CHANNEL", "starport::msgArrivalLocation -- " + self + "  " + params);
+         location loc = travel.getArrivalLocation(self);
+         obj_id player = params.getObjId("player");
+@@ -67,8 +98,13 @@ public class starport extends script.base_script
+         messageTo(player, "msgTravelToStarport", params, 0.0f, true);
+         return SCRIPT_CONTINUE;
+     }
+-    public int msgRestartShuttle(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int msgRestartShuttle(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseBeacon(self))
++        {
++            cleanupRetiredFixedStaticBaseBeacon(self);
++            return SCRIPT_CONTINUE;
++        }
+         LOG("LOG_CHANNEL", "starport::msgRestartShuttle -- " + self);
+         obj_id shuttle = params.getObjId("shuttle");
+         if (shuttle == null || shuttle == obj_id.NULL_ID)
+@@ -86,8 +122,13 @@ public class starport extends script.base_script
+         LOG("LOG_CHANNEL", "starport::msgRestartShuttle -- sending message to " + shuttle);
+         return SCRIPT_CONTINUE;
+     }
+-    public int retryInitializeStarport(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int retryInitializeStarport(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseBeacon(self))
++        {
++            cleanupRetiredFixedStaticBaseBeacon(self);
++            return SCRIPT_CONTINUE;
++        }
+         String planet = getCurrentSceneName();
+         String travel_point = travel.getTravelPointName(self);
+         if ((planet != null) && (travel_point != null))
+@@ -112,8 +153,13 @@ public class starport extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public void doInitializeStarport(obj_id self) throws InterruptedException
+-    {
++    public void doInitializeStarport(obj_id self) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseBeacon(self))
++        {
++            cleanupRetiredFixedStaticBaseBeacon(self);
++            return;
++        }
+         if (player_structure.isCivic(self))
+         {
+             return;
+diff --git a/sku.0/sys.server/compiled/game/script/structure/municipal/cloning_facility.java b/sku.0/sys.server/compiled/game/script/structure/municipal/cloning_facility.java
+index 64b4f5e..7c60484 100644
+--- a/sku.0/sys.server/compiled/game/script/structure/municipal/cloning_facility.java
++++ b/sku.0/sys.server/compiled/game/script/structure/municipal/cloning_facility.java
+@@ -1,7 +1,8 @@
+ package script.structure.municipal;
+ 
+-import script.dictionary;
+-import script.library.create;
++import script.dictionary;
++import script.library.create;
++import script.library.gcw;
+ import script.library.player_structure;
+ import script.library.structure;
+ import script.library.utils;
+@@ -15,10 +16,29 @@ public class cloning_facility extends script.structure.municipal.cloning_base
+     public cloning_facility()
+     {
+     }
+-    public static final String SCRIPT_CLONING_FACILITY = "structure.municipal.cloning_facility";
+-    public static final String DATATABLE_TERMINAL_LIST = "datatables/structure/municipal/cloning_facility_terminal.iff";
+-    public int OnInitialize(obj_id self) throws InterruptedException
+-    {
++    public static final String SCRIPT_CLONING_FACILITY = "structure.municipal.cloning_facility";
++    public static final String DATATABLE_TERMINAL_LIST = "datatables/structure/municipal/cloning_facility_terminal.iff";
++    public boolean isRetiredFixedStaticBaseCloner(obj_id self) throws InterruptedException
++    {
++        String template = getTemplateName(self);
++        return gcw.isPostNgeFixedStaticBaseRetired() && template != null && template.startsWith("object/tangible/gcw/static_base/invisible_cloner_");
++    }
++    public void cleanupRetiredFixedStaticBaseCloner(obj_id self) throws InterruptedException
++    {
++        if (!isRetiredFixedStaticBaseCloner(self))
++        {
++            return;
++        }
++        structure.destroyStructureTerminals(self);
++        detachScript(self, SCRIPT_CLONING_FACILITY);
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseCloner(self))
++        {
++            cleanupRetiredFixedStaticBaseCloner(self);
++            return SCRIPT_CONTINUE;
++        }
+         messageTo(self, "handleTerminalSpawning", null, 5.0f, false);
+         return super.OnInitialize(self);
+     }
+@@ -33,8 +53,13 @@ public class cloning_facility extends script.structure.municipal.cloning_base
+         }
+         return super.OnDetach(self);
+     }
+-    public int handleTerminalSpawning(obj_id self, dictionary params) throws InterruptedException
+-    {
++    public int handleTerminalSpawning(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseCloner(self))
++        {
++            cleanupRetiredFixedStaticBaseCloner(self);
++            return SCRIPT_CONTINUE;
++        }
+         createCloningDroid(self);
+         if (!player_structure.isCivic(self))
+         {
+@@ -42,8 +67,13 @@ public class cloning_facility extends script.structure.municipal.cloning_base
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public void createCloningDroid(obj_id facility) throws InterruptedException
+-    {
++    public void createCloningDroid(obj_id facility) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseCloner(facility))
++        {
++            cleanupRetiredFixedStaticBaseCloner(facility);
++            return;
++        }
+         if (!isIdValid(facility))
+         {
+             return;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/collections/consume_click.java b/sku.0/sys.server/compiled/game/script/systems/collections/consume_click.java
+index c884534..498415f 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/collections/consume_click.java
++++ b/sku.0/sys.server/compiled/game/script/systems/collections/consume_click.java
+@@ -29,10 +29,39 @@ public class consume_click extends script.base_script
+     public static final string_id SID_NOT_CLOSE_ENOUGH = new string_id("collection", "not_close_enough");
+     public static final string_id SID_INVIS_COLLECTION_FAIL = new string_id("collection", "invis_collection_failed");
+     public static final string_id SID_CONTROL_ACCESS_DELAY = new string_id("collection", "access_delay");
+-    public static final string_id SID_GCW_SENSITIVE_DATA = new string_id("collection", "gcw_sensitive_data");
+-    public static final string_id SID_GCW_NO_DATA = new string_id("collection", "gcw_no_data");
+-    public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+-    {
++    public static final string_id SID_GCW_SENSITIVE_DATA = new string_id("collection", "gcw_sensitive_data");
++    public static final string_id SID_GCW_NO_DATA = new string_id("collection", "gcw_no_data");
++    public boolean isRetiredFixedStaticBaseCollection(obj_id self) throws InterruptedException
++    {
++        String template = getTemplateName(self);
++        return gcw.isPostNgeFixedStaticBaseRetired() && template != null && template.startsWith("object/tangible/collection/col_gcw_static_base_");
++    }
++    public void cleanupRetiredFixedStaticBaseCollection(obj_id self) throws InterruptedException
++    {
++        if (!isRetiredFixedStaticBaseCollection(self))
++        {
++            return;
++        }
++        utils.removeScriptVarTree(self, "collection.gcw");
++        detachScript(self, "systems.collections.consume_click");
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseCollection(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        cleanupRetiredFixedStaticBaseCollection(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseCollection(self))
++        {
++            cleanupRetiredFixedStaticBaseCollection(self);
++            return SCRIPT_OVERRIDE;
++        }
+         obj_id collectionItem = self;
+         if (hasObjVar(collectionItem, "useStringFile") && hasObjVar(collectionItem, "useMenu"))
+         {
+@@ -53,8 +82,13 @@ public class consume_click extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+-    {
++    public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
++    {
++        if (isRetiredFixedStaticBaseCollection(self))
++        {
++            cleanupRetiredFixedStaticBaseCollection(self);
++            return SCRIPT_OVERRIDE;
++        }
+         sendDirtyObjectMenuNotification(self);
+         obj_id collectionItem = self;
+         if (item != menu_info_types.ITEM_USE)
+diff --git a/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_7_2.tab b/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_7_2.tab
+index d8b189a..e2e7684 100644
+--- a/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_7_2.tab
++++ b/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_7_2.tab
+@@ -12,12 +12,12 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -2012640168	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	656.659	95	947.15	0.935897	0	-0.352274	0		$|
+ -2006678790	0	object/static/structure/corellia/corl_power_transformer_s02.iff	0	621.769	95	909.966	0	0	1	0		$|
+ -1971701422	0	object/static/structure/general/banner_imperial_style_01.iff	0	152.101	257	1201.78	-0.317883	0	0.94813	0		$|
+--1950861366	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1189.5	27	519.984	1	0	0	0	structure.municipal.starport	travel.air_time|0|60|travel.arrival_location|8|5285.500000 27.000000 -5624.016113 corellia 0|travel.cost|0|100|travel.ground_time|0|300|travel.is_shuttleport|0|1|travel.point_name|4|@gcw:gcwstaticbaserebel|travel.shuttle_available|0|1|travel.shuttle_timestamp|0|3128960|travel.version|0|3|$|
++-1950861366	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1189.5	27	519.984	1	0	0	0		$|
+ -1946318867	0	object/static/structure/corellia/corl_power_transformer_s02.iff	0	707.768	95	911.989	0	0	1	0		$|
+ -1917885504	0	object/static/structure/general/allum_mine_device_s01.iff	0	154.149	257	1208.03	0.0691484	0	0.997606	0		$|
+ -1905578960	0	object/static/structure/corellia/corl_power_transformer_s02.iff	0	629.313	95	901.942	0	0	1	0		$|
+ -1867558853	0	object/static/item/item_newbie_crate.iff	0	157.279	257	1193.94	0.99995	0	-0.00999985	0		$|
+--1861947162	0	object/tangible/gcw/static_base/invisible_cloner_imperial.iff	0	155.598	257	1198.01	1	0	0	0	structure.municipal.cloning_facility	$|
++-1861947162	0	object/tangible/gcw/static_base/invisible_cloner_imperial.iff	0	155.598	257	1198.01	1	0	0	0		$|
+ -1811465590	0	object/static/structure/general/allum_mine_bucket_s01.iff	0	140.347	258.105	1193.15	0	1	0	0		$|
+ -1802108515	0	object/static/structure/corellia/corl_power_transformer_s01.iff	0	652.031	95	884.061	1	0	0	0		$|
+ -1792154858	0	object/static/structure/general/banner_rebel_style_01.iff	0	1197.66	27	529.59	0.818328	0	-0.574752	0		$|
+@@ -34,12 +34,12 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1718403563	-1718403569	object/cell/cell.iff	6	0	0	0	1	0	0	0		$|
+ -1716756144	0	object/static/structure/military/military_wall_med_imperial_style_01.iff	0	652.88	95	939.006	0.910381	0	0.413772	0		$|
+ -1705820204	0	object/static/item/item_container_weapon.iff	0	1198.06	26.9994	511.558	0.972514	0	0.232843	0		$|
+--1704050194	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	146.376	257	1193.36	1	0	0	0	structure.municipal.starport	travel.air_time|0|60|travel.arrival_location|8|4242.375977 257.000000 -4950.640137 corellia 0|travel.cost|0|100|travel.ground_time|0|300|travel.is_shuttleport|0|1|travel.point_name|4|@gcw:gcwstaticbaseimperial|travel.shuttle_available|0|1|travel.shuttle_timestamp|0|3128955|travel.version|0|3|$|
++-1704050194	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	146.376	257	1193.36	1	0	0	0		$|
+ -1675635876	0	object/static/item/item_container_weapon.iff	0	1196.38	26.9997	511.842	1	0	0	0		$|
+ -1654418136	0	object/static/installation/mockup_power_generator_wind_style_1.iff	0	655.28	95	871.878	1	0	0	0		$|
+ -1637454221	0	object/static/installation/mockup_power_generator_photo_bio_style_1.iff	0	637.926	95	880.555	-0.492535	0	0.870293	0		$|
+ -1616146489	0	object/static/installation/mockup_clothing_factory_style_1.iff	0	677.721	95	862.23	0.703846	0	0.710353	0		$|
+--1583793873	0	object/tangible/theme_park/invisible_object.iff	0	650.227	95	904.128	0.707107	0	0.707107	0	theme_park.controller_initialize	scriptString|4|systems.gcw.static_base.master|$|
++-1583793873	0	object/tangible/theme_park/invisible_object.iff	0	650.227	95	904.128	0.707107	0	0.707107	0		$|
+ -1572604010	0	object/static/structure/military/bunker_crate_style_01.iff	0	720.808	95	954.188	0.274144	0	0.961689	0		$|
+ -1572488288	0	object/static/structure/general/camp_lawn_chair_s01.iff	0	1194.72	27	511.592	0.852525	0	-0.522687	0		$|
+ -1549519217	0	object/static/structure/military/military_wall_med_imperial_style_01.iff	0	701.188	95	941.9	0.384073	0	0.923303	0		$|
+@@ -75,12 +75,12 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1071820416	0	object/static/structure/military/military_wall_strong_rebl_style_01.iff	0	1212.49	28.2139	514.824	0.394751	0	0.918788	0		$|
+ -1063560347	0	object/static/structure/military/bunker_crate_style_01.iff	0	1202.37	27	528.633	-0.536088	0	0.844162	0		$|
+ -1062259078	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	655.468	95	935.755	0.351529	0	0.936177	0		$|
+--1043449019	0	object/tangible/gcw/static_base/invisible_cloner_rebel.iff	0	1195.34	27	525.299	1	0	0	0	structure.municipal.cloning_facility	$|
++-1043449019	0	object/tangible/gcw/static_base/invisible_cloner_rebel.iff	0	1195.34	27	525.299	1	0	0	0		$|
+ -1032556018	0	object/static/installation/mockup_power_generator_wind_style_1.iff	0	717.1	95	900.981	1	0	0	0		$|
+ -974793491	0	object/static/structure/corellia/corl_power_connector.iff	0	625.83	98.159	901.947	0	0	1	0		$|
+ -916178094	0	object/static/structure/general/cloning_tube.iff	0	1200.87	27	531.524	-0.536088	0	0.844162	0		$|
+ -900208700	0	object/static/item/eqp_camping_pavilion_s1.iff	0	154.409	258.23	1206.5	-0.656519	0	0.754309	0		$|
+--899991077	0	object/building/general/bunker_corellia_warehouse.iff	0	650.227	95	904.128	0.707107	0	0.707107	0	systems.gcw.static_base.base_master:systems.gcw.static_base.base_spawner	gcw.static_base.master|6|12785410|gcw.static_base.terminal_ids|7|30566692:30566696:30566700:30566704:|gcw.static_base.terminal_status|1|0:0:0:0:|portalProperty.crc|0|1682376097|$|
++-899991077	0	object/building/general/bunker_corellia_warehouse.iff	0	650.227	95	904.128	0.707107	0	0.707107	0		portalProperty.crc|0|1682376097|$|
+ -899991076	-899991077	object/cell/cell.iff	1	0	0	0	1	0	0	0		$|
+ -899991075	-899991077	object/cell/cell.iff	2	0	0	0	1	0	0	0		$|
+ -899991074	-899991077	object/cell/cell.iff	3	0	0	0	1	0	0	0		$|
+@@ -90,7 +90,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -899991070	-899991077	object/cell/cell.iff	7	0	0	0	1	0	0	0		$|
+ -899991069	-899991077	object/cell/cell.iff	8	0	0	0	1	0	0	0		$|
+ -899991068	-899991077	object/cell/cell.iff	9	0	0	0	1	0	0	0		$|
+--485623403	-899991068	object/tangible/collection/col_gcw_static_base_corellia.iff	9	-9.27238	-12.8678	-11.6179	0.632056	0	0.774923	0	systems.collections.consume_click	collection.gcw_control_check|4|1|collection.slotName|4|col_gcw_insurgency:col_gcw_insurgency_corellia|$|
++-485623403	-899991068	object/tangible/collection/col_gcw_static_base_corellia.iff	9	-9.27238	-12.8678	-11.6179	0.632056	0	0.774923	0		$|
+ -895412169	0	object/building/military/military_base_gate_house_imperial.iff	0	714.094	95	856.416	0.382683	0	0.92388	0		$|
+ -891239130	0	object/static/structure/military/bunker_crate_style_01.iff	0	727.344	95	949.04	0.382683	0	0.92388	0		$|
+ -863465517	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	709.579	95	938.708	0.924909	0	0.380188	0		$|
+diff --git a/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_2_3.tab b/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_2_3.tab
+index dfd102a..33f72bf 100644
+--- a/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_2_3.tab
++++ b/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_2_3.tab
+@@ -13,7 +13,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -2088573624	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1194.68	66.0138	1009.52	0.0115046	0	0.999934	0		$|
+ -2086123377	0	object/static/structure/general/cloning_tube.iff	0	1040.55	50	598.707	0.847255	0	-0.531186	0		$|
+ -2077916246	0	object/static/item/item_container_inorganic_minerals.iff	0	1036.14	50	612.282	-0.207681	0	0.978197	0		$|
+--2064109315	0	object/tangible/gcw/static_base/invisible_cloner_rebel.iff	0	1031.73	50	599.671	1	0	0	0	structure.municipal.cloning_facility	$|
++-2064109315	0	object/tangible/gcw/static_base/invisible_cloner_rebel.iff	0	1031.73	50	599.671	1	0	0	0		$|
+ -2064094108	0	object/static/structure/corellia/corl_power_connector.iff	0	1173.8	69.159	997.526	1	0	0	0		$|
+ -2060848964	0	object/static/structure/corellia/corl_power_transformer_s02.iff	0	1182.33	66	960.748	1	0	0	0		$|
+ -2054867437	0	object/static/structure/military/military_wall_med_imperial_32_style_01.iff	0	1498.72	18.5912	878.79	0.430817	0	0.902439	0		$|
+@@ -32,7 +32,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1962561905	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1509.12	18.6014	891.641	0.942755	0	0.333487	0		$|
+ -1956968294	0	object/tangible/ground_spawning/patrol_waypoint.iff	0	1553.54	19.0494	873.648	1	0	0	0	systems.spawning.patrol_point_setup	ignoreInBuildoutArray|0|1|pointName|4|talus_lag_enf_srgt_pat_gs1_11356743_14|registerWithController|0|1|$|
+ -1931692047	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1363.72	88.0806	1431.85	0.932328	0	0.361615	0		$|
+--1916708911	0	object/building/general/corellia_gcw_bunker.iff	0	1185.92	66	971.83	0.707107	0	0.707107	0	systems.gcw.static_base.base_master:systems.gcw.static_base.base_spawner	gcw.static_base.master|6|11900201|gcw.static_base.terminal_ids|7|30484620:30484624:30484628:30484632:|gcw.static_base.terminal_status|1|0:0:0:0:|portalProperty.crc|0|-2111613717|$|
++-1916708911	0	object/building/general/corellia_gcw_bunker.iff	0	1185.92	66	971.83	0.707107	0	0.707107	0		portalProperty.crc|0|-2111613717|$|
+ -1916708910	-1916708911	object/cell/cell.iff	1	0	0	0	1	0	0	0		$|
+ -1916708909	-1916708911	object/cell/cell.iff	2	0	0	0	1	0	0	0		$|
+ -1916708908	-1916708911	object/cell/cell.iff	3	0	0	0	1	0	0	0		$|
+@@ -42,7 +42,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1916708904	-1916708911	object/cell/cell.iff	7	0	0	0	1	0	0	0		$|
+ -1916708903	-1916708911	object/cell/cell.iff	8	0	0	0	1	0	0	0		$|
+ -1916708902	-1916708911	object/cell/cell.iff	9	0	0	0	1	0	0	0		$|
+--1610009447	-1916708902	object/tangible/collection/col_gcw_static_base_talus.iff	9	12.8614	-13.3399	3.77843	0.955337	0	-0.29552	0	systems.collections.consume_click	collection.gcw_control_check|4|1|collection.slotName|4|col_gcw_insurgency:col_gcw_insurgency_talus|$|
++-1610009447	-1916708902	object/tangible/collection/col_gcw_static_base_talus.iff	9	12.8614	-13.3399	3.77843	0.955337	0	-0.29552	0		$|
+ -1916708901	-1916708911	object/cell/cell.iff	10	0	0	0	1	0	0	0		$|
+ -1905196900	0	object/static/structure/military/military_wall_med_imperial_style_01.iff	0	1523.56	18.6309	841.444	-0.668878	0	0.743372	0		$|
+ -1888485544	0	object/static/item/item_container_plain_s04.iff	0	1035.13	50.8792	612.656	0.986418	0	0.164252	0		$|
+@@ -50,7 +50,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1867977855	0	object/static/structure/corellia/corl_power_transformer_s02.iff	0	1541.27	18	865.621	0.998201	0	-0.059964	0		$|
+ -1866584130	0	object/tangible/ground_spawning/patrol_waypoint.iff	0	1491.62	18.0157	859.601	1	0	0	0	systems.spawning.patrol_point_setup	ignoreInBuildoutArray|0|1|pointName|4|talus_lag_enf_srgt_pat_gs1_11356743_2|registerWithController|0|1|$|
+ -1853173621	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1545.12	18.6231	862.074	0.902439	0	-0.430817	0		$|
+--1839426456	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1031.31	50	608.607	1	0	0	0	structure.municipal.starport	travel.air_time|0|60|travel.arrival_location|8|-5112.689941 50.000000 -3487.393066 talus 0|travel.cost|0|100|travel.ground_time|0|300|travel.is_shuttleport|0|1|travel.point_name|4|@gcw:gcwstaticbaserebel|travel.shuttle_available|0|1|travel.shuttle_timestamp|0|3125347|travel.version|0|3|$|
++-1839426456	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1031.31	50	608.607	1	0	0	0		$|
+ -1836462925	0	object/static/particle/pt_smoke.iff	0	1207.92	73.8375	1023.69	-0.115538	0	0.993303	0		$|
+ -1831619868	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1189.32	66.0032	1003.86	0.0115046	0	0.999934	0		$|
+ -1812807304	0	object/static/structure/general/landing_pad_shuttle.iff	0	1018.95	50	603.94	0.988012	0	0.15438	0		$|
+@@ -71,7 +71,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1698312927	0	object/static/installation/mockup_factory_organic_style_1.iff	0	1243.98	66	995.565	1	0	0	0		$|
+ -1686914098	0	object/static/installation/mockup_factory_organic_style_1.iff	0	1243.03	66	994.377	0	0	1	0		$|
+ -1682904784	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1527.04	18.6	850.201	0.942755	0	0.333487	0		$|
+--1682065689	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1354.35	86	1402.3	1	0	0	0	structure.municipal.starport	travel.air_time|0|60|travel.arrival_location|8|-4789.649902 86.000000 -2693.699951 talus 0|travel.cost|0|100|travel.ground_time|0|300|travel.is_shuttleport|0|1|travel.point_name|4|@gcw:gcwstaticbaseimperial|travel.shuttle_available|0|1|travel.shuttle_timestamp|0|3125350|travel.version|0|3|$|
++-1682065689	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1354.35	86	1402.3	1	0	0	0		$|
+ -1670480787	0	object/static/structure/general/banner_imperial_style_01.iff	0	1340.79	86	1418.38	-0.382683	0	0.92388	0		$|
+ -1669082058	0	object/tangible/ground_spawning/area_spawner.iff	0	1499.91	18	875.605	0.399236	0	0.916848	0	systems.spawning.spawner_area	fltMaxSpawnTime|2|180.000000|fltMinSpawnTime|2|120.000000|fltRadius|2|2.000000|intDefaultBehavior|0|2|intGoodLocationSpawner|0|0|intSpawnCount|0|3|intSpawnSystem|0|1|registerWithController|0|1|strName|4|talus_lag_enforcer_camp_gs4|strSpawnerType|4|area|strSpawns|4|talus_dearic_coa_lag_enforcer|$|
+ -1657896352	0	object/static/structure/military/bunker_crate_style_01.iff	0	1343.68	86	1422.04	0	0	1	0		$|
+@@ -194,9 +194,9 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -397785208	0	object/tangible/ground_spawning/area_spawner.iff	0	1527.69	18	854.81	0.891971	0	-0.452092	0	systems.spawning.spawner_area	fltMaxSpawnTime|2|180.000000|fltMinSpawnTime|2|120.000000|fltRadius|2|2.000000|intDefaultBehavior|0|2|intGoodLocationSpawner|0|0|intSpawnCount|0|3|intSpawnSystem|0|1|registerWithController|0|1|strName|4|talus_lag_enforcer_camp_gs5|strSpawnerType|4|area|strSpawns|4|talus_dearic_coa_lag_enforcer|$|
+ -387594489	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1327.32	86.1234	1408.38	0.932328	0	0.361615	0		$|
+ -380044272	0	object/static/installation/mockup_factory_organic_style_1.iff	0	1200.33	65.9438	946.667	1	0	0	0		$|
+--376575756	0	object/tangible/gcw/static_base/invisible_cloner_imperial.iff	0	1343.55	86	1414.21	1	0	0	0	structure.municipal.cloning_facility	$|
++-376575756	0	object/tangible/gcw/static_base/invisible_cloner_imperial.iff	0	1343.55	86	1414.21	1	0	0	0		$|
+ -371239905	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	1518	18.611	892.58	0.942755	0	0.333487	0		$|
+--336486068	0	object/tangible/theme_park/invisible_object.iff	0	1185.92	66	971.83	0.707107	0	0.707107	0	theme_park.controller_initialize	scriptString|4|systems.gcw.static_base.master|$|
++-336486068	0	object/tangible/theme_park/invisible_object.iff	0	1185.92	66	971.83	0.707107	0	0.707107	0		$|
+ -299705653	0	object/static/structure/military/military_wall_med_imperial_style_01.iff	0	1192.35	66.0127	1007.13	0.393286	0	0.919416	0		$|
+ -294860919	0	object/static/particle/pt_smoke.iff	0	1218.98	73.7364	951.763	1	0	0	0		$|
+ -260517358	0	object/static/structure/corellia/corl_power_transformer_s02.iff	0	1171.69	66.9773	1022.98	0.707107	0	0.707107	0		$|
+diff --git a/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab b/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab
+index 1c0b9aa..57ee9fb 100644
+--- a/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab
++++ b/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab
+@@ -13,7 +13,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1966548373	0	object/building/kashyyyk/myyydril_cave_naktra_crystal_med.iff	0	1938.43	307.946	472.44	0.902611	0.430458	0	0		$|
+ -1959887684	0	object/static/item/item_container_inorganic_chemicals.iff	0	543.447	343.695	600.702	0.735088	0	-0.677972	0		$|
+ -1954286288	0	object/static/structure/military/military_column_strong_imperial_style_01.iff	0	1501.79	303	496.852	0.382683	0	0.92388	0		$|
+--1946025983	0	object/building/general/naboo_gcw_bunker_01.iff	0	1003.77	298	576.501	0	0	1	0	systems.gcw.static_base.base_master:systems.gcw.static_base.base_spawner	gcw.static_base.master|6|13857519|gcw.static_base.terminal_ids|7|30369077:30369081:30369085:30369089:|gcw.static_base.terminal_status|1|0:0:0:0:|portalProperty.crc|0|-1266970242|$|
++-1946025983	0	object/building/general/naboo_gcw_bunker_01.iff	0	1003.77	298	576.501	0	0	1	0		portalProperty.crc|0|-1266970242|$|
+ -1946025982	-1946025983	object/cell/cell.iff	1	0	0	0	1	0	0	0		$|
+ -1946025981	-1946025983	object/cell/cell.iff	2	0	0	0	1	0	0	0		$|
+ -1946025980	-1946025983	object/cell/cell.iff	3	0	0	0	1	0	0	0		$|
+@@ -40,7 +40,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1946025959	-1946025983	object/cell/cell.iff	24	0	0	0	1	0	0	0		$|
+ -1946025958	-1946025983	object/cell/cell.iff	25	0	0	0	1	0	0	0		$|
+ -1946025957	-1946025983	object/cell/cell.iff	26	0	0	0	1	0	0	0		$|
+--949623093	-1946025957	object/tangible/collection/col_gcw_static_base_naboo.iff	26	104.693	-19.2324	117.167	1	0	0	0	systems.collections.consume_click	collection.gcw_control_check|4|1|collection.slotName|4|col_gcw_insurgency:col_gcw_insurgency_naboo|$|
++-949623093	-1946025957	object/tangible/collection/col_gcw_static_base_naboo.iff	26	104.693	-19.2324	117.167	1	0	0	0		$|
+ -1946025956	-1946025983	object/cell/cell.iff	27	0	0	0	1	0	0	0		$|
+ -1946025955	-1946025983	object/cell/cell.iff	28	0	0	0	1	0	0	0		$|
+ -1946025954	-1946025983	object/cell/cell.iff	29	0	0	0	1	0	0	0		$|
+@@ -66,7 +66,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1946025934	-1946025983	object/cell/cell.iff	49	0	0	0	1	0	0	0		$|
+ -1944015138	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	958.602	298	518.867	1	0	0	0		$|
+ -1930057877	0	object/static/item/eqp_camping_tent_s3.iff	0	544.444	343	591.036	0.946042	0	0.324043	0		$|
+--1925852435	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1504.75	303	491.14	1	0	0	0	structure.municipal.starport	travel.air_time|0|60|travel.arrival_location|8|1504.750000 303.000000 -1556.859985 naboo 0|travel.cost|0|100|travel.ground_time|0|300|travel.is_shuttleport|0|1|travel.point_name|4|@gcw:gcwstaticbaseimperial|travel.shuttle_available|0|1|travel.shuttle_timestamp|0|3123936|travel.version|0|3|$|
++-1925852435	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	1504.75	303	491.14	1	0	0	0		$|
+ -1889024224	0	object/static/structure/general/banner_imperial_style_01.iff	0	1517.25	303	491.857	0.92388	0	0.382683	0		$|
+ -1886544832	0	object/static/structure/general/cloning_tube.iff	0	527.645	343	584.254	0.967663	0	0.252245	0		$|
+ -1878593565	0	object/static/structure/military/military_column_med_imperial_style_01.iff	0	955.463	298	552.052	0.731689	0	0.681639	0		$|
+@@ -114,14 +114,14 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -1325813228	0	object/static/structure/military/military_wall_med_imperial_style_01.iff	0	1011.37	298	549.712	0.92168	0	0.387951	0		$|
+ -1322587241	0	object/static/structure/general/prp_junk_s6.iff	0	1522.11	306.993	496.117	0.707107	0	0.707107	0		$|
+ -1317924097	0	object/static/structure/general/allum_mine_bucket_s01.iff	0	950.619	299.333	573.362	0	-0.629102	0	0.777322		$|
+--1288314132	0	object/tangible/gcw/static_base/invisible_cloner_rebel.iff	0	528.614	343	592.474	1	0	0	0	structure.municipal.cloning_facility	$|
++-1288314132	0	object/tangible/gcw/static_base/invisible_cloner_rebel.iff	0	528.614	343	592.474	1	0	0	0		$|
+ -1272732644	0	object/static/particle/pt_miasma_of_fog_gray.iff	0	1928.28	295.224	487.199	1	0	0	0		$|
+ -1269567805	0	object/building/kashyyyk/myyydril_cave_naktra_crystal_red_lrg.iff	0	1938.13	311.028	483.178	-0.413978	0.676423	-0.519577	-0.317986		$|
+ -1263921396	0	object/static/structure/general/prp_junk_s4.iff	0	971.526	298	564.602	0.955337	0	0.29552	0		$|
+ -1254920233	0	object/static/item/item_container_installation.iff	0	528.458	343.695	608.158	0	0.999899	0	0.0142031		$|
+--1202557081	0	object/tangible/gcw/static_base/invisible_cloner_imperial.iff	0	1512.79	303	495.044	1	0	0	0	structure.municipal.cloning_facility	$|
++-1202557081	0	object/tangible/gcw/static_base/invisible_cloner_imperial.iff	0	1512.79	303	495.044	1	0	0	0		$|
+ -1183999591	0	object/static/structure/naboo/gungan_pillar_ruined_s01.iff	0	1004.25	301.468	504.779	-0.449135	0	0.893464	0		$|
+--1156051021	0	object/tangible/theme_park/invisible_object.iff	0	1003.77	298	576.501	0	0	1	0	theme_park.controller_initialize	scriptString|4|systems.gcw.static_base.master|$|
++-1156051021	0	object/tangible/theme_park/invisible_object.iff	0	1003.77	298	576.501	0	0	1	0		$|
+ -1134777365	0	object/static/structure/general/allum_mine_bucket_s01.iff	0	950.16	299.307	571.229	0	-0.573194	0	0.81942		$|
+ -1113838511	0	object/static/structure/corellia/corl_power_transformer_s01.iff	0	999.191	298	526.624	0.707107	0	0.707107	0		$|
+ -1110957960	0	object/static/structure/corellia/corl_tent_small.iff	0	970.47	298	536.947	0.961055	0	0.276356	0		$|
+@@ -401,7 +401,7 @@ i	i	h	i	f	f	f	f	f	f	f	s	p
+ -875858783	0	object/static/item/item_container_weapon.iff	0	1502.3	303	483.59	0.96639	0	0.257081	0		$|
+ -874001932	0	object/static/structure/general/allum_mine_bucket_s01.iff	0	971.434	299.307	535.991	0	0.874982	0	-0.484156		$|
+ -870324354	0	object/static/structure/military/military_column_strong_imperial_style_01.iff	0	1492.91	302.904	505.655	0.92388	0	-0.382683	0		$|
+--859124609	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	536.581	343	600.901	1	0	0	0	structure.municipal.starport	travel.air_time|0|60|travel.arrival_location|8|536.580994 343.000000 -1447.098999 naboo 0|travel.cost|0|100|travel.ground_time|0|300|travel.is_shuttleport|0|1|travel.point_name|4|@gcw:gcwstaticbaserebel|travel.shuttle_available|0|1|travel.shuttle_timestamp|0|3123933|travel.version|0|3|$|
++-859124609	0	object/tangible/gcw/static_base/invisible_beacon.iff	0	536.581	343	600.901	1	0	0	0		$|
+ -853843991	0	object/static/structure/general/banner_rebel_style_01.iff	0	529.133	343	587.691	0.797474	0	0.603353	0		$|
+ -833185778	0	object/static/structure/corellia/corl_power_transformer_s02.iff	0	986.231	298	562.176	1	0	0	0		$|
+ -827016393	0	object/static/item/item_binoculars.iff	0	528.793	343.682	609.106	0.62161	0	0.783327	0		$|

@@ -40,7 +40,7 @@ function Invoke-Probe
     )
 
     $serverCommand = "game tatooine runScript $probeScript $probeMethod $Arguments"
-    $bashCommand = "cd /swg-precu/exe/linux && printf '%-1024s' '$serverCommand' | ./bin/ServerConsole -- @servercommon.cfg -s ServerConsole serverAddress=127.0.0.1 serverPort=61000"
+    $bashCommand = "cd /swg-precu/exe/linux && printf '%-1023s\0' '$serverCommand' | ./bin/ServerConsole -- @servercommon.cfg -s ServerConsole serverAddress=127.0.0.1 serverPort=61000"
     # Windows PowerShell 5 surfaces any native stderr as a non-terminating
     # ErrorRecord.  With this script's fail-closed ErrorActionPreference that
     # turns the container's harmless `mesg: ttyname failed` login-shell notice

@@ -1,0 +1,43 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/gcw.java b/sku.0/sys.server/compiled/game/script/library/gcw.java
+index ca7fc2c..19cf488 100644
+--- a/sku.0/sys.server/compiled/game/script/library/gcw.java
++++ b/sku.0/sys.server/compiled/game/script/library/gcw.java
+@@ -1279,32 +1279,12 @@ public class gcw extends script.base_script
+     }
+     public static void _grantGcwPoints(obj_id victim, obj_id attacker, int pointValue, boolean pvpKill, int pointType, String information) throws InterruptedException
+     {
+-        if (!isIdValid(attacker) || !exists(attacker) || pointValue < 1 || pet_lib.isPet(victim))
+-        {
+-            return;
+-        }
+-        float multiplier = utils.stringToFloat(getConfigSetting("GameServer", "gcwPointBonus"));
+-        if (multiplier > 1)
+-        {
+-            pointValue *= multiplier;
+-        }
+-        pvpModifyCurrentGcwPoints(attacker, pointValue);
+-        prose_package pp = new prose_package();
+-        pp.target.set(getName(victim));
+-        pp.digitInteger = pointValue;
+-        if (pvpKill)
+-        {
+-            pp.stringId = SID_PVP_KILL_POINT_GRANT;
+-            sendSystemMessageProse(attacker, pp);
+-        }
+-        else
+-        {
+-            pp.stringId = SID_GENERIC_POINT_GRANT;
+-            sendSystemMessageProse(attacker, pp);
+-        }
+-        doGcwPointCsLogging(attacker, pointValue, pointType, information);
+-        gcwInvasionCreditForGCW(attacker, pointValue);
+-        grantGcwPointsToRegion(attacker, pointValue, pointType);
++        // Publish 14 faction standing and faction rank are authoritative.  The
++        // current/lifetime GCW point pipeline, weekly rating conversion, rank
++        // decay, invasion credit, and regional score propagation are later-era
++        // progression and must not run in PRE-CU.  Callers retain their separate
++        // mission credits, faction standing, quest rewards, and physical tokens.
++        return;
+     }
+     public static void doGcwPointCsLogging(obj_id player, int pointValue, int pointType, String information) throws InterruptedException
+     {

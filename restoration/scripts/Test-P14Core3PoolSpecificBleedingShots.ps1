@@ -74,7 +74,7 @@ foreach ($token in @("precuDotAttribute","dict.put(`"precuDotAttribute`"",
     "dict.getInt(`"precuDotAttribute`"")) {
     Assert ($engine.Contains($token)) "Combat-data bridge drifted: $token"
 }
-foreach ($token in @("actionData.precuDotAttribute >= 0","dot.applyDotEffect")) {
+foreach ($token in @("actionData.precuDotAttribute >= 0","dot.applyPrecuDotEffect")) {
     Assert ($base.Contains($token)) "Initial DOT pool routing drifted: $token"
 }
 foreach ($token in @("int dotAttribute = getDotAttribute(target, dot_id)",

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-axkva-nandina-healing-authority",
+  "status": "ready",
+  "scope": "Retain the Axkva Min Nandina and Gorvo encounter while making Nandina's authored 50000-point heal authoritative instead of allowing the post-NGE healing-reduction statistic to rewrite it.",
+  "eraEvidence": {
+    "basis": "The expansion encounter is intentionally retained, but Publish 14.1 player progression has no expertise_healing_reduction statistic. The command handler supplies an authored fixed heal amount and the live AI profile supplies its cadence.",
+    "findings": [
+      "heroic_axkva_min.tab spawns Nandina and Gorvo together and respawns both through resetNandina.",
+      "heroic_axkva_nandina invokes nandina_heal every ten seconds with full authored AI-profile chance, and the command and combat-data rows route it into combat_actions.java.",
+      "nandina_heal resolves the live spawn_id gorvo, refuses an invalid or dead target, heals Gorvo, and plays its retained client effect.",
+      "The removed arithmetic was the final Java consumer of expertise_healing_reduction and could reduce the authored 50000-point encounter heal according to an NGE-derived stat on Gorvo."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "serverJavaHealingReductionConsumers": 0,
+    "authoredNandinaHeal": 50000,
+    "aiCadenceSeconds": 10,
+    "aiChancePercent": 100,
+    "initialAndResetSpawnRowsPerActor": 2,
+    "nandinaCreatureLevel": 91,
+    "gorvoCreatureLevel": 91,
+    "creatureDifficulty": "BOSS",
+    "gorvoResolutionAndAdmissionPreserved": true,
+    "clientEffectPreserved": true
+  },
+  "sourceFiles": {
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "aiProfiles": "dsrc/sku.0/sys.server/compiled/game/datatables/ai/ai_combat_profiles.tab",
+    "spawnTable": "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/heroic_axkva_min.tab",
+    "creatures": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "lineEndingPolicy": "the touched combat_actions.java blob retained the repository's declared LF policy",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "combatActions": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+      "combatData": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
+      "commandTable": "2349ca3f4db04568e4d57d34d5512a440fe74f6a5072f14f485a980ba95fc7de",
+      "aiProfiles": "f48ba7fa193f32efd8dc02e9577249943cff07c0a99255ba4e1f7848e0021787",
+      "spawnTable": "fb64fb44dc98767c1498f8c85597040ede766e4e7dd84fbaaf0201ff51f90951",
+      "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe"
+    },
+    "compiledClassSha256": "9bf68c13eaea8db3cd9885e636ed984f9eb4b46101528f20a8cf8e02c962d9f1",
+    "sourceTest": "passed; command and combat routing, live AI cadence, initial/reset spawns, creature definitions, Gorvo resolution, exact authored heal, and client effect were authenticated with zero Java healing-reduction expertise consumers",
+    "focusedJavaCompile": "passed in an ephemeral in-memory output directory that was removed immediately; emitted combat_actions bytecode retained nandina_heal and 50000 with no expertise_healing_reduction symbol",
+    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 669.5 seconds from pushed parent 33be874 and direct dsrc 3a6a92f",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "sourceWorkParity": "passed byte-for-byte for combat_actions and all retained Axkva encounter dependencies between the read-only direct-source mount and Docker work volume",
+    "bytecodeAudit": "passed; emitted combat_actions retains nandina_heal, the authored 50000 heal, and all authenticated player-only profession retirement predicates with no healing-reduction expertise authority",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory parity and bytecode gates, x64 architecture, restart/readiness, mapped-binary verification, and clean log audit",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-05",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 320762,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "No server Java path can consume expertise_healing_reduction, and Nandina's retained heal now always uses its authored 50000-point value.",
+    "preserved": "Axkva instance spawns and resets, Nandina and Gorvo scripts, AI cadence, command/combat routing, Gorvo lookup and dead-target admission, healing call, and client effect remain available.",
+    "notClaimedComplete": "NGE healing-reduction rows remain as inert later-content data while player NGE command/skill admission is retired; other expertise families remain subject to the wider PRE-CU precedence audit."
+  },
+  "requiredBeforeReady": []
+}

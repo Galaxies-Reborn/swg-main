@@ -5,6 +5,7 @@
   "scope": "Publish 14.1 Doctor Revive Player admission and server behavior, including the original cmdRevivePlayer hook, dead-player and resuscitation-window gates, group-or-consent and PvP-help rules, seven-meter range, revive-pack selection, Focus-adjusted Mind cost, six-channel healing, one-charge consumption, exact medical XP, upright recovery, nine-attribute grogginess, and reversible two-player acceptance.",
   "sourceFiles": {
     "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "consumableLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
     "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/revive_player.java",
     "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_revive_player_command_fixture.java",
     "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
@@ -53,6 +54,16 @@
       "Mind wounds"
     ],
     "medicalXpFormula": "round((actual six-channel healing + 250) * 0.5)",
+    "campHealingObserver": {
+      "damagePoolNotificationsPerUse": 3,
+      "notifyingPools": [
+        "Health",
+        "Action",
+        "Mind"
+      ],
+      "woundHealingNotifications": 0,
+      "eachPositiveAuthoredPoolRequestNotifiesWhenClampedDeltaIsZero": true
+    },
     "grogginess": {
       "durationSeconds": 60,
       "modifierValue": -100,
@@ -95,6 +106,11 @@
     "cleanupPolicy": "Restore exact locations, posture, locomotion, regeneration, all nine attributes and wounds, named attribute modifiers, Mind, medical XP, skill points, and fixture-owned skills; remove the private death marker and revive pack; then remove both fixture roots."
   },
   "buildEvidence": {
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "currentSourceSha256": {
+      "healingLibrary": "c2a5c827e1755e61d4ff22b209d0445e01cec05a0ea44e34eda224849b8a6f66",
+      "consumableLibrary": "20c78a62670ce462f1bdc2c561f63536fd09bf192d5de28c5954e8caef3a201d"
+    },
     "result": "passed",
     "target": "clean 5670-source compile_java and full compile_tab producing 15789 datatable IFFs",
     "patchSha256": "7adc20b0fe0e7c1cb8836f6787db0fffd5d0dc820ed358f6364c0657efda7d99",
@@ -109,10 +125,32 @@
       "command_table.tab": "69563b7e7fa2fb1ef349bb461d2fc4854b8b0764a4e86d5af45eaf2b3438a7c7"
     },
     "compiledSha256": {
-      "healing.class": "d5f83b945379be59b5c6341f14e81f5b046507583389d131997d4e5b586f6d42",
+      "healing.class": "6525d260ac14a31810be4b17f4a3bc331d6e5de52a083438192b672f248fc358",
+      "consumable.class": "4a31083cd8bd63f3c1f871eab59f02ee69496be1a04b4fcae5eb1e8477fff8c2",
       "revive_player.class": "67358beb8a9532f29c9bbc757bf4dee7ed9b800415b429e46e4169afc6b2f2e4",
       "precu_revive_player_command_fixture.class": "acd0d50961bde7718fb33861a327fb4be303276682768b3990e6acd8bdde4929",
-      "command_table.iff": "f8b12c2a7edd56181f305ce668e57901ed24c5448bde1c99b5e7346f00021484"
+      "command_table.iff": "b025729c5f2fd7d817e6619c3d8ac8079e0dd049365a94acdf320f61702dc342"
+    },
+    "canonicalDeployment": {
+      "parentCommit": "27e20c54313b66a2c163bcf6dc3f9258f555f145",
+      "dsrcSourceCommit": "10f2b88285969329effcfc3aba975c17118fd0b4",
+      "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+      "durationSeconds": 708.8,
+      "javaSourcesCompiled": 5717,
+      "javaClassesEmitted": 5751,
+      "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+      "serverBinaryBytes": 22587656,
+      "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+      "serverGameArchiveSha256": "9981b9fa6556c67cfb3b848968472e660223f2389d77504c79f95fa8d31c390e",
+      "serverScriptArchiveSha256": "7c1d6836f8c765406fb5d35cc94a5c5146d07623284d9a07089d01eca0493808",
+      "serverNetworkMessagesArchiveSha256": "781767c89b1e6e641566c367dedffe77b3d2d3e79e3ae51eb950b9c1e8d1968b",
+      "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+      "containerHealth": "healthy",
+      "clusterReadyForPlayers": true,
+      "liveGameProcessesMappedBuiltBinary": "15/15",
+      "liveBinaryInode": 12141822,
+      "liveBinaryMapEntries": 30,
+      "postStartLogAudit": "321 lines; one exact player-ready marker; all prohibited fatal/error/ABI/JNI/Oracle/crash patterns zero"
     }
   },
   "clientToolsPublication": {

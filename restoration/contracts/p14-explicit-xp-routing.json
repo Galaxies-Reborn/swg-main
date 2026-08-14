@@ -2,11 +2,18 @@
   "schemaVersion": 1,
   "feature": "explicit-precu-xp-routing",
   "status": "ready",
-  "scope": "Route active combat, social, and crafting rewards to their explicit Publish 14 XP pools and keep skill-box acquisition separate from XP accumulation.",
+  "scope": "Route active combat, social, crafting, and camping rewards to their explicit Publish 14 XP pools, keep skill-box acquisition separate from XP accumulation, and preserve the authentic owner-only camp lifecycle instead of converting camp XP into scout XP at login.",
   "sourceFiles": {
     "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
     "playerInitialization": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
-    "runtimeProbe": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_xp_routing_runtime.java"
+    "runtimeProbe": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_xp_routing_runtime.java",
+    "baseClass": "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+    "campingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/camping.java",
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "consumableLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
+    "campMaster": "dsrc/sku.0/sys.server/compiled/game/script/systems/camping/camp_master.java",
+    "campControlPanel": "dsrc/sku.0/sys.server/compiled/game/script/systems/camping/camp_controlpanel.java",
+    "quickHealCommand": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/quick_heal.java"
   },
   "core3Evidence": {
     "repository": "https://github.com/swgemu/Core3",
@@ -27,12 +34,59 @@
     "playerInitializationValidatesWorkingSkill": false,
     "fixedNgeTraderMultiplierPresent": false,
     "fixedNgeEntertainerMultiplierPresent": false,
-    "craftingMerchantTemplateExchangePresent": false
+    "craftingMerchantTemplateExchangePresent": false,
+    "campPoolPreservedAtLogin": true
+  },
+  "campXpContract": {
+    "experienceType": "camp",
+    "loginConversionToScout": false,
+    "campPowerBaseXp": [
+      360,
+      640,
+      800,
+      1000,
+      1100,
+      1250
+    ],
+    "authoredDurationSeconds": 3600,
+    "fullDurationCreditSeconds": 900,
+    "naturalExpirySeconds": 3300,
+    "ownerAbandonGraceSeconds": 60,
+    "durationScale": "min((now - creationTime) / (authoredDurationSeconds / 4.0), 1.0)",
+    "awardFormula": "int(baseXp * durationScale) + int((uniqueVisitors - 1) * int(baseXp / 30) * durationScale) + int(accumulatedHealingXp * durationScale)",
+    "uniqueVisitorRule": "Each distinct player object other than the owner contributes at most once even after leaving and re-entering; the owner is the implicit first occupant and is not a visitor bonus.",
+    "healingEventRule": "For each native damage-healing observer event explicitly requested with a valid healer while the healed player is currently inside this maintained camp, immediately add int(baseXp / 180) to the camp's accumulated healing XP; count the authored event even when the clamped applied delta is zero. Payout applies the duration scale to that accumulated healing XP.",
+    "ownerExitGraceRule": "Owner exit keeps the camp in STATUS_MAINTAIN and schedules a sequence-bound 60-second grace callback. Only the matching still-current callback may transition to abandoned, zero accrued credit, and select a no-award cleanup path; owner reentry invalidates the pending callback. Natural expiry during the grace window remains award-bearing.",
+    "randomWoundScansAwardXp": false,
+    "occupancyTicksAwardXp": false,
+    "awardRecipients": "owner only",
+    "groupSplit": false,
+    "groupModifier": false,
+    "awardPaths": {
+      "naturalExpiry": true,
+      "ownerRadialDisband": true,
+      "cleanupOrAbandonCallsites": 12,
+      "cleanupOrAbandonAwards": false
+    },
+    "atMostOnce": "The claim marker is written before the owner XP grant and every later claim attempt returns without granting."
   },
   "buildEvidence": {
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "currentSourceSha256": {
+      "xpLibrary": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a",
+      "playerInitialization": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "runtimeProbe": "cda2a64dcbb5c6bef3a1525a2e764be217a8e5630cb99cbc4337bcf77ed6e607",
+      "baseClass": "ae62eca993f837ed6a555af902c8ac19569c0cda1a9e3e3c70b0ea77de239be0",
+      "campingLibrary": "e6318e865770b8c00189bf297b458b30fcc503cfcd8fffdfaf351a9263ce9165",
+      "healingLibrary": "c2a5c827e1755e61d4ff22b209d0445e01cec05a0ea44e34eda224849b8a6f66",
+      "consumableLibrary": "20c78a62670ce462f1bdc2c561f63536fd09bf192d5de28c5954e8caef3a201d",
+      "campMaster": "bbd8436c3f5e2947a2384bc5d5f72c6eb50959f14f71ea3eb76bb472477c09c5",
+      "campControlPanel": "3c838fc170357e36175556a63057f3537582999c6b584c6207ae2f9d5f0b48f2",
+      "quickHealCommand": "972bf3529a047a382de7539355fe3a5d0c070b93981b4c154f36e6de8dcc1f3e"
+    },
     "overlayPatch": "restoration/patches/dsrc/139-p14-explicit-xp-routing.patch",
-    "overlayPatchBytes": 19844,
-    "overlayPatchSha256": "f7bc7f26db4564907190cb297a09b5600c55995bc575fee4e12ee558e96af2dd",
+    "overlayPatchBytes": 19659,
+    "overlayPatchSha256": "795d45bd74643a552ef3bae70286caf22785f843152ba093c8686974dc4823e6",
     "cleanApplyCheck": "passed",
     "sourceSha256": {
       "xp.java": "42064d788a93530e7334e82a05bb48169e2342913923168047dd717d4ba72f8a",
@@ -47,14 +101,46 @@
     "javaCompile": {
       "result": "passed",
       "xp.class": {
-        "sha256": "e71c41d627203e905e0e8ef39ab5add18e9c41d5be20ba994d2f14d2c4f63c3c"
+        "sha256": "96c9b0f4fbc669d91362945b8d1535665d138c495776d14feb4b8abed1c5eae8"
       },
       "base_player.class": {
-        "sha256": "42712e823d2e246384993bf25d90a5fc51ad4a42e238d5c314b7a5ea017097ee"
+        "sha256": "3680a4169a75c53ac1261b05e00390e17481c6055517f5ae4d77a78d50aa3448"
       },
       "precu_xp_routing_runtime.class": {
         "sha256": "b5fd73858e7c5217285b9b5ba3c17de2b14347f163ce10ebc5269904b4f8225c"
+      },
+      "base_class.class": {
+        "sha256": "180e57eeef563ceb826bf7130b30d6726ecfba5ad1b198d15d4196700413a682"
+      },
+      "camping.class": {
+        "sha256": "652cec50af7293b83c87c91fa9a3c407c61f183e6d8d7c925d1e31b3252b9a85"
+      },
+      "healing.class": {
+        "sha256": "6525d260ac14a31810be4b17f4a3bc331d6e5de52a083438192b672f248fc358"
+      },
+      "consumable.class": {
+        "sha256": "4a31083cd8bd63f3c1f871eab59f02ee69496be1a04b4fcae5eb1e8477fff8c2"
+      },
+      "camp_master.class": {
+        "sha256": "c58d5e7af5ed02245a52e49ab052b12cd336f2e3a6160b743297615cc63c5b51"
+      },
+      "camp_controlpanel.class": {
+        "sha256": "e4a6d6ef978ca9e7f91af510e4d192052680eaf5ae6599d5b3e9a00f1791ab32"
+      },
+      "quick_heal.class": {
+        "sha256": "4400ff3419c7012f61a6b25915e84e96e670f3d5c7825918dbaf07552cbcec38"
       }
+    },
+    "canonicalDeployment": {
+      "parentCommit": "b55a19ac6db2aeaf70cb0bd807c304a34463210b",
+      "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+      "durationSeconds": 708.8,
+      "javaSourcesCompiled": 5717,
+      "javaClassesEmitted": 5751,
+      "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+      "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+      "serverGameArchiveSha256": "9981b9fa6556c67cfb3b848968472e660223f2389d77504c79f95fa8d31c390e",
+      "artifactProbe": "passed exact camp formula, duration, visitor, healing-event, at-most-once claim, two award paths, twelve no-award paths, native observer ABI, Java notification cardinality, source/work parity, archives, and linked binary"
     }
   },
   "runtimeBoundary": {
@@ -118,7 +204,18 @@
     "allRoutesKeptSkillCountStable": true,
     "allRoutesRestoredOriginalXp": true,
     "serverHealthy": true,
-    "fatalOrExceptionCount": 0
+    "fatalOrExceptionCount": 0,
+    "canonicalRestart": {
+      "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+      "containerHealth": "healthy",
+      "clusterReadyForPlayers": true,
+      "liveGameProcesses": 15,
+      "liveGameProcessesMappedBuiltBinary": 15,
+      "liveBinaryInode": 12141822,
+      "liveBinarySize": 22587656,
+      "liveBinaryMapEntries": 30,
+      "postStartLogAudit": "321 lines; one exact player-ready marker; all prohibited fatal/error/ABI/JNI/Oracle/crash patterns zero"
+    }
   },
   "requiredBeforeReady": []
 }

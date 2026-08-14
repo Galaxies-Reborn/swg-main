@@ -1,0 +1,79 @@
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.h b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+index a5d0b14..65f93be 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.h
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+@@ -628,6 +628,8 @@ public:
+ 	void recalculateLevel();
+ 	void fixupPersistentBuffsAfterLoading();
+ 	void fixupLevelXpAfterLoading();
++	int  getPrecuFactionRank() const;
++	bool setPrecuFactionRank(int rank);
+ 
+ 	void doWarmupChecks(
+ 		const Command &command,
+@@ -1344,6 +1346,20 @@ inline int  CreatureObject::getLevelXp() const
+ 	return m_totalLevelXp.get();
+ }
+ 
++inline int CreatureObject::getPrecuFactionRank() const
++{
++	return static_cast<int>(m_rank.get());
++}
++
++inline bool CreatureObject::setPrecuFactionRank(int rank)
++{
++	if (!isAuthoritative() || rank < 0 || rank > 15)
++		return false;
++
++	m_rank = static_cast<uint8>(rank);
++	return true;
++}
++
+ inline float CreatureObject::getPseudoPlayedTime() const
+ {
+ 	return m_pseudoPlayedTime;
+diff --git a/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp b/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp
+index 75b7f1e..3a2e4c5 100644
+--- a/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp
++++ b/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp
+@@ -111,6 +111,7 @@ namespace ScriptMethodsPvpNamespace
+ 	void         JNICALL pvpModifyCurrentGcwPoints(JNIEnv *env, jobject self, jlong target, jint adjustment);
+ 	void         JNICALL pvpModifyCurrentPvpKills(JNIEnv *env, jobject self, jlong target, jint adjustment);
+ 	jint         JNICALL pvpGetCurrentGcwRank(JNIEnv *env, jobject self, jlong target);
++	jboolean     JNICALL pvpSetPrecuFactionRank(JNIEnv *env, jobject self, jlong target, jint rank);
+ 	jint         JNICALL pvpGetMaxGcwImperialRank(JNIEnv *env, jobject self, jlong target);
+ 	jint         JNICALL pvpGetMaxGcwRebelRank(JNIEnv *env, jobject self, jlong target);
+ 	jint         JNICALL pvpGetCurrentGcwPoints(JNIEnv *env, jobject self, jlong target);
+@@ -202,6 +203,7 @@ const JNINativeMethod NATIVES[] = {
+ 	JF("_pvpModifyCurrentGcwPoints", "(JI)V", pvpModifyCurrentGcwPoints),
+ 	JF("_pvpModifyCurrentPvpKills", "(JI)V", pvpModifyCurrentPvpKills),
+ 	JF("_pvpGetCurrentGcwRank", "(J)I", pvpGetCurrentGcwRank),
++	JF("_pvpSetPrecuFactionRank", "(JI)Z", pvpSetPrecuFactionRank),
+ 	JF("_pvpGetMaxGcwImperialRank", "(J)I", pvpGetMaxGcwImperialRank),
+ 	JF("_pvpGetMaxGcwRebelRank", "(J)I", pvpGetMaxGcwRebelRank),
+ 	JF("_pvpGetCurrentGcwPoints", "(J)I", pvpGetCurrentGcwPoints),
+@@ -1511,11 +1513,20 @@ jint JNICALL ScriptMethodsPvpNamespace::pvpGetCurrentGcwRank(JNIEnv *env, jobjec
+ 	if (!JavaLibrary::getObject(target, creature))
+ 		return 0;
+ 
+-	PlayerObject * player = PlayerCreatureController::getPlayerObject(creature);
+-	if (!player)
+-		return 0;
++	return static_cast<jint>(creature->getPrecuFactionRank());
++}
++
++// ----------------------------------------------------------------------
++
++jboolean JNICALL ScriptMethodsPvpNamespace::pvpSetPrecuFactionRank(JNIEnv *env, jobject self, jlong target, jint rank)
++{
++	UNREF(self);
++
++	CreatureObject * creature = 0;
++	if (!JavaLibrary::getObject(target, creature))
++		return JNI_FALSE;
+ 
+-	return player->getCurrentGcwRank();
++	return creature->setPrecuFactionRank(static_cast<int>(rank)) ? JNI_TRUE : JNI_FALSE;
+ }
+ 
+ // ----------------------------------------------------------------------

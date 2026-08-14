@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-player-owned-retained-content-controller-closure",
+  "status": "ready",
+  "scope": "Close the retained-content ownership-controller audit across post-NGE player combat Beasts, droid combat modules, Officer hirelings and supply drops, autonomous GCW consumable turrets, cosmetic familiars, and retained Publish 14.1 pets and faction hirelings without disabling NPC, encounter, display, asset, or data compatibility.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "Pinned Publish 14.1 Core3 retains Creature Handler pets, classic droids, faction hirelings, and Detonate Droid but has no Beast Master combat Beast, post-NGE droid combat-module, Officer hireling/supply-drop, autonomous GCW consumable-turret, or familiar combat-buff player authority.",
+    "retainedContentBoundary": "Later NPC, encounter, display, reward, crafting, template, command, buff, and asset data remain loadable; only later player-owned combat authority is retired."
+  },
+  "expected": {
+    "authoritativeSourceFiles": 10,
+    "auditedControllerFamilies": 6,
+    "beastControllerAdmissionAndLifecycleRoots": 4,
+    "postNgePlayerOwnedBeastControllerReachable": false,
+    "postNgePlayerDroidCombatModulesReachable": false,
+    "postNgePlayerOfficerControllersReachable": false,
+    "postNgePlayerAutonomousGcwTurretCreationReachable": false,
+    "familiarCombatAuthorityReachable": false,
+    "cosmeticFamiliarLifecyclePreserved": true,
+    "precuCreatureHandlerPetRuntimePreserved": true,
+    "precuClassicDroidRuntimePreserved": true,
+    "precuDroidDetonationPreserved": true,
+    "precuFactionHirelingsPreserved": true,
+    "nonPlayerExpansionControllerCompatibilityPreserved": true,
+    "retainedDisplayCompatibilityPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "sourceSha256": {
+      "ai/beast.java": "e0680e12fcfd5571bc7aa77ddabf831ac430159a813115aad47196c97ff49a47",
+      "library/beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
+      "ai/pet.java": "9b241cdb4ea433f0a41999664dc35ff2f3bd0b8996cdb42b9ae1154b28563def",
+      "library/pet_lib.java": "d0b6a03365ed081075590dddb947d29b85ce9bffdad2712e66ef98727b51574b",
+      "ai/officer_pet.java": "3bbbab602848af451d1085bc6f3ca33d68cb8a5d0741010f62732155e3479b97",
+      "systems/combat/combat_supply_drop_controller.java": "e1d59b602155d6d97cd3952d9dffcd34cabd8cccdf44bf16323001c95ee254c5",
+      "systems/combat/combat_supply_drop_crate.java": "faabe522a58822b63afa273bbb2e708f60ce5dcfd85097ace793fa268c886ef8",
+      "systems/buff/buff_handler.java": "83acdb0173e3c543035961ea1a6a12bcc2090e1c5ef76cdcdeaacc8b4fd9e1d0",
+      "ai/familiar.java": "659b992400ee7bf8bfabe647aa59c46c849685e9d9504ae4bcc8eb591fd436ff",
+      "library/faction_perk.java": "7baf89bd7af8946652592ac55756c29ae4f57c3a620b51f1b7323943fd943f99"
+    },
+    "focusedJavaCompile": "passed OpenJDK 11 Java 8-target compilation of ai/beast.java against the deployed class tree; emitted SHA-256 96974ef5fa9f3551c40d40bdf593e6b674d491360a540d9b042e0af923fb8383 at 28253 bytes and removed the isolated /dev/shm compile directory on exit",
+    "staticControllerAudit": "passed exact six-family ownership inventory; the stale player-owned Beast controller now self-retires before attach, world-load, setup, or recurring-ping mutation while all other player-retirement and retained PRE-CU/cosmetic boundaries remain authenticated by their ready contracts",
+    "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct source ebaf48f8f434d18f0c9e0e655b81fc51244bda7d; 5717 Java sources produced 5751 classes under OpenJDK 11",
+    "fullServerBuild": "passed the canonical mandatory source/data/bytecode/native artifact gates, clean x64 rebuild, controlled restart, and readiness deployment in 708.8 seconds from parent 26f5e73340004121a891238c0a78d9710288e8e8, direct source ebaf48f8f434d18f0c9e0e655b81fc51244bda7d, and native source 1d891e3f7a543872a5518292a4efa6635129c651",
+    "compiledClassSha256": {
+      "ai/beast.class": "42c5b059467d30164428e5dc3a5abc0f13f32cf358e57188a06cd8ca5083ad2b"
+    },
+    "serverBinarySha256": "d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
+    "serverBinaryBuildId": "c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
+    "serverGameArchiveSha256": "9981b9fa6556c67cfb3b848968472e660223f2389d77504c79f95fa8d31c390e",
+    "sourceWorkParity": "passed byte-for-byte for all ten authoritative controller-boundary sources between the read-only direct-source mount and the Docker work volume",
+    "bytecodeAudit": "passed the cumulative deployed PRE-CU authority gates plus exact ai.beast authentication: the retirement helper calls the player-owned predicate and central store/unlink cleanup, and exactly four lifecycle/admission roots invoke it before legacy mutation",
+    "architecture": "twenty executable server artifacts verified ELF 64-bit LSB x86-64; all 15 live SwgGameServer processes map the authenticated build binary",
+    "deploymentProbe": "passed controlled restart at 2026-08-11T07:29:20.510359393Z, healthy player readiness, stable TransferServer PID 373 ownership of the configured native port 50005, 15/15 game/planet topology, 15/15 mapped game processes, empty /dev/shm, and clean 357-line fresh-start logs",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-11",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-12T06:01:27.8646813Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "deployedParentCommit": "27e20c54313b66a2c163bcf6dc3f9258f555f145",
+    "deployedDirectSourceCommit": "9ddd463d0effcadb33c60c7b27b26cd568192e8a",
+    "compiledClassSizes": {
+      "ai/beast.class": 28442
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 373,
+    "liveGameProcessCount": 15,
+    "liveGameProcessesMappedBuiltBinary": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141822,
+    "liveBinarySize": 22587656,
+    "liveBinaryMapEntries": 30,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "LogServer": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CommoditiesServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "transferServerEndpoint": "one stable TransferServer process exclusively owns the configured native port 50005 on PID 355",
+    "devShmResidueEntries": 0,
+    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, database-conversion, segmentation-fault, or core-dump matches",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}

@@ -1,17 +1,15 @@
-# Pre-CU restoration overlays
+# PRE-CU Reborn direct source
 
-This directory owns restoration changes without committing edits inside the
-dsrc, exe, or src gitlinks. The manifest locks the x64 server component commits. Scripts
-refuse a source checkout whose gitlinks or initialized component HEADs drift.
+The x64 server now works from one persistent set of component branches. The
+manifest locks the PRE-CU `dsrc`, `src`, and `exe` commits directly, and scripts
+refuse a checkout whose gitlinks or initialized component HEADs drift. Make
+future changes in those component branches, validate them in place, commit
+them, and then update the matching superproject gitlink.
 
-The materializer is plan-only unless Apply is supplied. StagingRoot is always
-mandatory, must be empty, and must be outside both this superproject and the
-initialized source checkout. It clones the complete locked superproject plus
-all five pinned gitlinks into that isolated directory, then applies ordered
-superproject, dsrc, exe, and src patches. The materialized tree therefore contains the top-level
-build and runtime files as well as the edited components. The materializer
-removes every staging `origin` after checkout so the transient tree cannot be
-used for publishing.
+Filesystem materialization and disposable staging trees are retired. The
+historical ordered patches remain read-only provenance for the one-time direct
+source import; they are not an active build or development path. The retired
+materializer exits immediately in direct-source mode.
 
 Run the current-state Phase-A contract:
 
@@ -31,14 +29,21 @@ Use Expectation Ready as the implementation gate. It requires:
 - reference-count-safe cleanup, including a missing-schematic guard
 - no unresolved actionable command grant on combat_marksman_rifle_01
 
-Preview materialization without writing:
+Validate and deploy the initialized direct checkout:
 
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-RestorationMaterializer.ps1 -SourceRoot <initialized-source-checkout> -StagingRoot <empty-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PhaseA.ps1 -SourceRoot <initialized-source-checkout> -Expectation Ready
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PrecuRootRuntimeParity.ps1 -SourceRoot <initialized-source-checkout>
 
-Create and validate the isolated implementation:
+Deploy the direct source mount to the existing PRE-CU Docker container with a
+fail-closed sync/build/restart sequence:
 
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-RestorationMaterializer.ps1 -SourceRoot <initialized-source-checkout> -StagingRoot <empty-staging-directory> -Apply
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PhaseA.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Deploy-PrecuServer.ps1
+
+The deployment command forces the read-only source mount into Docker's writable
+build volume before compiling. It verifies the synchronized Scout-harvest and
+combat-cadence sources, compiled Scout bytecode, ELF x86-64 server binary,
+healthy cluster readiness, and the binary mapped by a live game process. A
+plain container restart intentionally does not rebuild changed host sources.
 
 Validate the Publish 14.1 creation/login invariant:
 
@@ -117,6 +122,19 @@ Validate the Publish 14.1 stat-migration tables, server-owned session,
 tutorial commit, and authenticated normal-world Image Designer transaction:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatMigration.ps1 -SourceRoot <materialized-staging-directory>
+
+Validate the later expansion-world scene set, authentic Mustafar/Kashyyyk
+starport matrix, Tansarii instance routing, all Ord Mantell shards, and the
+Hoth/Nova Orion/heroic buildouts after materializing the overlays:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PrecuExpansionWorlds.ps1 -SourceRoot <materialized-staging-directory>
+
+All scenes remain registered and available in the materialized source. The
+dedicated `docker-compose.precu.yml` profile sets `SWG_START_PLANETS` to a
+bounded local acceptance set so a workstation does not start every ground,
+space, and instance process simultaneously. Override
+`SWG_PRECU_START_PLANETS` for a different test set, or set it to the complete
+source list for a full-world deployment.
 
 This M3 seam restores atomic strict-positive Health/Action/Mind ability costs,
 the Core3-derived cost formula from authoritative Strength/Quickness/Focus,
@@ -337,9 +355,11 @@ and does not claim Core3 wire-format equivalence.
 The stat-migration gate requires authentic Publish 14.1 racial limits, racial
 modifiers, and profession allocations plus all four retained command entry
 points. The server owns target initialization, bounds, and total validation.
-Tutorial allocations commit immediately only in `newbie_hall`; normal-world
-targets remain pending until the Image Designer transaction milestone restores
-its authoritative commit and persistence boundary.
+Fresh-character allocations commit immediately while either authoritative
+tutorial lifecycle marker remains present. First-planet handoff retires that
+free path. Normal-world targets remain pending until a distinct entertainer
+commits them with both players still in the exact permanent salon or
+entertainment-module camp recorded by the authenticated Image Designer session.
 
 The registered Phase-A overlays restore table-derived training and skill-point
 enforcement, add the surrender command/service, harden schematic revocation,
@@ -1939,3 +1959,844 @@ damage and bleeding, posture application, recovery, and reversible idempotent
 two-client cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionShotTwoCone.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 264 makes the existing 20-second `berserk1` and 40-second `berserk2`
+state lifecycle visible in the client status panel. A dedicated, effect-free
+`command.berserk` row deliberately avoids the retained later-era 25/50-percent
+melee damage bonuses. Application precedes the HAM debit, failure rolls the
+icon back, expiry removes it, and relog restores only the remaining interval.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkStatusReplication.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 265 validates the complete retained status catalog consumed by the
+x64 DX11 client: all 1,845 unique visible rows resolve through 500 authored
+style paths with valid polarity and stack metadata, every user-facing effect
+is describable, and duplicate names are client-compatible. A balanced parser
+classifies all 607 direct server applications, expands concatenated families,
+and rejects resolved names outside the table; two orphan NGE recourse handlers
+were retired. The protocol-255 live gate reports zero authored or unresolved
+icon misses and covers positive, debuff, stacked, refreshed, cleared, and real
+server-expired panel lifecycles. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatusCatalogIntegrity.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The PRE-CU equipment certification overlay retires NGE combat-level equip
+requirements and their weapon/armor attribute labels. Legacy CL1 starter
+weapons are certified by default; all other uncertified weapons may still be
+equipped but suffer a 50-point miss-chance penalty. Weapon minimum/maximum
+damage, speed, and elemental damage remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuEquipmentCertification.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 266 makes the pinned Core3 Publish 14 weapon-speed catalog
+authoritative for player attacks and retained weapon presentation. The generated table has
+342 exact weapon templates plus 13 PRE-CU family fallbacks for retained
+expansion weapons. New and loaded NGE-speed objects migrate without replacing
+plausible crafted variation; a combat-facing fallback also covers default or
+lazy objects that miss the persistence callback. Primary attacks, restored
+specials, and retained expansion ATTACK/DELAY_ATTACK rows now share the Core3
+weapon-speed, skill-modifier, multiplier, haste, and one-second-floor player cadence.
+The same deployment closes the remaining creature-harvest bypass by requiring
+Novice Scout across direct, radial, command, droid-target, and droid-auto
+harvest paths. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14AuthoritativeWeaponSpeeds.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 267 closes the native admission path left behind after retiring the
+Java NGE expertise surface. The server now ignores `ExpertiseRequestMessage`
+without unpacking or dispatching it, returns zero from the retained expertise
+point accessor, and rejects `class_`, `expertise`, `expertise_`, and
+`internal_expertise_` skills for player-controlled objects at the authoritative
+grant boundary. NPC skill behavior and persisted-expertise cleanup remain
+available. The x64 build gate compares both native sources to the compiled
+volume, proves the retained fail-closed symbol in `libserverGame.a`, matches the
+live process to the newly linked binary, and requires a healthy player-ready
+cluster. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgeSkillAdmissionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 268 closes the remaining creature-speed discrepancy found by tracing
+the pinned Core3 queue itself. Core3 applies the player weapon-speed formula and
+one-second floor, but gives AI agents an explicit two-second next-action
+interval. The native PRE-CU resolver now returns that two-second interval for
+creature attacks before retained NGE creature speed modifiers can collapse them
+to one second; player formula behavior and non-attack command durations remain
+unchanged. The same deployment now proves the compiled `corpse.class` checks
+`outdoors_scout_novice` and calls the shared admission gate before extraction.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 269 retires the post-Publish-14 group-pickup travel system without
+removing later expansion content. The hidden compatibility command rows are
+disabled, their native hooks fail closed, persisted group timers and locations
+normalize to inactive values, reconnect messages cannot create pickup
+waypoints, and login removes any stale reusable pickup waypoint. The Java
+travel boundary rejects only the group-pickup flag; normal tickets, starports,
+Mustafar, Kashyyyk, Tansarii instance routing, and other expansion-world travel
+retain their existing authored paths. The x64 deployment proves both Java
+callbacks in bytecode, the inert native state in `libserverGame.a`, a mapped
+rebuilt game process, a healthy player-ready cluster, and a clean rerun of the
+complete expansion-world contract. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeGroupPickupRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 270 closes the remaining NGE instant-travel surfaces while retaining
+ordinary paid tickets, Publish-era new-player travel support, and authored
+expansion-world routes. Native instant-ticket requests fail before script
+dispatch; pickup commands are disabled; stationary, one-use, teleport-to-group,
+TCG, and veteran-deed terminals are inert; and all retained Java warp helpers
+fail closed. The x64 deployment proves the native source, compiled Java
+callbacks, synchronized command table, mapped binary, and healthy cluster.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeInstantTravelRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 271 closes the native creature-harvest escape hatch and makes combat
+cadence directly observable. All playable species lose the stale
+`creature_harvesting=25` grant, `harvestCorpse` now requires the ability issued
+by Novice Scout, and the existing direct, radial, extraction, and droid gates
+remain mandatory. The native queue logs actual player and creature attack
+execution timestamps together with its enforced Core3/PRE-CU interval and
+effective weapon speed, allowing server cadence to be separated from client
+animation presentation without guesswork. The dedicated runtime routes only
+that telemetry category to `logs/precuCombatCadence.log`; unrelated log streams
+remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 272 replaces the remaining NGE creature level/DPS factory with a
+pinned Publish 14.1 Core3 combat catalog. The generated table carries 3,622
+exact mobile profiles, 83 deterministic aliases for retained names, and 500
+PRE-CU-derived level fallbacks for later expansion creatures without consulting
+NGE `stat_balance` damage, HAM, XP, or armor. New creatures receive explicit
+Core3 damage, accuracy, independently randomized Health/Action/Mind pools, XP,
+and combat difficulty while retaining the native two-second AI queue gate.
+Ordinary NGE creature-resource loot is retired and the final extraction
+primitive now rejects player owners without Novice Scout. The deployment also
+proves clean materialization across all overlays, compiled Java bytecode, the
+new datatable IFF, representative starter profiles, x64 architecture, and a
+healthy live process mapped to the rebuilt server. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CreatureCombatProfiles.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 275 closes two remaining server-authority bypasses reported in live
+play. Creature harvesting now has a direct native owned-skill check at the
+front of `CommandQueue::enqueue`, before priority or immediate dispatch, in
+addition to the command ability and Java extraction checks. A character
+without `outdoors_scout_novice` cannot reach any creature-resource path.
+
+Primary and secondary hit resolution now use the pinned Core3 weapon catalog
+for all authenticated PRE-CU attacks and generated PRE-CU creatures. The
+catalog contains 342 exact templates and 13 deterministic family defaults;
+zero accuracy bonuses are valid, missing held weapons resolve to default
+unarmed, melee and ranged posture tables remain distinct, and profiled creature
+basic attacks use the PRE-CU random HAM pool. This removes the old sparse-
+profile escape into NGE hit resolution. Cadence remains server-owned: Core3 AI
+uses a two-second queue interval, while players use weapon speed, speed skill,
+and combat haste with a one-second minimum. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3HitResolutionClosure.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 276 makes the pinned Publish 14.1 Core3 damage envelope authoritative
+after the primary and secondary hit-resolution closure. Authenticated PRE-CU
+attacks now apply the weapon's authored damage skill, player melee/ranged and
+general damage modifiers, Publish-era mitigation abilities, state penalties,
+susceptibility, posture, weapon toughness, Jedi toughness, PvP reduction, and
+command multiplier in Core3 order. The explicitly requested uncertified-weapon
+policy remains intact: damage, speed, and element values are retained while the
+penalty remains accuracy-based.
+
+The same boundary prevents authenticated PRE-CU attacks from entering retained
+NGE expertise-era pre-hit or post-hit paths, including devastation, direct
+damage redirection, prescience, elemental-vulnerability variables, beast
+scaling, expertise and kill-meter damage, niche modifiers, life siphon, and
+expertise action gain. Missing weapon profiles fail to an ordinary PRE-CU hit
+instead of falling through to the NGE hit tables. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3DamageAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 277 makes the pinned Core3 action-preparation envelope authoritative
+before PRE-CU hit and damage resolution. Authenticated actions retain their
+authored command identity, HAM model, delay, range, cone/area geometry, and raw
+weapon values. An unspecified command range uses Core3's `max(10, weapon max)`
+rule, while an explicit command range wins. NGE buff attack replacement,
+expertise action mutation, kill-meter vigor cost, cybernetic/expertise range,
+expertise geometry and delay, weapon overload, player elemental doubling, and
+killing-spree rampage injection remain available only to non-PRE-CU content.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionPreparationAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 278 closes the remaining combat-admission and execution lifecycle
+around the pinned Core3 envelope. Authenticated PRE-CU attacks bypass retained
+NGE stealth mutation, expertise death/equipment/defense hooks, hate transfer,
+beast hate, and post-result procs. Core3's seven-meter prone ranged rejection,
+miss-triggered defender combat state, and base hit/miss hate are authoritative.
+
+Creature harvesting now revalidates owned `outdoors_scout_novice` both when the
+native queue executes and immediately inside the corpse callback, closing an
+already-queued or forwarded-command escape. Cadence remains Core3-owned and its
+live record now includes command classification plus every effective player
+speed modifier; combat commands that claim queue admission without matching an
+authenticated attack class are logged explicitly. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CombatAdmissionLifecycleAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 273 closes the attack-cadence retarget escape hatch exposed by
+expanded live telemetry. The ordinary Core3 two-second AI interval was present,
+but cancelling a queued command or changing targets reset the queue timer and
+could admit a second attack after only 0.746 seconds. The native queue now
+retains each owner's last completed cadence-attack timestamp and interval
+outside the queue entries, then reapplies that deadline before any subsequent
+primary or restored combat command. Queue clearing, peace, and retargeting no
+longer erase the authoritative delay; player attacks retain their computed
+weapon interval and AI attacks retain Core3's two-second interval. Validate:
+
+The same milestone makes the generated weapon-speed table byte-reproducible by
+emitting canonical LF endings, so clean materialization and the deployed source
+share one authenticated catalog hash on Windows and Linux.
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build
+
+Milestone 274 closes the creature-armor split authority left by the first
+Core3 profile pass. The generated catalog now carries each mobile's exact
+armor category and nine raw resistance values. The PRE-CU resolver preserves
+Core3's special-protection encoding (raw values above 100 mitigate at raw
+minus 100), treats `-1` as a true vulnerability that bypasses armor rating,
+and applies the Core3 armor-piercing multiplier before resistance reduction.
+Retained expansion creatures receive level-derived PRE-CU defense fallbacks;
+the NGE NPC armor resolver and `creatures.tab` resistance columns no longer
+participate for profiled creatures. Vehicles and non-creature destructible
+objects retain their existing object-specific mitigation. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CreatureCombatProfiles.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 279 retires NGE progression skills that predate the PRE-CU grant
+guards. Every authoritative player database load removes persisted `class_*`,
+`expertise`, `expertise_*`, and `internal_expertise_*` entries before the
+server reconstructs skill-derived commands, modifiers, schematics, and level.
+The pass is idempotent and deliberately does not delete expansion quests,
+conversations, zones, or their independent state. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PersistedNgeSkillRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 280 preserves retained expansion conversations after NGE class
+progression retirement. Twenty direct `class_*` checks across twelve generated
+conversation scripts now use exact PRE-CU profession boxes. Smuggler language
+content uses the Underworld I box that grants universal comprehension, while
+the NGE Chronicles profession grant is explicitly retired. No combat or system
+package is broadened by this content adapter. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuConversationProfessionGates.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 281 restores PRE-CU admission for retained mission and slicing
+content after NGE class retirement. Novice Bounty Hunter owns bounty mission
+terminals and informants. Novice Smuggler owns container slicing, Slicing I
+owns terminals and dungeon keypads, and the Corvette computer derives its
+seven-point proficiency from Slicing I through IV plus Smuggler Master. NGE
+combat and expertise packages remain untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuMissionSlicingProfessionGates.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 282 restores retained crafting-content admission after NGE class
+retirement. Death Watch Bunker stations and doors now require their exact
+PRE-CU Armorsmith, Droid Engineer, Artisan, or Tailor boxes. The Mustafar
+mining droid requires Novice Droid Engineer, and the armorsmith profession
+quest requires Master Armorsmith. Combat and expertise packages remain
+untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedCraftingContentGates.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 283 repairs the native NPC conversation lifecycle. A fresh player
+converse request now closes an older retained session before dispatching the
+new NPC trigger, so a lost client stop cannot disable all later conversations.
+End scripts still receive both retained callbacks, but `SCRIPT_OVERRIDE` no
+longer vetoes native proxy cleanup, session deletion, or the destructor's stop
+message. A dedicated release-build log records accepted, rejected, recovered,
+started, and ended requests. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NpcConversationLifecycleRecovery.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 284 makes the native object-menu transport observable without
+changing behavior. Every authoritative NPC or terminal request records its
+actor, target, sequence, and client item count; every empty, authority-routed,
+or script-complete outcome records a corresponding response reason. A dedicated
+log target keeps the evidence isolated from legacy server noise. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ObjectMenuTelemetry.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 285 restores combat mission-board population and PRE-CU group mission
+economics. The board accepts a partially filled asynchronous mission bag instead
+of silently requiring all ten placeholders, uses learned combat skill boxes in
+place of retired NGE combat level, and corrects the delivery-region fallback.
+Players may hold ten missions and groups may contain twenty-four members. Base
+Brawler and Marksman boxes contribute their actual point cost; elite combat,
+Creature Handler, Squad Leader, and Force-discipline boxes contribute triple
+their point cost. Mission credits scale with party size and average hidden
+combat score, and every eligible nearby member receives the full displayed
+reward without a split, NGE level reduction, or daily cash penalty. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuMissionBoardGroupRewards.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 286 removes the remaining NGE player combat-level authority from
+retained item use. Static-item transfers, click buffs, full-heal items,
+skill-mod items, worn effects, faction comlinks, looted stimpacks, crafted
+stimpacks, and force melons no longer read, display, or enforce a combat level.
+The post-era level-up orb is inert, no longer offers Use, and detaches its
+no-move script so a persisted copy cannot mutate progression or remain stuck.
+Authored PRE-CU skill and profession ownership, biolinking, cooldowns, effect
+admission, charge consumption, and medicine behavior remain intact.
+
+Resource sampling also stops multiplying its Action drain by player level. It
+now follows the pinned Core3 Publish 14.1 Quickness rule: `max(0, 124 -
+Quickness / 12.5)`. Creature difficulty remains available to creatures; this
+milestone removes only the obsolete player-level authority from items and
+sampling. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuItemLevelRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 287 removes the remaining NGE owner-combat-level authority from the
+active creature-pet tame and call lifecycle. Creature Handler control now comes
+only from the authenticated `tame_level` skill modifier (12 at novice and 70 at
+master), with active creature levels counted against that allowance. A
+non-handler retains the Publish 14.1 allowance for one docile level-10-or-lower
+creature; aggressive pets require Creature Handler and positive `tame_aggro`.
+Trained mounts resolve their underlying creature type before the same control
+check, while droid, faction, and familiar call admission remains independent.
+Location, death, capacity, faction, call-delay, and privileged-player checks are
+preserved. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPetControlAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 288 establishes one hidden PRE-CU combat-skill rating for retained
+encounter content without restoring combat level as a player stat. Learned
+Brawler and Marksman boxes contribute their authored point cost; elite combat,
+Creature Handler, Squad Leader, and Force-discipline boxes contribute triple,
+with a per-player adapter cap of 90. Missions delegate to that shared authority.
+
+Solo retained encounters use at least difficulty one. Group difficulty follows
+the pinned Publish 14.1 shape: the strongest loaded player plus one fifth of
+every additional loaded player, rounded. Ambient spawns, ground-quest auto
+leveling, dynamic waves and ambushes, treasure maps, Meatlump encounters, and
+bounty generation no longer read NGE player level. The latent mission
+level-difference and daily cash divisors are inert. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuEncounterDifficultyAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 289 closes a clean-build regression exposed by Milestone 288. The
+crafted droid deed still referenced two NGE pet-level constants that Milestone
+287 correctly removed, so a complete Java compile failed even though the prior
+incremental build passed. The deed no longer compares droid level with player
+combat level. Publish 14.1 storage, active-droid capacity, manipulation,
+datapad, control-device creation, and successful deed-consumption checks remain
+authoritative. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuDroidDeedCallAdmission.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 290 restores Publish 14.1 combat XP authority. Ground kills now seed
+XP from each defeated creature's authored `combat.intCombatXP`, with a
+creature-level table fallback only for legacy objects that lack that value.
+The attacker no longer supplies an NGE combat level or level-difference decay.
+Each weapon XP share is capped from its authenticated
+`private_<weapon>_combat_difficulty` skill modifier at 300 XP per difficulty
+tier (maximum tier 25), then receives the fixed Publish 14.1 grouped-combat
+multiplier of 1.2 without a group-size divisor.
+
+Destroy mission completion keeps the verified ten-mission board and full
+credit payout for every eligible nearby member, but no longer synthesizes a
+limited daily XP award from the NGE player-level table. Combat XP comes from
+the mission creatures. Persisted daily-XP counters are cleaned on login,
+ground collection level XP fails closed while its other authored rewards stay
+available, and free-trial/NPE combat-level checks can no longer suppress the
+PRE-CU XP fly text. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCombatXpAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 291 restores Publish 14.1 ordinary ground loot and Scout foraging
+authority. Creature corpses keep their authored loot tables, cash, collection
+rewards, and Scout resource marker, while global NGE RLS chests, Beast Master
+enzymes, Chronicles fragments, and scheduled TCG cards no longer inject
+themselves into every kill. Explicit quest-created rewards, persisted later-era
+items, and the configured golden-ticket event remain available as retained
+content.
+
+The Scout `/forage` command now requires Exploration I, starts one shared
+foraging task, drains Quickness-adjusted Action, waits 8.5 seconds, and fails
+after movement or combat. Ten-meter areas allow three attempts before a
+thirty-minute exhaustion period. The authenticated `foraging` modifier drives
+success; rewards use the Publish 14.1 food, bait, and rare treasure-map bands,
+including Camps III and Scout Master bonus-item rolls. Medical foraging remains
+mutually exclusive and otherwise unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuGroundLootScoutForageAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 292 restores Publish 14.1 ground faction-standing and cloning
+authority. An ordinary faction NPC kill now awards standing once to the
+highest-damage eligible player in the winning solo/group credit. The defeated
+creature's authored level and faction combat factor determine the gain;
+enemies gain that amount while the defeated faction and eligible allies lose
+twice the amount. Opposing non-duel player kills use the fixed historical
+`+30 / -45 / -45` standing changes. Player combat level, GCW rank, NGE class,
+overt-status, Luck, inspiration, daily-kill, and kill-score multipliers no
+longer override those rules.
+
+The NGE cloning-sickness price and cure layer is inert, persisted sickness is
+removed on login, and the existing PRE-CU clone wounds, battle fatigue,
+insurance, and item decay remain authoritative. This milestone also closes a
+clean-build regression in the XP callback: tutorial/free-trial combat-level
+gates and the NGE Luck XP bonus are absent. Mission terminal generation and
+mission payouts are unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionCloningAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 293 restores the server's dormant Publish 14 faction-rank field as
+the authoritative persisted and client-shared rank. The Java rank query no
+longer derives rank from NGE weekly GCW rating; a validated native setter now
+updates `CreatureObject::m_rank`, whose existing shared package replicates it
+to the client.
+
+Recruit promotion uses the authored `faction/rank` cost, requires the player
+to retain the 200-point membership minimum, deducts the exact faction-point
+cost without bonus multipliers, and refunds that cost if the rank write fails.
+Joining or fully resigning resets rank to zero. The NGE credit-priced global
+perk catalog is deliberately outside this bounded milestone and is the next
+faction audit. Mission terminal code and rewards remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionRankAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 294 restores Publish 14 faction-perk purchase authority. Rebel and
+Imperial recruiters expose their retained faction-specific furniture,
+weapon/armor, installation, uniform, hireling, and schematic tables. Purchases
+consume faction standing, preserve the 200-point membership reserve, re-read
+and revalidate the selected row, and revoke or destroy a created reward if the
+standing deduction fails. Species prejudice remains active without the NGE
+expertise discount or dynamic GCW population multiplier.
+
+Aligned Rebel/Imperial standing capacity now follows the current authored rank
+cost multiplied by twenty with a 1000-point floor; unaligned or opposing
+standing remains capped at 1000. NGE global credit/class/combat-level catalog
+admission, recruiter vendor precedence, and camp field requisition are inert.
+Mission terminal code and rewards remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionPerkAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 295 retires the post-NGE GCW rating progression layer. Shared and
+direct award entrypoints can no longer mutate current/lifetime GCW points,
+rating-input PvP kills, weekly rating, maximum rating, or the weekly
+conversion/decay timer. Persisted remnants of those fields are cleared when a
+player loads, while Publish 14 faction standing and the independently
+persisted creature faction rank remain authoritative.
+
+The shared script choke point also stops rating-derived system messages,
+invasion credit, and regional score propagation. Independent rewards remain
+intact: mission credits and faction standing, ground-quest credits/standing
+and physical rewards, battlefield tokens, space-kill faction standing, and
+space-battle tokens. Mission terminal source is unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuGcwRatingRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 296 retires the later recurring Bestine, Dearic, and Keren GCW city
+invasions without deleting their reusable assets. The three buildout sequencer
+objects remain, as do their data tables and construction-kit content, but the
+`systems.gcw.gcw_city` controller is no longer attached. A persisted controller
+from an older database cleans its spawned children and stale city state, then
+detaches itself. Planet scheduling, forced GM starts, and the invasion-only
+cloning restriction are inert.
+
+This boundary does not retire PRE-CU faction standing/rank, recruiter perks,
+static faction bases, or older battlefield gameplay and tokens. The live-
+confirmed mission terminal population and full group-reward paths are also
+authenticated as untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCityInvasionRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 297 retires the four queued, warped, level-gated battlefields added
+in Game Update 10: Massassi Isle, Jungle Warfare, Bunker Assault, and Data
+Runner. Their four controller objects and sixteen capture terminals retain
+their scenery rows and object variables, but no longer attach the later
+`systems.gcw.pvp_battlefield` or `systems.gcw.battlefield_terminal` scripts.
+Persisted controllers evacuate active participants, clear queue and cluster
+state, unregister their region mappings, and detach. Persisted player scripts,
+queued state, battlefield-only buffs, cloning overrides, level gates, and
+region pushback behavior are also removed fail-closed.
+
+The older open-world `systems.battlefield` implementation, its battlefield
+data, and its faction-standing reward path remain authenticated and untouched.
+Combat mission terminals and their group-credit rules also remain unchanged.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuQueuedBattlefieldRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 298 retires the fixed Corellia, Talus, and Naboo four-terminal
+static-base control loop added after Publish 14. Its controller initializer,
+bunker controller/spawner, faction-only travel and cloning points, capture
+terminals, and insurgency collection node remain as scenery/content rows but
+no longer attach gameplay scripts or retain activation object variables.
+Persisted controllers, dynamic terminals/spawns, map entries, waypoints, and
+player capture state clean themselves and detach fail-closed.
+
+Player-placed faction headquarters and their objective/destruction lifecycle
+remain authenticated and unchanged, as do PRE-CU faction standing/rank/perks,
+open-world battlefields, mission terminals and rewards, normal starports and
+cloning facilities, and the dormant fixed-base spawn tables. The cleanup in
+shared municipal/collection scripts is restricted to exact fixed-base object
+templates. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFixedStaticBaseRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 299 restores Publish 14 skill-box authority to retained player-placed
+faction headquarters. Objective admission now requires Smuggler Slicing I,
+Bounty Hunter Investigation II, Commando Heavy Support Weapons II, novice
+Bio-Engineer, and novice Squad Leader instead of later NGE class phases.
+Smuggler Slicing II-IV again accelerates failed-terminal repairs, while the
+Bio-Engineer DNA Harvesting I-IV and Master boxes expand each DNA sample from
+three to eight nucleotides. Successful bounty-hunter, bio-engineer, and
+commando objectives again award their authored 1,000 profession XP.
+
+The objective order, faction/overt admission, vulnerability schedule, defense
+and shutdown lifecycle, player-HQ templates, retired fixed static bases, older
+open-world battlefields, faction standing/rank/perks, and live-confirmed mission
+terminal/reward paths remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPlayerHqProfessionAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 300 closes the remaining executable NGE profession-authority layer.
+Smuggler scans, brokers, underworld rewards, faction recruiters, droid modules,
+Bounty Hunter checks, Squad Leader group commands and XP, entertainer
+registration, crafting displays, reverse engineering, limited-use schematics,
+retained dungeon interactions, and expansion crafting scripts now consult exact
+Publish 14.1 novice, branch, or master skill boxes. Multi-profession Boolean
+checks no longer collapse a character to one NGE class; the small singular
+compatibility adapter used by retained vendor/banner arrays now resolves from
+PRE-CU ownership in its historical priority order.
+
+The one retained expansion quest phase check derives from the existing hidden
+PRE-CU combat-skill score at 25/50/75, never player combat level. NGE
+lightsaber schematics use the common Padawan crafting root while their recipe
+grants remain controlled by the Jedi tree. Only stale live-conversion cleanup,
+badge migration names, and the already-retired respec library retain NGE class
+strings. The live-confirmed mission-terminal generation and ten-mission/full-
+group-reward sources are hash-pinned and unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuProfessionAuthorityClosure.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 301 restores one authenticated Publish 14.1 internal combat-level
+authority for player combat math. The equipped weapon selects
+`private_<weapon type>_combat_difficulty`; the value is divided by 100, raised
+by one, and capped at 25. Jedi wielding a lightsaber also contribute
+`private_jedi_difficulty`, and a missing weapon fails closed at zero. The
+existing combat-XP overload now delegates to the same current-weapon formula
+for empty and Jedi-general XP types instead of maintaining a divergent copy.
+
+The four restored state-application rolls now use that weapon-skill level
+before the historical minus-five adjustment. PRE-CU taunt uses the same
+player adapter while creature targets retain their authored creature level.
+This combat-only value remains separate from the 1–90 skill-box adapter used
+to keep retained expansion encounters accessible; it is not displayed, used
+for item certification, or treated as an NGE profession level. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuWeaponCombatLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 302 removes the remaining direct NGE player-level reads from the
+retained conversation and theme-park packages. Sixty-seven combat encounters,
+dynamic spawns, and general quest-band checks now consume the hidden PRE-CU
+combat-skill difficulty adapter. The four factional Trader supply terminals
+instead score learned crafting skill boxes, and Pei Yi scores learned
+Entertainer, Dancer, Musician, and Image Designer boxes. This keeps noncombat
+professions eligible for their retained content without allowing crafting or
+performance progression to inflate creature combat difficulty.
+
+All 72 replaced reads preserve their authored thresholds and surrounding
+quest/conversation behavior. The bridge remains hidden and does not restore a
+visible combat level, NGE class template, expertise tree, or item-level gate.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedContentLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 303 closes the generic player-equipment level boundary. Weapon
+initialize, conversion, and transfer no longer add player combat level to
+generic minimum/maximum damage modifiers or apply NGE expertise range bonuses.
+Every retained caller restores the authored weapon maximum range, and stale
+generic damage modifiers from older builds are removed from the character.
+
+The generic retained-item `levelRequired` check and attribute row are inert
+because Publish 14.1 characters have no player combat level. Existing class,
+skill, and ability checks remain active, and expansion trap/device metadata is
+preserved for compatibility and later PRE-CU profession mapping. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPlayerEquipmentLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 304 moves retained expansion scout-device admission and effect
+scaling onto PRE-CU authority. Within the retained item boundary, later Spy
+class ID 5 now means Ranger (`outdoors_ranger_novice`); global profession
+identity remains unchanged so Ranger is never exposed as an NGE Spy. Trap
+arming and disarming use the Publish 14.1 `trapping` modifier, device
+concealment uses `camouflage`, and neither path adds player combat level or the
+later `ranger_trap` modifier. The 11 retained class/level metadata templates and
+the HEP ability metadata remain intact as compatibility data. Mission sources
+are hash-pinned to the user-verified working terminal build.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedDeviceAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 305 removes direct NGE player-level authority from retained system
+libraries, static quest gates, expansion events, city scans, and tutorial
+compatibility. Combat and generic content use the hidden PRE-CU combat-skill
+box score; entertainer-only unlocks use the independent social skill-box score.
+Authored thresholds, quest flow, event flow, and creature levels remain intact.
+Space-to-ground combat XP now enters the PRE-CU style-specific XP adapter
+instead of the later generic combat pool. The user-verified mission-terminal
+sources remain hash-pinned and unchanged.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedSystemLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 306 restores Publish 14.1 crafting Luck authority. Assembly and
+experimentation add a bounded random roll from the PRE-CU `luck` and
+`force_luck` skill modifiers to their normal result-band rolls. They no longer
+use the NGE level-capped primary-stat proc, `luck_modified`, or a lucky proc
+that manufactures a critical success. The retained generic `luck.isLucky`
+overloads remain as an ABI boundary but fail closed, retiring their six later
+healing, junk-fencing, channel-heal, and theft proc consumers without changing
+those systems' ordinary behavior. Mission sources remain hash-pinned to the
+user-verified working terminal build.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCraftingLuckAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 307 removes the live NGE player combat-level check from retained
+Restuss invasion admission. The authored advanced-area threshold remains 75,
+but it is now evaluated through the hidden PRE-CU combat skill-box score.
+Faction allegiance, covert status, entry messages, retry handling, and warping
+remain unchanged. Queued battlefields stay retired, and the user-verified
+mission-terminal sources remain hash-pinned and unchanged.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRestussAdmissionAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 308 retires the post-NGE buff-progression layer without removing
+later expansion data. `/inspire` now fails closed before the native Buff
+Builder starts; every validation, completion, cancellation, login, and stale
+script callback removes persisted builder state. The completion path cannot
+transfer credits, install `buildabuff_inspiration`, or grant TCG collection
+drops while this PRE-CU authority is active.
+
+General and TCG XP bonus/grant handlers also fail closed before their NGE
+player-level and collection branches. The central XP modifier is identity,
+crafting inspiration contributes zero XP, and the GCW helper returns its
+unmodified point value. Existing buff rows and effect mappings stay present
+for retained-content loading, and ordinary non-progression components of
+composite items remain untouched. The restored Publish 14.1 entertainer
+Mind/Focus/Willpower watch/listen session remains the live entertainer buff
+authority. Mission sources remain hash-pinned to the user-verified working
+terminal build.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeBuffProgressionRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 312 retires inherited NGE player-migration authority. Normal login
+now clears roadmap/template, visible combat-level, and stale respec state; the
+Combat Upgrade reward script self-retires without creating items. Character
+transfer no longer requires or restores an NGE template, working skill, combat
+level, or raw command list. PRE-CU skill boxes and XP remain transferable, and
+retired class/expertise skills are skipped without aborting an otherwise valid
+transfer. Expansion quests and quest-script reattachment, collections, zones,
+inventory, bank, datapad, appearance, hangar, credits, waypoints, and space
+state remain preserved. Mission sources stay hash-pinned to the user-verified
+working terminal build.
+
+Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 313 retires the remaining automatic NGE profession passives attached
+to the player lifecycle. Login, initialization, recapacitation, delayed
+callbacks, and retired skill changes now remove the Jedi stance/focus and
+Smuggler Underworld-rank expertise buffs instead of applying them. Java skill
+grant, trainer, and purchase surfaces reject every retired `class_*` and
+`expertise*` family before effects run, matching the existing native admission
+boundary. Skill-box acquisition feedback no longer depends on NGE combat level.
+
+Smuggler Underworld title and reward-quest grants remain active. Later buff and
+effect-mapping rows, expansion quests/zones, and the user-verified mission
+terminal sources remain preserved. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePassiveProfessionRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 314 retires the post-NGE GCW rank combat-reward layer without
+changing the authenticated Publish 14.1 faction rank system. The twelve
+Imperial/Rebel ability skills are rejected by the generic retired-progression
+gate; rank changes no longer grant their six combat tiers. Login,
+initialization, recapacitation, and retired-skill callbacks remove persisted
+reward skills, their active retaliation/adrenaline/unstoppable/last-man/aura
+buffs, the repeating aura controller, and its faction state.
+
+Faction-point promotion costs, persisted ranks, recruiters, titles/badges,
+bases, battles, quests, zones, and the later compatibility skill/combat/buff
+rows remain present. The user-verified mission-terminal sources remain
+hash-pinned and unchanged. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeGcwRankRewardRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 315 retires the inherited automatic NGE creature-combat profile
+selector for every ground attacker carrying an authenticated PRE-CU creature
+profile. The later table assigned 313 profiles and 284 distinct unmapped
+profession, Beast Master, delay, heal, and utility actions to 5,317 creature
+rows. Profiled creatures now use their normal default attack through the
+existing Core3 damage, accuracy, HAM, armor, and two-second AI cadence routes.
+
+Explicitly forced and one-shot encounter actions remain available, preserving
+retained Mustafar, Kashyyyk, Tansarii, quest, boss, and scripted encounter
+mechanics. Unprofiled retired compatibility actors keep their old selector;
+the creature/profile/combat tables and user-verified mission-terminal sources
+remain unchanged. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCreatureAutoActionAuthority.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 316 retires the inherited NGE expertise, item, buff, cybernetic,
+and reactive combat-proc runtime for players. Login, weapon, wearable, buff,
+and cybernetic callbacks previously converged on 22 list-rebuild calls across
+seven consumers, backed by 97 later proc rows. The shared proc library now
+cleans persisted player list and cooldown state before either construction or
+execution can take effect.
+
+Retained expansion NPC encounter procs remain available because the boundary
+is player-only. Publish 14.1 combat, the compatibility data, later content
+objects, quests, conversations, zones, and the user-verified mission-terminal
+sources remain unchanged. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerProcRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 317 retires automatic post-Publish-14 player rewards without
+discarding retained expansion content. Login no longer grants the newest row
+from the Publish 27-45 gift table, and combat-level 20/70 callbacks cannot
+create Flash Speeder or Lava Flea rewards. Login also clears the obsolete
+`level.reward` marker tree, while the legacy public callbacks remain safe
+no-ops for queued or retained callers.
+
+Existing gift items, item behavior, collection quests, explicit paid veteran
+replacement, and the retained Smuggler quest bootstrap remain available. The
+Smuggler bootstrap continues to use the PRE-CU `combat_smuggler_novice` gate.
+The user-verified mission-terminal sources remain hash-pinned and unchanged.
+Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeAutomaticPlayerRewardRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 318 restores authored PRE-CU Politician progression. The inherited
+bulk-grant helper previously awarded all 18 Politician boxes whenever a player
+initialized as a homeowner or mayor, declared a residence, or reached the
+dormant live-conversion path. That shared helper is now a link-compatible
+no-op, so residence and office cannot bypass the skill tree.
+
+Legitimately earned Politician boxes are not revoked. The complete novice,
+four-branch, and master rows, political XP, credit costs, prerequisites,
+generic purchase path, city novice checks, elections, administration, later
+quests/content, and user-verified mission terminal remain preserved. Validate
+the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPoliticianProgressionAuthority.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 319 restores the authored PRE-CU skill-training boundary at normal
+login. The inherited migration repair recursively granted every missing
+prerequisite for every held skill, with raw grants and a 100-pass ceiling. That
+path bypassed skill points, prerequisite ownership, XP, credits, and trainers.
+
+Login no longer creates or revokes skill-box ownership to repair a graph.
+Explicit purchase and trainers retain their skill-point, prerequisite, XP,
+credit, and deduction checks. Owned skills, surrender, character transfer,
+quests, later content, and the user-verified mission terminal remain preserved.
+Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuLoginSkillProgressionAuthority.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 320 restores Publish 14.1 species-language ownership. Player
+initialization no longer grants Shyriiwook comprehension to every character,
+and the species attachment script grants it only to Wookiees. Human, Bothan,
+Mon Calamari, Rodian, Trandoshan, Twi'lek, Wookiee, Zabrak, Ithorian, and
+Sullustan starting-language sets remain exact and independently authenticated.
+
+Player language teaching and explicit retained EP3 conversation grants remain
+available, preserving later conversations and quests without making their
+language reward universal at character creation. The x64 server is built
+directly from the pushed source revision in the `swg-precu-work-x64` Docker
+volume; the source checkout remains mounted read-only and no host staging or
+artifact tree is used. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuSpeciesLanguageAuthority.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 321 restores native Publish 14.1 player combat-difficulty authority.
+The inherited server previously converted every named XP grant and skill-box
+change through the later `player_level` table, persisted player level XP, and
+added level-derived Health. Players now keep named skill XP and authored skill
+mods while their hidden combat/con difficulty follows the readied weapon
+family's `private_*_combat_difficulty` value, plus Jedi difficulty for
+lightsabers, using the Core3 1-25 calculation.
+
+Weapon changes, skill grants, surrender, login recalculation, and database
+load refresh that hidden value without creating level XP or Health. Scripted
+level forcing cannot override players; authored NPC levels remain intact. The
+separate 1-90 retained-content encounter score and user-verified mission
+terminal remain preserved. The x64 server is built from the pushed direct
+native source in the `swg-precu-work-x64` Docker volume with the source mount
+read-only and no host staging or artifact tree. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativePrecuPlayerDifficultyAuthority.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 322 retires the native NGE combat-level command-series ladder. The
+inherited server loaded 240 level 1-90 upgrades spanning Force Sensitive,
+Bounty Hunter, Smuggler, Officer, Commando, Medic, Spy, Entertainer, Beast
+Master, and related later professions, then granted or revoked those commands
+from player level during login and skill callbacks.
+
+The command-series table is no longer loaded, and its retained native/JNI entry
+point is a link-compatible no-op. Publish 14.1 commands continue to come from
+owned skill boxes, with direct quest and item grants preserved. The compatibility
+table remains in source for retained content, but no row overlaps a non-retired
+skill command and it cannot override PRE-CU ownership. The x64 server is built
+from the pushed direct native source in `swg-precu-work-x64`; no host staging or
+artifact tree is used. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgeCommandSeriesRetirement.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 323 retires the remaining native NGE player-level service startup.
+The server no longer installs the orphaned `LevelManager`, and the retained
+expertise metadata manager no longer loads combat-level expertise points from
+`player_level.iff`. Its compatibility point accessor always returns zero.
+
+Expertise skill/tree metadata remains installed only so persisted later-era
+expertise rows can be identified and removed by the already fail-closed cleanup
+path. The level table itself remains in data for retained expansion content, but
+it no longer supplies native player level XP, level Health, command-series
+grants, or expertise points. The direct native commit is built only in the
+`swg-precu-work-x64` Docker volume; no host staging or artifact tree is used.
+Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgePlayerLevelServiceRetirement.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 324 adapts the retained Series 4 T-16 Skyhopper TCG consumable to
+PRE-CU progression. The inherited script previously read combat level and the
+NGE `player_level` table, called a deliberately inert class-template XP grant,
+then reported success and consumed the toy even though no XP was awarded.
+
+The toy now uses its existing level-cap fallback for every PRE-CU player: it
+grants one random collection item, plays the authored flyby effect, and is
+consumed only after delivery succeeds. Failed delivery leaves the toy intact.
+Its user-facing description now states the collection reward. The unrelated
+TCG content remains present, while no generic or fabricated skill XP enters the
+PRE-CU progression graph. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuTcgInstantXpAdapter.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready

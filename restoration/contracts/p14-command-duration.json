@@ -2,7 +2,11 @@
   "schemaVersion": 1,
   "feature": "precu-combat-command-duration",
   "status": "ready",
-  "scope": "Opt-in Core3-equivalent weapon-derived execute timing for authenticated Pre-CU combat commands without changing static NGE command timing.",
+  "scope": "Historical opt-in Core3-equivalent weapon-derived execute-timing milestone, now superseded at runtime by the authoritative Publish 14 weapon-speed contract.",
+  "runtimeSupersession": {
+    "contract": "p14-authoritative-weapon-speeds.json",
+    "policy": "All combat_data ATTACK and DELAY_ATTACK rows now use normalized live weapon speed; static NGE execute timing remains only for non-attacks."
+  },
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
@@ -40,6 +44,7 @@
   },
   "fallbackPolicy": {
     "nonOptedCommand": "original command-table executeTime",
+    "creatureDefaultAttacks": "non-player creatureMeleeAttack and creatureRangedAttack use the live authoritative weapon attack time with a one-second floor",
     "missingWeaponProfile": "original command-table executeTime",
     "missingTables": "original command-table executeTime",
     "reason": "Pre-CU timing must fail closed instead of applying partial NGE weapon data to an authenticated command."

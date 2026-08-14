@@ -2,11 +2,13 @@
   "schemaVersion": 1,
   "feature": "force-sensitive-eligibility",
   "status": "ready",
-  "scope": "Replace NGE class-template and combat-level Force-sensitive decisions with the native Publish-era Jedi state and the exact Core3 crystal-tuning skill.",
+  "scope": "Replace NGE class-template and combat-level Force-sensitive decisions with the native Publish-era Jedi state and the exact Core3 crystal-tuning skill. Preserve the authored Village fs_quest_sad killable-object lifecycle and close its complete Java callback inventory without allowing later player progression authority.",
   "sourceFiles": {
     "jediLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
     "saberComponent": "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_saber_component.java",
-    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_force_sensitive_eligibility_fixture.java"
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_force_sensitive_eligibility_fixture.java",
+    "sadBasicTask": "dsrc/sku.0/sys.server/compiled/game/script/quest/task/fs_quest_sad/basic_task.java",
+    "questTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/player/quests.tab"
   },
   "core3Evidence": {
     "repository": "swgemu/Core3",
@@ -19,13 +21,32 @@
     "jediStateMinimum": 2,
     "crystalTuningSkill": "force_title_jedi_rank_01"
   },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+(OnCreatedKillableObject|OnIncapacitatedKillableObject)\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 1,
+    "createdHandlers": 1,
+    "incapacitatedHandlers": 1,
+    "inventorySha256": "06d5c1be5da4e696eebff724a8ff8d7165c1006d86b57e48a470b9e9766e1233",
+    "sourceSetSha256": "6213d3fca51422a7986f3572f75a7fe5ab900313501e766bbefb8155b0f904e2",
+    "sourcePaths": [
+      "quest/task/fs_quest_sad/basic_task.java"
+    ]
+  },
   "expected": {
     "forceSensitiveAuthority": "isJediState(player, JEDI_STATE_FORCE_SENSITIVE)",
     "ngeClassTemplateGate": false,
     "ngeCombatLevelGate": false,
     "legacyLevelEntryPointFailsClosed": true,
     "crystalTuningSkill": "force_title_jedi_rank_01",
-    "saberComponentCallSites": 2
+    "saberComponentCallSites": 2,
+    "sadKillableCallbacks": 2,
+    "sadCreatedCallbacks": 1,
+    "sadIncapacitatedCallbacks": 1,
+    "sadAuthoredQuestRows": 16,
+    "sadNgePlayerProgressionMutations": 0,
+    "sadVillageQuestLifecyclePreserved": true
   },
   "buildEvidence": {
     "overlayPatch": "restoration/patches/dsrc/145-p14-force-sensitive-eligibility.patch",
@@ -34,14 +55,16 @@
     "overlayPatchEvidenceEncoding": "UTF-8 with LF line endings",
     "cleanApplyCheck": "passed",
     "sourceSha256": {
-      "jedi.java": "33165e4d0ee1350eeaf8d7f3ed1217bbbe8a5c325058ca346ac93609e7fd75c5",
-      "jedi_saber_component.java": "e46dfdd388df313503811e1985ac8b3863ae27b5446c5ea0db786f12f1a83ec9",
-      "precu_force_sensitive_eligibility_fixture.java": "c7ad8daa0db42da709be35bbd72beb8764e1657f751343fcbd521e1cfe9b963a"
+      "jedi.java": "3549b440320c7ca75a8e55a8f44e27405e38a4caf47c0c5891afba99b328fbc0",
+      "jedi_saber_component.java": "b995bd24a1db9e25f6bd67bb4e637b732eadf0cbcf0cbffa1e50ad23c38dc9bd",
+      "precu_force_sensitive_eligibility_fixture.java": "c7ad8daa0db42da709be35bbd72beb8764e1657f751343fcbd521e1cfe9b963a",
+      "basic_task.java": "dbc143045a9df5c6a5ebc3468df2a24028336cb70c1d818839119e0d0480f1c2",
+      "quests.tab": "957f15eace82d9b53f99c9ddb981078007a56e64eaf090207588a572d44820be"
     },
     "javaCompile": {
       "result": "passed",
       "jedi.class": "11b51d24ea0ac93078ebe5903d8b29e4e254fc5a600852b6ca6fcced83fa35d4",
-      "jedi_saber_component.class": "3f0fdb7c2441d0a52f9a3054463b394f47ce3e13907a0417351813d1ce965600",
+      "jedi_saber_component.class": "09b6348cb1d95b6fbb3ff7631cf1d36f9d9c0d23e5099866dc90ac14cea1634e",
       "precu_force_sensitive_eligibility_fixture.class": "24ed936952429940f83ad4c6c54372c0eaca7217e0c7e4c255464cd3a58a425e"
     }
   },

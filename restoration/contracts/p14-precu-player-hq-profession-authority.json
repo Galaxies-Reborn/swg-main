@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-player-hq-profession-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14 skill-box admission, progression scaling, and authored profession XP to retained player-placed faction-headquarters objectives without reviving post-NGE fixed static bases or changing missions, faction authority, or open-world battlefields.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryPaths": [
+      "MMOCoreORB/src/server/zone/objects/tangible/terminal/components/OverrideTerminalMenuComponent.cpp",
+      "MMOCoreORB/src/server/zone/objects/tangible/terminal/components/PowerRegulatorMenuComponent.cpp",
+      "MMOCoreORB/src/server/zone/objects/tangible/terminal/components/SecurityTerminalMenuComponent.cpp",
+      "MMOCoreORB/src/server/zone/objects/tangible/terminal/components/UplinkTerminalMenuComponent.cpp",
+      "MMOCoreORB/src/server/zone/objects/tangible/terminal/components/HQMenuComponent.cpp",
+      "MMOCoreORB/src/server/zone/managers/gcw/GCWManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/managers/gcw/tasks/SecurityRepairTask.h"
+    ],
+    "findings": [
+      "Publish 14 requires Bio-Engineer novice for DNA override, Commando Heavy Support Weapons II for power regulation, Smuggler Slicing I for security, Bounty Hunter Investigation II for the uplink, and Squad Leader novice for final overload coordination.",
+      "Bio-Engineer DNA Harvesting I-IV and Master increase the sampled chain length from the novice value of three through four, five, six, seven, and eight; Smuggler Slicing II-IV increase failed-terminal repair progress from one through two, three, and four.",
+      "Successful DNA, uplink, and power objectives award 1,000 XP in bio_engineer_dna_harvesting, bountyhunter, and combat_rangedspecialize_heavy respectively."
+    ]
+  },
+  "expected": {
+    "ngeClassPhaseChecksRemaining": 0,
+    "bioEngineerAdmissionSkill": "outdoors_bio_engineer_novice",
+    "bioEngineerDnaProgression": {
+      "novice": 3,
+      "outdoors_bio_engineer_dna_harvesting_01": 4,
+      "outdoors_bio_engineer_dna_harvesting_02": 5,
+      "outdoors_bio_engineer_dna_harvesting_03": 6,
+      "outdoors_bio_engineer_dna_harvesting_04": 7,
+      "outdoors_bio_engineer_master": 8
+    },
+    "commandoAdmissionSkill": "combat_commando_heavyweapon_speed_02",
+    "smugglerAdmissionSkill": "combat_smuggler_slicing_01",
+    "smugglerRepairProgression": {
+      "combat_smuggler_slicing_01": 1,
+      "combat_smuggler_slicing_02": 2,
+      "combat_smuggler_slicing_03": 3,
+      "combat_smuggler_slicing_04": 4
+    },
+    "bountyHunterAdmissionSkill": "combat_bountyhunter_investigation_02",
+    "squadLeaderAdmissionSkill": "outdoors_squadleader_novice",
+    "objectiveXp": {
+      "bio_engineer_dna_harvesting": 1000,
+      "bountyhunter": 1000,
+      "combat_rangedspecialize_heavy": 1000
+    },
+    "objectiveOrderChanged": false,
+    "factionAndVulnerabilityAdmissionChanged": false,
+    "playerHqPlacementAndDefenseChanged": false,
+    "fixedStaticBasesReactivated": false,
+    "openWorldBattlefieldsChanged": false,
+    "missionTerminalSourceChanged": false,
+    "missionRewardSourceChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_override.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_power_regulator.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_security.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_uplink.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/terminal.java"
+  ],
+  "retainedSources": [
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/hq.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/loader.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_manager.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/deed.java",
+    "dsrc/sku.0/sys.server/compiled/game/object/building/faction_perk/hq/base/factional_hq_base.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/player_battlefield.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/master.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/base_master.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/369-p14-precu-player-hq-profession-authority.patch",
+      "bytes": 7376,
+      "sha256": "b8c669cc590427c9db089636bb77ee9e4bc7c2ca36db76eaffeca848cb5717e2"
+    },
+    "sourceSha256": {
+      "hq.objective_override": "71804f485acd91f9c08663932f16a2cd332dd87fe7866fbb33a9d260f3f4c21a",
+      "hq.objective_power": "db55008c61d689f5c49e5645d2bba85fad806e02b033a28c1fb25cd620ac3744",
+      "hq.objective_security": "5664fef3de99ed2ff5dfcae1e559fde4694c27f0f354aa7dc054c768d5728c4f",
+      "hq.objective_uplink": "d958bb9a1492691f240e42d4c30925a145041ba6a45d09150e02378763c446a5",
+      "hq.terminal": "78d7566f9d81b7d6939d6d1cf3609ed5dffb1731e2fe8030b036cd5db38119ae",
+      "skills.table": "00378b42fbe3eef0c17f491f170532b0341f1cc6c0618ee61ba4c9cb302a86c0",
+      "hq.library": "a4ab35ac04b08f8271d0f7b4b874f46d973be2187117561a14fd5f5f459eb80e",
+      "hq.loader": "361cee28757c36e7330402c2770bbf79a107d6bd62b9b7410cf4fb688f177a72",
+      "hq.objective_manager": "acf917b3c6cd1e5b33a9896c8c77a634e6beb870888ecac01be80a374406e6ac",
+      "hq.deed": "7496967fdfcaf62d7e39946ce08f3f90e66164f79da0d73abe35837792aec25e",
+      "hq.template": "a69cf34d093c1edb4831a426d43e7859f8394e4b8a9ba270170ec4e0bd6b3ea9",
+      "factions.library": "0407778e49051f2668e75cafa4e477f3aee3930eb6ed19acea5939c1932a897d",
+      "battlefield.player": "39729ee9bd2b9e5e0b62833974896a5f41119ef9b8631418284e8094b92c07a3",
+      "mission.terminal": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission.base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "static.master": "cd463a09827a61620e1251bb3a27500d25d33fbc5f9921973082b1c92ca9cc8b",
+      "static.base_master": "4c8b06d0ae2858d319ce8dc895bff6962ac10316e19653a652e2ee00aeee9737"
+    },
+    "isolatedJavaCompile": "passed for all five changed Java sources with javac -source 8 -target 8 against the deployed Milestone 298 x64 class set",
+    "isolatedClassSha256": {
+      "hq.objective_override": "00fe253619b7ed01ee156ae78ad6f3a010a4775ab20e9654992c552edee0aafc",
+      "hq.objective_power": "1c0eb3fa3cf9ed0d243a2641b39a8a506a1791b3bac8f1415bdd62e7d1024db3",
+      "hq.objective_security": "bdbbaf6dd83cf30603fd30f368ac39205d2247ec67aaac4d21bf92e09bf2b467",
+      "hq.objective_uplink": "b418115c17893fcfce6057a69d95b5f0b41943a014430cfbfa369b3b2d08870b",
+      "hq.terminal": "4fd2554429eb37bcfed0629ba917e7efb615c90bc57b6e99ca90cf1630e43993"
+    },
+    "cleanMaterialization": "passed (401 patches, 1134 acceptance files)",
+    "cleanMaterializationPatches": 401,
+    "cleanMaterializationAcceptanceFiles": 1134,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "compiledClassSha256": {
+      "hq.objective_override.deployedFullBuild": "4fac6f1c51633caa0d3bacdced6d84992038ec833bf347d83d7bcdbcf7bbbf17",
+      "hq.objective_power.deployedFullBuild": "bb95273b7d530e14a876916ec365c23d9b3f3412a404a93e1ef599fdbaa8fa7f",
+      "hq.objective_security.deployedFullBuild": "44cda45fefd024d5835e24c5c47c99fed71b28f8ab80762385eb4ce754da057c",
+      "hq.objective_uplink.deployedFullBuild": "909e6bfd4a2a6cd2ad4eabdbeb350dc2694ebc4ee096f5a09b26899278e9731a",
+      "hq.terminal.deployedFullBuild": "c86e717322a24fc7c70f6a5bfe66f9aba501bcc6d3d72d10fab0f0bc23c4d915"
+    },
+    "fullX64Build": "passed (clean Release native build, 5713 Java sources producing 5747 class files, MIFF/templates, datatables/buildouts, and x86-64 verification); retained incremental verification exited 0 with BUILD SUCCESSFUL",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed exact source/work comparisons for all five changed HQ scripts, PRE-CU profession/XP and NGE-class-absence bytecode checks, retained mission/faction/battlefield/static-base regressions, rendered runtime configuration, x64 architecture, health/readiness, and live mapped-binary verification"
+  },
+  "runtimeEvidence": {
+    "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
+    "containerStartedAt": "2026-08-02T22:46:01.849733078Z",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-hq299-final-d",
+    "canonicalAssetMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-assets",
+    "requiredProcessCounts": "LoginServer=1, TaskManager=1, ConnectionServer=1, SwgDatabaseServer=1, SwgGameServer=14",
+    "clusterReadyLines": 1,
+    "playerHqErrorLines": 0,
+    "fatalStartupLines": 0,
+    "exceptionStartupLines": 0,
+    "missionErrorLines": 0,
+    "emptyGenericMessageWarnings": 0,
+    "missionTerminalContinuity": "The user physically reached a mission terminal on the Milestone 298 live server and confirmed it works; mission terminal and mission reward sources are authenticated unchanged here."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all eight later NGE class-phase checks in retained player-HQ objectives, DNA/repair skill-box scaling, and three authored objective XP awards",
+    "retainedContent": "player-HQ placement, vulnerability, objective order, defenses and destruction; PRE-CU factions and open-world battlefields; retired post-NGE fixed bases; missions and rewards",
+    "notClaimedComplete": "the broader repository-wide NGE precedence scrub remains active beyond this player-HQ boundary"
+  },
+  "requiredBeforeReady": []
+}
