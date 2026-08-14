@@ -53,18 +53,20 @@ $instantDispatch = Get-Slice $player "public int OnPurchaseTicketInstantTravel("
 $pickupAdmission = Get-Slice $player "public boolean canCallForPickup(" "public boolean spawnPickupCraft("
 $pickupSpawn = Get-Slice $player "public boolean spawnPickupCraft(" "public int groupMemberLocationRequestHandler("
 
-Assert-Contract ($purchase.Contains("if (instantTravel)") -and
-    $purchase.Contains("Ignored retired NGE instant-travel ticket request") -and
-    $purchase.Contains("Scripting::TRIG_PURCHASE_TICKET") -and
-    -not $purchase.Contains("TRIG_PURCHASE_TICKET_INSTANT_TRAVEL")) `
-    "p14.instant-travel.native-dispatch-fails-closed"
-Assert-Contract ($instant.Contains("Rejected retired NGE instant travel") -and
-    $instant.Contains("return false;") -and
-    -not $instant.Contains("movePlayerToDestination")) `
-    "p14.instant-travel.library-warp-retired"
-Assert-Contract ($instantDispatch.Contains("Ignored retired NGE instant-travel ticket dispatch") -and
+Assert-Contract ($purchase.Contains("instantTravel") -and
+    $purchase.Contains("Scripting::TRIG_PURCHASE_TICKET_INSTANT_TRAVEL") -and
+    $purchase.Contains("Scripting::TRIG_PURCHASE_TICKET")) `
+    "p14.instant-travel.native-dispatch-script-authoritative"
+Assert-Contract ($instant.Contains("planet1.equals(planet2)") -and
+    $instant.Contains("callable.hasAnyCallable(player)") -and
+    $instant.Contains("movePlayerToDestination(player, planet2, point2)")) `
+    "p14.instant-travel.library-same-planet-guarded"
+Assert-Contract ($instantDispatch.Contains("terminal_travel_instant_royal_ship.iff") -and
+    $instantDispatch.Contains("playerOwner") -and
+    $instantDispatch.Contains("travel.MAXIMUM_TERMINAL_DISTANCE") -and
+    $instantDispatch.Contains("travel.instantTravel(") -and
     $instantDispatch.Contains("return SCRIPT_OVERRIDE;")) `
-    "p14.instant-travel.player-dispatch-retired"
+    "p14.instant-travel.player-dispatch-royal-only"
 Assert-Contract ($pickupAdmission.Contains("Rejected retired NGE instant-travel pickup admission") -and
     $pickupAdmission.Contains("return false;")) `
     "p14.instant-travel.pickup-admission-retired"
@@ -94,13 +96,21 @@ foreach ($line in $lines | Select-Object -Skip 2)
     $fields = [regex]::Split($line, "`t")
     $rows[$fields[0]] = $fields
 }
-foreach ($command in @("callforpickup", "callforprivateerpickup", "callforroyalpickup",
+foreach ($command in @("callforpickup", "callforprivateerpickup",
     "callforrattletrappickup", "callforsolarsailerpickup", "callforg9riggerpickup",
     "callforsnowspeeder", "callforslave1pickup"))
 {
     Assert-Contract ($rows.ContainsKey($command) -and
         $rows[$command][$disabledIndex] -eq "1") "p14.instant-travel.command-disabled.$command"
 }
+Assert-Contract ($rows.ContainsKey("callforroyalpickup") -and
+    $rows["callforroyalpickup"][$disabledIndex] -eq "0") `
+    "p14.instant-travel.royal-itv-bounded-restoration"
+Assert-Contract ($player.Contains("public boolean canCallForRoyalPickup(") -and
+    $player.Contains("spawnRoyalPickupCraft(self);") -and
+    $surfaceText.Contains("ROYAL_ITV_TEMPLATE") -and
+    $surfaceText.Contains("enterClientTicketPurchaseMode(player, planet, travelPoint, true)")) `
+    "p14.instant-travel.royal-itv-owner-interaction-restored"
 
 Assert-Contract ($player.Contains("public int OnPurchaseTicket(") -and
     $purchase.Contains("Scripting::TRIG_PURCHASE_TICKET")) `

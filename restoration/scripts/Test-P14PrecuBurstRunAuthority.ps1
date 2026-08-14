@@ -246,16 +246,33 @@ Assert-Contract ($pinReady -and $dsrcPins.Count -eq 1 -and
 $actualCommit = (& git -C $dsrc rev-parse HEAD 2>&1 | Out-String).Trim()
 Assert-Contract ($pinReady -and $LASTEXITCODE -eq 0 -and
     $actualCommit -ceq $expectedCommit) "p14.burst-run.pin.checked-out-parity"
-$worktreeStatus = (& git -C $dsrc status --porcelain=v1 2>&1 | Out-String).Trim()
-Assert-Contract ($LASTEXITCODE -eq 0 -and [string]::IsNullOrEmpty($worktreeStatus)) `
-    "p14.burst-run.pin.clean-dsrc-worktree"
+# command_table.tab is shared with the independently authenticated ITV
+# restoration.  Its complete current hash and the exact Burst Run row are
+# validated below; require cleanliness only for Burst Run's implementation
+# sources so an unrelated, reviewed command-row edit cannot invalidate this
+# feature owner.
+$burstRunRelativePaths = @($contract.sourceFiles.psobject.Properties |
+    Where-Object { $_.Name -cne "commandTable" } |
+    ForEach-Object { ([string]$_.Value).Substring("dsrc/".Length) })
+$null = & git -C $dsrc diff --quiet -- @burstRunRelativePaths
+$ownedWorktreeClean = $LASTEXITCODE -eq 0
+$null = & git -C $dsrc diff --cached --quiet -- @burstRunRelativePaths
+$ownedIndexClean = $LASTEXITCODE -eq 0
+Assert-Contract ($ownedWorktreeClean -and $ownedIndexClean) `
+    "p14.burst-run.pin.clean-owned-implementation-worktree"
 if ($pinReady)
 {
     $implementationCommit = [string]$contract.buildEvidence.implementationCommit
     $commitFiles = @(& git -C $dsrc show --format= --name-only $implementationCommit 2>&1 |
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $commandTableRelativePath = ([string]$contract.sourceFiles.commandTable).Substring("dsrc/".Length)
+    $immutableImplementationPaths = @($contract.expected.directSourceChangedFiles |
+        Where-Object { [string]$_ -cne $commandTableRelativePath })
     Assert-Contract ($LASTEXITCODE -eq 0 -and
-        (Test-CommitInputParity $implementationCommit $expectedCommit @($contract.expected.directSourceChangedFiles)) -and
+        # command_table.tab is now also shared by the reviewed Royal ITV
+        # admission row.  Its exact Burst Run row is authenticated below;
+        # retain blob parity for the three exclusively owned inputs.
+        (Test-CommitInputParity $implementationCommit $expectedCommit $immutableImplementationPaths) -and
         (Test-ExactOrdinalList $commitFiles @($contract.expected.directSourceChangedFiles))) `
         "p14.burst-run.pin.exact-four-file-owner"
 }

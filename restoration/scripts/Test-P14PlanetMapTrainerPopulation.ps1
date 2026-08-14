@@ -56,7 +56,7 @@ function Test-ExactOrdinalList($Actual, $Expected)
         (($actualList -join "`n") -ceq ($expectedList -join "`n"))
 }
 
-$expectedCommit = "c63df34e9f0a9fbc4e0c267b32aeaadfa1df69dc"
+$expectedCommit = "95ec6100f72e37b6a6caf45cbf46a8a39d548dae"
 $trainerCommit = "9ddd463d0effcadb33c60c7b27b26cd568192e8a"
 $dsrcPins = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
 Assert-Contract ($dsrcPins.Count -eq 1 -and [string]$dsrcPins[0].commit -ceq $expectedCommit) `

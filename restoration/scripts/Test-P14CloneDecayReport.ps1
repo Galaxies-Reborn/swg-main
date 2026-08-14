@@ -128,6 +128,12 @@ Assert-Contract -Condition (
     $decayWindow.Contains("sui.listboxButtonSetup(pid, sui.OK_ONLY)") -and
     $decayWindow.Contains(
         "PRECU_DECAY_REPORT_HEADER") -and
+    $decayWindow.Contains('String itemName = getAssignedName(item);') -and
+    $decayWindow.Contains('itemName == null || itemName.length() == 0') -and
+    $decayWindow.Contains('itemName = getString(getNameStringId(item));') -and
+    $decayWindow.Contains('" - " + itemName +') -and
+    -not $decayWindow.Contains('" - " + getEncodedName(item) +') -and
+    -not $decayWindow.Contains('utils.getStringName(item)') -and
     $decayWindow.Contains(
         "100.0f * hitpoints / maxHitpoints") -and
     $decayWindow.Contains(

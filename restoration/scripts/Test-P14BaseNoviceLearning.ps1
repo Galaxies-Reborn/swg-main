@@ -70,18 +70,36 @@ Assert-Contract ([int]$contract.schemaVersion -eq 1 -and
     [bool]$contract.authority.userDirectedOverride -and
     [bool]$contract.authority.publish14BaselinePreserved) "p14.base-novice.contract.identity"
 
-$expectedCommit = [string]$contract.authority.directSourceCommit
-Assert-Contract ($expectedCommit -cmatch '^[0-9a-f]{40}$' -and
-    [string]$contract.buildEvidence.directSourceCommit -ceq $expectedCommit) "p14.base-novice.pin.full-immutable-dsrc-sha"
+$implementationCommit = [string]$contract.authority.directSourceCommit
+$expectedCommit = [string]$contract.buildEvidence.directSourceCommit
+Assert-Contract ($implementationCommit -cmatch '^[0-9a-f]{40}$' -and
+    $expectedCommit -cmatch '^[0-9a-f]{40}$') "p14.base-novice.pin.full-immutable-dsrc-sha"
 $pins = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
 Assert-Contract ($pins.Count -eq 1 -and [string]$pins[0].commit -ceq $expectedCommit) "p14.base-novice.pin.manifest-parity"
 $checkedOutCommit = (& git -C $dsrc rev-parse HEAD 2>&1 | Out-String).Trim()
 Assert-Contract ($LASTEXITCODE -eq 0 -and $checkedOutCommit -ceq $expectedCommit) "p14.base-novice.pin.checked-out-parity"
-$dsrcStatus = (& git -C $dsrc status --porcelain=v1 2>&1 | Out-String).Trim()
-Assert-Contract ($LASTEXITCODE -eq 0 -and [string]::IsNullOrEmpty($dsrcStatus)) "p14.base-novice.pin.clean-dsrc-worktree"
-$commitFiles = @(& git -C $dsrc show --format= --name-only $expectedCommit 2>&1 | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+$baseNoviceRelativePaths = @($contract.sourceFiles.psobject.Properties |
+    ForEach-Object { ([string]$_.Value).Substring("dsrc/".Length) })
+$null = & git -C $dsrc diff --quiet -- @baseNoviceRelativePaths
+$ownedWorktreeClean = $LASTEXITCODE -eq 0
+$null = & git -C $dsrc diff --cached --quiet -- @baseNoviceRelativePaths
+$ownedIndexClean = $LASTEXITCODE -eq 0
+Assert-Contract ($ownedWorktreeClean -and $ownedIndexClean) "p14.base-novice.pin.clean-owned-source-worktree"
+$null = & git -C $dsrc merge-base --is-ancestor $implementationCommit $expectedCommit
+Assert-Contract ($LASTEXITCODE -eq 0) "p14.base-novice.pin.implementation-ancestor-of-current"
+$commitFiles = @(& git -C $dsrc show --format= --name-only $implementationCommit 2>&1 | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 Assert-Contract ($LASTEXITCODE -eq 0 -and
     (Test-ExactOrdinalList $commitFiles @($contract.authority.directSourceChangedFiles))) "p14.base-novice.pin.exact-three-file-owner"
+$implementationBlobsMatchCurrent = $true
+foreach ($relativePath in @($contract.authority.directSourceChangedFiles)) {
+    $implementationBlob = (& git -C $dsrc rev-parse "$implementationCommit`:$relativePath" 2>&1 | Out-String).Trim()
+    $implementationBlobOk = $LASTEXITCODE -eq 0
+    $currentBlob = (& git -C $dsrc rev-parse "$expectedCommit`:$relativePath" 2>&1 | Out-String).Trim()
+    if (-not $implementationBlobOk -or $LASTEXITCODE -ne 0 -or $implementationBlob -cne $currentBlob) {
+        $implementationBlobsMatchCurrent = $false
+    }
+}
+Assert-Contract $implementationBlobsMatchCurrent "p14.base-novice.pin.implementation-inputs-current-parity"
 
 $paths = @{}
 $sourceKeys = @($contract.sourceFiles.psobject.Properties.Name)
