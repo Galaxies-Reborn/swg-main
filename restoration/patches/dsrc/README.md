@@ -1,7 +1,7 @@
 # Archived dsrc overlay provenance
 
 These ordered patches document the one-time import into the persistent
-`Galaxies-Reborn/dsrc` `pre-cu-reborn-x64` branch. They are archival evidence,
+`Galaxies-Reborn/dsrc` `x64-dx11-pre-cu` branch. They are archival evidence,
 not an active editing or build path. Future work changes and commits the real
 dsrc files directly.
 
