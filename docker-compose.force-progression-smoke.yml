@@ -1,0 +1,87 @@
+name: swg-force-progression-smoke
+
+services:
+  oracle:
+    image: gvenzl/oracle-xe:21-slim-faststart
+    container_name: swg-force-progression-smoke-oracle
+    environment:
+      ORACLE_PASSWORD: swg
+      APP_USER: swg
+      APP_USER_PASSWORD: swg
+    volumes:
+      - swg-force-progression-smoke-oracle-data:/opt/oracle/oradata
+    networks:
+      - swg-force-progression-smoke-net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  swg-force-progression-smoke:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.x64
+    image: swg-force-progression-smoke-server:local
+    container_name: swg-force-progression-smoke
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      SWG_DB_HOST: oracle
+      SWG_DB_PORT: "1521"
+      SWG_DB_SERVICE: XEPDB1
+      SWG_DB_USER: swg
+      SWG_DB_PASSWORD: swg
+      SWG_DB_ADMIN_USER: system
+      SWG_DB_ADMIN_PASSWORD: swg
+      SWG_DB_DATAFILE_DIR: /opt/oracle/oradata/XE/XEPDB1
+      SWG_SERVER_BITS: "64"
+      SWG_CLUSTER_NAME: swg
+      SWG_PUBLIC_ADDRESS: 127.0.0.1
+      SWG_SYNC_SOURCE: "false"
+      SWG_SOURCE_DIR: /swg-force-progression-source
+      SWG_WORK_DIR: /swg-force-progression-smoke
+      SWG_CLIENT_ASSETS_TRE: /client-assets/swgsource_3.0.tre
+      SWG_START_CHAT: "false"
+      SWG_START_PLANETS: tatooine
+      SWG_REBORN_FORCE_PROGRESSION_MODE: replacement
+    sysctls:
+      net.ipv4.ip_local_reserved_ports: "44450-44480,50001,60000-61300"
+    volumes:
+      - .:/swg-force-progression-source:ro
+      - ../pre-cu-reborn-assets:/client-assets:ro
+      - swg-force-progression-smoke-work:/swg-force-progression-smoke
+    networks:
+      - swg-force-progression-smoke-net
+    working_dir: /swg-force-progression-smoke
+    command: ["run"]
+    tty: true
+    stdin_open: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          pgrep -f '[b]in/LoginServer' >/dev/null &&
+          pgrep -f '[b]in/TaskManager' >/dev/null &&
+          pgrep -f '[b]in/ConnectionServer' >/dev/null &&
+          pgrep -f '[b]in/SwgDatabaseServer' >/dev/null &&
+          pgrep -f '[b]in/SwgGameServer' >/dev/null
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 15m
+
+volumes:
+  swg-force-progression-smoke-oracle-data:
+    external: true
+    name: swg-force-progression-smoke-oracle-data
+  swg-force-progression-smoke-work:
+    external: true
+    name: swg-force-progression-smoke-work
+
+networks:
+  swg-force-progression-smoke-net:
+    name: swg-force-progression-smoke-net
+    driver: bridge

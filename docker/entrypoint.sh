@@ -166,9 +166,19 @@ echo "Container address for eth0-bound services: ${SWG_CONTAINER_ADDRESS}"
 SWG_CLIENT_ASSETS_TRE="${SWG_CLIENT_ASSETS_TRE:-/client-assets/swgsource_3.0.tre}"
 SWG_START_CHAT="${SWG_START_CHAT:-true}"
 SWG_START_PLANETS="${SWG_START_PLANETS:-}"
+SWG_REBORN_FORCE_PROGRESSION_MODE="${SWG_REBORN_FORCE_PROGRESSION_MODE:-}"
 SWG_ANT_INIT_TARGETS="${SWG_ANT_INIT_TARGETS:-clean update_configs create_database compile}"
 SWG_ANT_BUILD_TARGETS="${SWG_ANT_BUILD_TARGETS:-compile}"
 SWG_STAGED_CLIENT_ASSETS_TRE=""
+
+case "${SWG_REBORN_FORCE_PROGRESSION_MODE}" in
+    ""|off|shadow|replacement)
+        ;;
+    *)
+        echo "Invalid SWG_REBORN_FORCE_PROGRESSION_MODE='${SWG_REBORN_FORCE_PROGRESSION_MODE}'; expected off, shadow, replacement, or empty." >&2
+        exit 2
+        ;;
+esac
 
 connect_string="//${SWG_DB_HOST}:${SWG_DB_PORT}/${SWG_DB_SERVICE}"
 
@@ -525,8 +535,17 @@ centralServicePort=${SWG_CENTRAL_LOGIN_SERVICE_PORT}
 gameServiceBindInterface=eth0
 chatServiceBindInterface=eth0
 useCsAssist=false
-### END Docker runtime overrides
 EOF
+
+    if [ -n "${SWG_REBORN_FORCE_PROGRESSION_MODE}" ]; then
+        cat >> "${tmp}" <<EOF
+
+[GameServer]
+rebornForceProgressionMode=${SWG_REBORN_FORCE_PROGRESSION_MODE}
+EOF
+    fi
+
+    echo "### END Docker runtime overrides" >> "${tmp}"
 
     mv "${tmp}" "${cfg}"
 }

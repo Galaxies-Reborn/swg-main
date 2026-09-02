@@ -1,0 +1,26 @@
+# Opt-in local client access for the disposable Force progression smoke stack.
+# The base smoke file publishes no ports; include this override only while an
+# authenticated fixture character needs to be loaded for the reversible player
+# lifecycle probe.
+services:
+  swg-force-progression-smoke:
+    environment:
+      SWG_PUBLIC_ADDRESS: 127.0.0.1
+      SWG_LOGIN_CLIENT_PORT: "44450"
+      SWG_CENTRAL_LOGIN_SERVICE_PORT: "44452"
+      SWG_PUBLIC_CONNECTION_PING_PORT: "46462"
+      SWG_PUBLIC_CONNECTION_PORT: "46463"
+      SWG_PRIVATE_CONNECTION_PORT: "46464"
+    sysctls:
+      net.ipv4.ip_local_reserved_ports: "44450-44480,46462-46464,50001,60000-61300"
+    ports:
+      - "127.0.0.1:46450-46461:44450-44461/tcp"
+      - "127.0.0.1:46450-46461:44450-44461/udp"
+      - "127.0.0.1:46462:46462/tcp"
+      - "127.0.0.1:46462:46462/udp"
+      - "127.0.0.1:46463:46463/tcp"
+      - "127.0.0.1:46463:46463/udp"
+      - "127.0.0.1:46464:46464/tcp"
+      - "127.0.0.1:46464:46464/udp"
+      - "127.0.0.1:46465:44465/tcp"
+      - "127.0.0.1:46465:44465/udp"

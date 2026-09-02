@@ -1,0 +1,310 @@
+{
+  "fixtureSchemaVersion": 1,
+  "scenarios": [
+    {
+      "name": "valid_a_b_c_seals_once",
+      "description": "Distinct stations and distinct causal domains seal only after a downstream outcome and reconcile to the origin.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "valid-support", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "valid-relay", "at": 200, "type": "relay", "from": "2001", "to": "3001", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "valid-outcome", "at": 300, "type": "outcome", "actor": "3001", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "valid-reconcile", "at": 400, "type": "reconcile", "station": "1001" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 0,
+        "mailbox": 0,
+        "ledger": 1,
+        "sealedTotal": 1,
+        "accepted": 4,
+        "rejected": 0,
+        "duplicates": 0,
+        "sealed": 1,
+        "reconciled": 1,
+        "digest": "e33b480a6270dc76f7a92196e34d5959c37f156e2550717a5919717df2fc3515",
+        "ledgerStations": { "1001": 1 },
+        "sealedStations": { "1001": 1 }
+      }
+    },
+    {
+      "name": "same_station_and_cycle_rejected",
+      "description": "Self edges and attempts to revisit an earlier station fail closed.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "same-self", "at": 100, "type": "support", "from": "1001", "to": "1001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "same-support", "at": 200, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "same-cycle", "at": 300, "type": "relay", "from": "2001", "to": "1001", "domain": "SHELTER" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 1,
+        "mailbox": 0,
+        "ledger": 0,
+        "accepted": 1,
+        "rejected": 2,
+        "reasonCounts": { "same_station": 2 }
+      }
+    },
+    {
+      "name": "same_domain_relay_rejected",
+      "description": "A second edge cannot repeat the first edge's gameplay domain.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "domain-support", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "domain-relay", "at": 200, "type": "relay", "from": "2001", "to": "3001", "domain": "PROVENANCE" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 1,
+        "mailbox": 0,
+        "ledger": 0,
+        "accepted": 1,
+        "rejected": 1,
+        "reasonCounts": { "same_domain": 1 }
+      }
+    },
+    {
+      "name": "direct_a_b_outcome_does_not_seal",
+      "description": "A direct support followed by an outcome lacks the required downstream edge.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "direct-support", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "direct-outcome", "at": 200, "type": "outcome", "actor": "2001", "domain": "OUTCOME" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 1,
+        "mailbox": 0,
+        "ledger": 0,
+        "sealedTotal": 0,
+        "accepted": 1,
+        "rejected": 1,
+        "sealed": 0,
+        "reasonCounts": { "insufficient_depth": 1 }
+      }
+    },
+    {
+      "name": "duplicate_and_out_of_order_are_idempotent",
+      "description": "Old relays/outcomes reject and duplicate successful delivery cannot produce a second credit.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "order-support", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "order-old-relay", "at": 90, "type": "relay", "from": "2001", "to": "3001", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "order-relay", "at": 110, "type": "relay", "from": "2001", "to": "3001", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "order-old-outcome", "at": 105, "type": "outcome", "actor": "3001", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "order-outcome", "at": 120, "type": "outcome", "actor": "3001", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "order-outcome", "at": 120, "type": "outcome", "actor": "3001", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "order-reconcile", "at": 130, "type": "reconcile", "station": "1001" },
+        { "schemaVersion": 1, "eventId": "order-reconcile", "at": 130, "type": "reconcile", "station": "1001" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 0,
+        "mailbox": 0,
+        "ledger": 1,
+        "sealedTotal": 1,
+        "accepted": 4,
+        "rejected": 2,
+        "duplicates": 2,
+        "sealed": 1,
+        "reconciled": 1,
+        "reasonCounts": { "out_of_order": 2, "duplicate_event": 2 }
+      }
+    },
+    {
+      "name": "ttl_expiry_fails_closed",
+      "description": "Expired causal tokens cannot be relayed or sealed.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "ttl-support", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "ttl-relay", "at": 259301, "type": "relay", "from": "2001", "to": "3001", "domain": "SHELTER" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 0,
+        "mailbox": 0,
+        "ledger": 0,
+        "accepted": 1,
+        "rejected": 1,
+        "expired": 1,
+        "reasonCounts": { "token_expired": 1, "no_token": 1 }
+      }
+    },
+    {
+      "name": "repeated_pair_cooldown",
+      "description": "A repeated account pair is rejected inside the cooldown and admitted after it.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "pair-first", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "pair-too-soon", "at": 200, "type": "support", "from": "1001", "to": "2001", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "pair-after-cooldown", "at": 700, "type": "support", "from": "1001", "to": "2001", "domain": "SHELTER" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 2,
+        "accepted": 2,
+        "rejected": 1,
+        "reasonCounts": { "repeated_pair_cooldown": 1 }
+      }
+    },
+    {
+      "name": "malformed_event_quarantines_and_stops",
+      "description": "Malformed input preserves prior state but prevents any later progression.",
+      "events": [
+        { "schemaVersion": 1, "eventId": "malformed-support", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "malformed-relay", "at": 200, "type": "relay", "from": "2001", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "malformed-after", "at": 300, "type": "relay", "from": "2001", "to": "3001", "domain": "SHELTER" }
+      ],
+      "expect": {
+        "quarantined": true,
+        "quarantineReason": "malformed_event:missing_to",
+        "tokens": 1,
+        "mailbox": 0,
+        "ledger": 0,
+        "accepted": 1,
+        "ignored": 1,
+        "reasonCounts": { "malformed_event:missing_to": 1 }
+      }
+    },
+    {
+      "name": "unknown_state_schema_fails_closed",
+      "description": "A future persisted schema is quarantined before any event can mutate it.",
+      "initialSchemaVersion": 99,
+      "events": [
+        { "schemaVersion": 1, "eventId": "unknown-state-event", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" }
+      ],
+      "expect": {
+        "quarantined": true,
+        "quarantineReason": "unknown_state_schema",
+        "tokens": 0,
+        "mailbox": 0,
+        "ledger": 0,
+        "accepted": 0,
+        "ignored": 1,
+        "reasonCounts": { "unknown_state_schema": 1 }
+      }
+    },
+    {
+      "name": "unknown_event_schema_fails_closed",
+      "description": "A future event schema quarantines the state and blocks following events.",
+      "events": [
+        { "schemaVersion": 2, "eventId": "unknown-event", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "unknown-after", "at": 200, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" }
+      ],
+      "expect": {
+        "quarantined": true,
+        "quarantineReason": "unknown_event_schema",
+        "tokens": 0,
+        "mailbox": 0,
+        "ledger": 0,
+        "accepted": 0,
+        "ignored": 1,
+        "reasonCounts": { "unknown_event_schema": 1 }
+      }
+    },
+    {
+      "name": "active_tokens_are_bounded",
+      "description": "A recipient cannot accumulate more active tokens than its fixed allowance.",
+      "limitOverrides": { "activeTokensPerStation": 3 },
+      "events": [
+        { "schemaVersion": 1, "eventId": "bound-token-1", "at": 100, "type": "support", "from": "1001", "to": "9001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "bound-token-2", "at": 110, "type": "support", "from": "1002", "to": "9001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "bound-token-3", "at": 120, "type": "support", "from": "1003", "to": "9001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "bound-token-4", "at": 130, "type": "support", "from": "1004", "to": "9001", "domain": "PROVENANCE" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 3,
+        "accepted": 3,
+        "rejected": 1,
+        "peakTokensPerStation": 3,
+        "reasonCounts": { "token_capacity": 1 }
+      }
+    },
+    {
+      "name": "mailbox_is_bounded",
+      "description": "An offline origin receives at most the configured number of sealed records.",
+      "limitOverrides": { "mailboxPerStation": 2 },
+      "events": [
+        { "schemaVersion": 1, "eventId": "mb-s1", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "mb-r1", "at": 110, "type": "relay", "from": "2001", "to": "3001", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "mb-o1", "at": 120, "type": "outcome", "actor": "3001", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "mb-s2", "at": 200, "type": "support", "from": "1001", "to": "2002", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "mb-r2", "at": 210, "type": "relay", "from": "2002", "to": "3002", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "mb-o2", "at": 220, "type": "outcome", "actor": "3002", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "mb-s3", "at": 300, "type": "support", "from": "1001", "to": "2003", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "mb-r3", "at": 310, "type": "relay", "from": "2003", "to": "3003", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "mb-o3", "at": 320, "type": "outcome", "actor": "3003", "domain": "OUTCOME" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 1,
+        "mailbox": 2,
+        "ledger": 0,
+        "accepted": 8,
+        "rejected": 1,
+        "sealed": 2,
+        "peakMailboxPerStation": 2,
+        "mailboxStations": { "1001": 2 },
+        "reasonCounts": { "mailbox_capacity": 1 }
+      }
+    },
+    {
+      "name": "ledger_is_bounded_but_total_is_monotonic",
+      "description": "The summary ring stays bounded while the aggregate sealed count preserves earned credit.",
+      "limitOverrides": { "ledgerPerStation": 2 },
+      "events": [
+        { "schemaVersion": 1, "eventId": "ledger-s1", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "ledger-r1", "at": 110, "type": "relay", "from": "2001", "to": "3001", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "ledger-o1", "at": 120, "type": "outcome", "actor": "3001", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "ledger-x1", "at": 130, "type": "reconcile", "station": "1001" },
+        { "schemaVersion": 1, "eventId": "ledger-s2", "at": 200, "type": "support", "from": "1001", "to": "2002", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "ledger-r2", "at": 210, "type": "relay", "from": "2002", "to": "3002", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "ledger-o2", "at": 220, "type": "outcome", "actor": "3002", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "ledger-x2", "at": 230, "type": "reconcile", "station": "1001" },
+        { "schemaVersion": 1, "eventId": "ledger-s3", "at": 300, "type": "support", "from": "1001", "to": "2003", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "ledger-r3", "at": 310, "type": "relay", "from": "2003", "to": "3003", "domain": "SHELTER" },
+        { "schemaVersion": 1, "eventId": "ledger-o3", "at": 320, "type": "outcome", "actor": "3003", "domain": "OUTCOME" },
+        { "schemaVersion": 1, "eventId": "ledger-x3", "at": 330, "type": "reconcile", "station": "1001" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 0,
+        "mailbox": 0,
+        "ledger": 2,
+        "sealedTotal": 3,
+        "accepted": 12,
+        "rejected": 0,
+        "sealed": 3,
+        "reconciled": 3,
+        "peakLedgerPerStation": 2,
+        "ledgerStations": { "1001": 2 },
+        "sealedStations": { "1001": 3 }
+      }
+    },
+    {
+      "name": "deterministic_independent_order_one",
+      "description": "Independent supports have a canonical digest regardless of ingestion order.",
+      "digestGroup": "independent-support-order",
+      "events": [
+        { "schemaVersion": 1, "eventId": "digest-a", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" },
+        { "schemaVersion": 1, "eventId": "digest-b", "at": 200, "type": "support", "from": "1002", "to": "2002", "domain": "PERFORMANCE" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 2,
+        "accepted": 2,
+        "rejected": 0
+      }
+    },
+    {
+      "name": "deterministic_independent_order_two",
+      "description": "The same independent supports in reverse ingestion order share the same canonical digest.",
+      "digestGroup": "independent-support-order",
+      "events": [
+        { "schemaVersion": 1, "eventId": "digest-b", "at": 200, "type": "support", "from": "1002", "to": "2002", "domain": "PERFORMANCE" },
+        { "schemaVersion": 1, "eventId": "digest-a", "at": 100, "type": "support", "from": "1001", "to": "2001", "domain": "PROVENANCE" }
+      ],
+      "expect": {
+        "quarantined": false,
+        "tokens": 2,
+        "accepted": 2,
+        "rejected": 0
+      }
+    }
+  ]
+}

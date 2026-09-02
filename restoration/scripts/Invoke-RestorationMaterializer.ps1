@@ -232,6 +232,10 @@ $headShotGatePath = Join-Path $restorationRoot ([string]$manifest.contracts.head
 $headShotGate = Get-Content -LiteralPath $headShotGatePath -Raw | ConvertFrom-Json
 Assert-BlockedPatchFeaturesAbsent -Gate $headShotGate
 
+$forceThreadsGatePath = Join-Path $restorationRoot ([string]$manifest.contracts.rebornForceThreadsGate)
+$forceThreadsGate = Get-Content -LiteralPath $forceThreadsGatePath -Raw | ConvertFrom-Json
+Assert-BlockedPatchFeaturesAbsent -Gate $forceThreadsGate
+
 $marksmanTier1GatePath = Join-Path $restorationRoot ([string]$manifest.contracts.p14MarksmanTier1Matrix)
 $marksmanTier1Gate = Get-Content -LiteralPath $marksmanTier1GatePath -Raw | ConvertFrom-Json
 Assert-BlockedPatchFeaturesAbsent -Gate $marksmanTier1Gate

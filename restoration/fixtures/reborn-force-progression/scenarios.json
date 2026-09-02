@@ -1,0 +1,228 @@
+{
+  "fixtureSchemaVersion": 1,
+  "scenarios": [
+    {
+      "name": "valid_twelve_gate_path",
+      "actions": [
+        { "type": "event", "id": "echo_service_1", "eventType": "ECHO", "route": "SERVICE", "planet": "corellia", "at": 100 },
+        { "type": "event", "id": "echo_discovery_1", "eventType": "ECHO", "route": "DISCOVERY", "planet": "dantooine", "at": 200 },
+        { "type": "event", "id": "echo_craft_1", "eventType": "ECHO", "route": "CRAFT", "planet": "naboo", "at": 300 },
+        { "type": "event", "id": "echo_lore_1", "eventType": "ECHO", "route": "LORE", "planet": "yavin4", "at": 400 },
+        { "type": "event", "id": "echo_restraint_1", "eventType": "ECHO", "route": "RESTRAINT", "planet": "tatooine", "at": 500 },
+        { "type": "event", "id": "echo_fellowship_1", "eventType": "ECHO", "route": "FELLOWSHIP", "planet": "endor", "at": 600 },
+        { "type": "event", "id": "echo_service_2", "eventType": "ECHO", "route": "SERVICE", "planet": "rori", "at": 700 },
+        { "type": "event", "id": "echo_discovery_2", "eventType": "ECHO", "route": "DISCOVERY", "planet": "lok", "at": 800 },
+        { "type": "event", "id": "thread_living_1", "eventType": "THREAD", "route": "FELLOWSHIP", "planet": "galactic", "at": 900 },
+        { "type": "event", "id": "thread_civic_1", "eventType": "THREAD", "route": "SERVICE", "planet": "talus", "at": 1000 },
+        { "type": "event", "id": "thread_wild_1", "eventType": "THREAD", "route": "DISCOVERY", "planet": "dathomir", "at": 1100 },
+        { "type": "event", "id": "convergence_personal_1", "eventType": "CONVERGENCE", "route": "RESTRAINT", "planet": "corellia", "at": 1200 }
+      ],
+      "expect": {
+        "events": 12,
+        "echoes": 8,
+        "threads": 3,
+        "convergences": 1,
+        "routes": 6,
+        "planets": 10,
+        "eligible": true,
+        "accepted": 12,
+        "rejected": 0
+      }
+    },
+    {
+      "name": "alternate_route_is_equally_valid",
+      "actions": [
+        { "type": "eventSeries", "prefix": "alternate_echo_", "eventType": "ECHO", "routes": ["FELLOWSHIP", "RESTRAINT", "LORE", "CRAFT", "DISCOVERY", "SERVICE", "CRAFT", "LORE"], "planets": ["endor", "dathomir", "talus", "lok", "rori", "naboo", "corellia", "tatooine"], "at": 100, "step": 100 },
+        { "type": "eventSeries", "prefix": "alternate_thread_", "eventType": "THREAD", "routes": ["RESTRAINT", "CRAFT", "LORE"], "planets": ["galactic", "yavin4", "dantooine"], "at": 900, "step": 100 },
+        { "type": "event", "id": "alternate_convergence", "eventType": "CONVERGENCE", "route": "SERVICE", "planet": "naboo", "at": 1200 }
+      ],
+      "expect": {
+        "events": 12,
+        "echoes": 8,
+        "threads": 3,
+        "convergences": 1,
+        "routes": 6,
+        "planets": 10,
+        "eligible": true,
+        "accepted": 12,
+        "rejected": 0
+      }
+    },
+    {
+      "name": "exploratory_detours_do_not_lock_the_path",
+      "actions": [
+        { "type": "eventSeries", "prefix": "detour_echo_", "eventType": "ECHO", "routes": ["SERVICE", "DISCOVERY", "CRAFT", "LORE", "RESTRAINT", "FELLOWSHIP", "SERVICE", "DISCOVERY", "CRAFT"], "planets": ["corellia", "dantooine", "naboo", "yavin4", "tatooine", "endor", "rori", "lok", "talus"], "at": 100, "step": 100 },
+        { "type": "eventSeries", "prefix": "detour_thread_", "eventType": "THREAD", "routes": ["FELLOWSHIP", "SERVICE", "DISCOVERY", "RESTRAINT"], "planets": ["galactic", "talus", "dathomir", "corellia"], "at": 1000, "step": 100 },
+        { "type": "event", "id": "detour_convergence", "eventType": "CONVERGENCE", "route": "FELLOWSHIP", "planet": "tatooine", "at": 1400 }
+      ],
+      "expect": {
+        "events": 14,
+        "echoes": 9,
+        "threads": 4,
+        "convergences": 1,
+        "routes": 6,
+        "planets": 10,
+        "eligible": true,
+        "accepted": 14,
+        "rejected": 0
+      }
+    },
+    {
+      "name": "raw_count_without_planet_diversity_fails",
+      "actions": [
+        { "type": "eventSeries", "prefix": "narrow_echo_", "eventType": "ECHO", "routes": ["SERVICE", "DISCOVERY", "CRAFT", "LORE", "RESTRAINT", "FELLOWSHIP", "SERVICE", "DISCOVERY"], "planets": ["corellia", "naboo", "tatooine", "dantooine", "corellia", "naboo", "tatooine", "dantooine"], "at": 100, "step": 100 },
+        { "type": "eventSeries", "prefix": "narrow_thread_", "eventType": "THREAD", "routes": ["SERVICE", "CRAFT", "LORE"], "planets": ["galactic", "corellia", "naboo"], "at": 900, "step": 100 },
+        { "type": "event", "id": "narrow_convergence", "eventType": "CONVERGENCE", "route": "RESTRAINT", "planet": "tatooine", "at": 1200 }
+      ],
+      "expect": {
+        "events": 11,
+        "echoes": 8,
+        "threads": 3,
+        "convergences": 0,
+        "routes": 6,
+        "planets": 4,
+        "eligible": false,
+        "accepted": 11,
+        "rejected": 1,
+        "reasonCounts": { "convergence_prerequisites": 1 }
+      }
+    },
+    {
+      "name": "duplicates_and_legacy_events_never_credit",
+      "actions": [
+        { "type": "event", "id": "valid_echo", "eventType": "ECHO", "route": "SERVICE", "planet": "corellia", "at": 100 },
+        { "type": "event", "id": "valid_echo", "eventType": "ECHO", "route": "DISCOVERY", "planet": "naboo", "at": 200 },
+        { "type": "event", "id": "old_man_visit", "eventType": "ECHO", "route": "LORE", "planet": "dathomir", "at": 300 },
+        { "type": "event", "id": "sith_ambush", "eventType": "THREAD", "route": "RESTRAINT", "planet": "tatooine", "at": 400 },
+        { "type": "event", "id": "mellichae_final", "eventType": "CONVERGENCE", "route": "FELLOWSHIP", "planet": "dathomir", "at": 500 },
+        { "type": "event", "id": "fs_village_phase_four", "eventType": "ECHO", "route": "CRAFT", "planet": "dathomir", "at": 600 }
+      ],
+      "expect": {
+        "events": 1,
+        "eligible": false,
+        "accepted": 1,
+        "rejected": 5,
+        "reasonCounts": { "duplicate_event": 1, "legacy_event": 4 }
+      }
+    },
+    {
+      "name": "final_convergence_cannot_be_done_early",
+      "actions": [
+        { "type": "event", "id": "early_echo", "eventType": "ECHO", "route": "SERVICE", "planet": "corellia", "at": 100 },
+        { "type": "event", "id": "early_convergence", "eventType": "CONVERGENCE", "route": "RESTRAINT", "planet": "naboo", "at": 200 }
+      ],
+      "expect": {
+        "events": 1,
+        "convergences": 0,
+        "eligible": false,
+        "accepted": 1,
+        "rejected": 1,
+        "reasonCounts": { "convergence_prerequisites": 1 }
+      }
+    },
+    {
+      "name": "monthly_hint_boundary_is_exact",
+      "actions": [
+        { "type": "hint", "at": 100 },
+        { "type": "hint", "at": 2592099 },
+        { "type": "hint", "at": 2592100 }
+      ],
+      "expect": {
+        "hintsGranted": 2,
+        "hintsDenied": 1,
+        "lastHintAt": 2592100,
+        "accepted": 2,
+        "rejected": 1,
+        "reasonCounts": { "hint_cooldown": 1 }
+      }
+    },
+    {
+      "name": "bartender_hint_is_post_unlock_bounded_and_optional",
+      "actions": [
+        { "type": "bartender", "at": 100, "roll": 1 },
+        { "type": "setForceSensitive" },
+        { "type": "bartender", "at": 200, "roll": 20 },
+        { "type": "bartender", "at": 86599, "roll": 1 },
+        { "type": "bartender", "at": 86600, "roll": 15 }
+      ],
+      "expect": {
+        "bartenderHints": 1,
+        "bartenderMisses": 3,
+        "lastBartenderRollAt": 86600,
+        "accepted": 2,
+        "rejected": 2,
+        "reasonCounts": { "not_force_sensitive": 1, "bartender_roll_miss": 1, "bartender_cooldown": 1 }
+      }
+    },
+    {
+      "name": "unique_fs_quest_currency_replaces_grind",
+      "actions": [
+        { "type": "setForceSensitive" },
+        { "type": "awardSeries", "prefix": "mentor_chain_", "count": 16, "points": 4 },
+        { "type": "award", "id": "mentor_chain_1", "points": 4 },
+        { "type": "spendSeries", "prefix": "fs_box_", "count": 64 },
+        { "type": "spend", "id": "fs_box_1" }
+      ],
+      "expect": {
+        "pointsEarned": 64,
+        "pointsSpent": 64,
+        "pointsAvailable": 0,
+        "awardIds": 16,
+        "purchaseIds": 64,
+        "accepted": 80,
+        "rejected": 2,
+        "reasonCounts": { "duplicate_award": 1, "duplicate_purchase": 1 }
+      }
+    },
+    {
+      "name": "legacy_migration_preserves_boxes_and_unlocked_branch_credit",
+      "actions": [
+        { "type": "setForceSensitive" },
+        { "type": "migrateLegacy", "learnedTierBoxes": 5, "unlockedBranches": 3 },
+        { "type": "award", "id": "post_migration_mentor", "points": 4 },
+        { "type": "spendSeries", "prefix": "post_migration_box_", "count": 11 }
+      ],
+      "expect": {
+        "pointsEarned": 4,
+        "pointsSpent": 16,
+        "migrationCredit": 12,
+        "pointsAvailable": 0,
+        "awardIds": 1,
+        "purchaseIds": 16,
+        "accepted": 13,
+        "rejected": 0
+      }
+    },
+    {
+      "name": "three_mastered_trees_are_not_padawan_ready",
+      "actions": [
+        { "type": "setForceSensitive" },
+        { "type": "masterTree", "tree": "combat_prowess" },
+        { "type": "masterTree", "tree": "enhanced_reflexes" },
+        { "type": "masterTree", "tree": "crafting_mastery" }
+      ],
+      "expect": {
+        "masteredTrees": 3,
+        "padawanReady": false,
+        "accepted": 3,
+        "rejected": 0
+      }
+    },
+    {
+      "name": "all_four_mastered_trees_are_padawan_ready",
+      "actions": [
+        { "type": "setForceSensitive" },
+        { "type": "masterTree", "tree": "combat_prowess" },
+        { "type": "masterTree", "tree": "enhanced_reflexes" },
+        { "type": "masterTree", "tree": "crafting_mastery" },
+        { "type": "masterTree", "tree": "heightened_senses" }
+      ],
+      "expect": {
+        "masteredTrees": 4,
+        "padawanReady": true,
+        "accepted": 4,
+        "rejected": 0
+      }
+    }
+  ]
+}

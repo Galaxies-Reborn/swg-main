@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "feature": "reborn-force-threads-shadow",
+  "status": "implemented-static-pending-compile",
+  "scope": "Statically admit the default-off provenance-to-shelter-to-outcome shadow slice for isolated compilation and disposable runtime verification only.",
+  "authority": {
+    "effectClass": "telemetry-and-gm-inspection-only",
+    "gameplayActivationAuthorized": false,
+    "forceSensitiveOrJediAwardAuthorized": false,
+    "villageHandoffAuthorized": false,
+    "retroactiveCredit": false
+  },
+  "sourceFiles": {
+    "library": "dsrc/sku.0/sys.server/compiled/game/script/library/force_threads.java",
+    "playerReceiver": "dsrc/sku.0/sys.server/compiled/game/script/player/reborn/force_threads_player.java",
+    "campProbe": "dsrc/sku.0/sys.server/compiled/game/script/systems/reborn/force_threads/camp_probe.java",
+    "playerHook": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "advancedCampCraftingHook": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/camp/crafting_camp.java",
+    "advancedCampHook": "dsrc/sku.0/sys.server/compiled/game/script/library/camping.java"
+  },
+  "modeContract": {
+    "section": "GameServer",
+    "key": "rebornForceThreadsMode",
+    "absentMode": "off",
+    "enabledLiteral": "shadow",
+    "comparison": "case-sensitive-exact",
+    "declaredInRuntimeConfig": false,
+    "allReceiverAndProbeHandlersGuarded": true
+  },
+  "verticalSlice": {
+    "domains": [
+      "PROVENANCE",
+      "SHELTER",
+      "OUTCOME"
+    ],
+    "advancedCampOnly": true,
+    "advancedCampDeedTemplates": [
+      "object/tangible/deed/camp_deed/camp_advanced_deed.iff",
+      "object/tangible/deed/camp_deed/camp_basic_deed.iff",
+      "object/tangible/deed/camp_deed/camp_elite_deed.iff",
+      "object/tangible/deed/camp_deed/camp_improved_deed.iff",
+      "object/tangible/deed/camp_deed/camp_luxury_deed.iff",
+      "object/tangible/deed/camp_deed/camp_quality_deed.iff"
+    ],
+    "probeAttachedBeforeStockCampScript": true,
+    "playerReceiverEnsuredDuringOnInitialize": true,
+    "minimumContinuousDwellSeconds": 180,
+    "positiveHealingBenefitRequired": true,
+    "sameAdvancedCampRequired": true,
+    "participants": "three-distinct-positive-station-ids",
+    "sameAccountCredit": false,
+    "originMayBeOffline": true
+  },
+  "provisionalOutcomeAllowlist": {
+    "authority": "shadow-instrumentation-only-not-final-design-authority",
+    "questNames": [
+      "quest/purvis_recon_one",
+      "quest/purvis_kill_warriors",
+      "quest/purvis_kill_soldiers"
+    ],
+    "forceSensitiveVillagePvpOrLegacyThemeParkEntries": false
+  },
+  "persistenceContract": {
+    "root": "reborn.forceThreads",
+    "schemaVersion": 1,
+    "requiredLeaves": [
+      "schema",
+      "state",
+      "tokens",
+      "ledger",
+      "outbox",
+      "quarantineReason",
+      "lastReconcile"
+    ],
+    "maximumDepth": 3,
+    "maximumDepthMeaning": "causal-domain-depth-not-dotted-objvar-segments",
+    "maximumActiveTokens": 8,
+    "maximumOutboxRecords": 8,
+    "maximumSealedSummaries": 32,
+    "maximumDedupeIds": 64,
+    "maximumOfflineMailboxRecords": 16,
+    "tokenLifetimeHours": 72,
+    "tokenLifetimeSeconds": 259200,
+    "maximumPersistentBytes": 16384,
+    "senderOutboxBeforeDelivery": true,
+    "exactlyOnceCausalTokenConsumption": true,
+    "outboxTokenCollisionDetection": true,
+    "tokenConsumptionReadbackBeforeFirstPublish": true,
+    "reconcileTokenConsumptionBeforeRepublish": true,
+    "originLedgerReadbackBeforeAcknowledge": true,
+    "atLeastOnceTransportExactlyOnceCredit": true,
+    "malformedOrFutureSchemaDisposition": "quarantine-and-fail-closed-for-credit",
+    "implementedStrictCodecCoverage": [
+      "root-schema",
+      "active-token",
+      "carrier-outbox",
+      "cluster-delivery"
+    ],
+    "ledgerAndDedupeFullCodecHardening": "retained-as-blocked-gate-requirement-before-ready",
+    "ordinaryGameplayFailurePolicy": "fail-open"
+  },
+  "clusterMailboxContract": {
+    "implemented": true,
+    "manager": "reborn_force_threads",
+    "deliveryKeyPrefix": "delivery_",
+    "acknowledgementKeyPrefix": "ack_",
+    "requiredWhenImplemented": true,
+    "perEventDeliveryKeys": true,
+    "persistentCarrierOutboxBeforePublish": true,
+    "originDedupeBeforeAcknowledge": true,
+    "partialCommitLedgerDeduplication": true,
+    "acknowledgementBeforeOutboxRemoval": true,
+    "ackCleanupWhenOutboxAlreadyAbsent": true,
+    "republicationAfterLogin": true,
+    "lockReleaseRequiresExactManagerRequestKindAndPositiveLock": true,
+    "centralServerRestartLimitationDocumented": true,
+    "centralServerRestartLimitation": "Cluster mailbox state is memory-resident; a carrier login must republish its persistent outbox after CentralServer restart. A carrier that never returns remains a blocked-gate recovery case."
+  },
+  "safetyBoundary": {
+    "playerFacingMessages": false,
+    "forbiddenSourceRoots": [
+      "src",
+      "exe"
+    ],
+    "forbiddenDsrcPathFragments": [
+      "/jedi/",
+      "/fs_quest/",
+      "/force_sensitive/"
+    ],
+    "forbiddenSymbols": [
+      "setJediState",
+      "grantSkill",
+      "makeVillageEligible",
+      "setVillage",
+      "grantQuest",
+      "requestGrantQuest",
+      "activateQuest",
+      "completeQuest",
+      "clearQuest",
+      "groundquests.sendSignal",
+      "grantBadge",
+      "addBadge",
+      "grantTitle",
+      "setTitle",
+      "createTheater",
+      "grantTheater"
+    ],
+    "forbiddenCallNameFragments": [
+      "Village",
+      "Padawan",
+      "badge",
+      "title",
+      "theater"
+    ],
+    "playerFacingMessageSymbols": [
+      "sendSystemMessage",
+      "sendSystemMessageTestingOnly",
+      "sendSystemMessageProse",
+      "chat.chat",
+      "sendMail",
+      "sendPersistentMessage",
+      "sui."
+    ]
+  },
+  "changeBoundary": {
+    "allowedDsrcFiles": [
+      "sku.0/sys.server/compiled/game/script/library/force_threads.java",
+      "sku.0/sys.server/compiled/game/script/library/force_progression.java",
+      "sku.0/sys.server/compiled/game/script/player/reborn/force_threads_player.java",
+      "sku.0/sys.server/compiled/game/script/systems/reborn/force_threads/camp_probe.java",
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+      "sku.0/sys.server/compiled/game/script/systems/crafting/camp/crafting_camp.java",
+      "sku.0/sys.server/compiled/game/script/library/camping.java",
+      "sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+    ],
+    "srcChanges": false,
+    "exeChanges": false,
+    "shadowSliceJediOrForceSensitiveChanges": false,
+    "separateForceProgressionContractMayRegisterAuthorityChanges": true
+  },
+  "acceptance": {
+    "contractTest": "scripts/Test-RebornForceThreadsShadow.ps1",
+    "staticTest": "passed",
+    "powershell51": "passed",
+    "powershell7": "passed",
+    "jsonParse": "passed",
+    "diffCheck": "passed",
+    "focusedSixFileJava11Compile": "passed",
+    "focusedSevenFileJava11Compile": "passed-with-force-progression-library",
+    "fullAntCompile": "pending",
+    "liveDisposableIdentityVerification": "pending"
+  }
+}
