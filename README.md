@@ -25,3 +25,7 @@ docker compose up -d swg-server
 ```
 
 With no external authentication URL configured, the local LoginServer accepts a client account name and derives its station ID from it; the password is not checked. The persisted development database currently has station ID `1001`, character `Mago Eopoli`, and uses `local` as the conventional client password.
+
+## Galaxies Reborn community
+
+Join the [Galaxies Reborn Discord](https://discord.gg/CEwKVvKxK5) for project discussion, support, and announcements.
