@@ -1,6 +1,6 @@
 # Docker SWG Server
 
-This Docker setup builds and runs the SWG Source server against an Oracle XE
+This Docker setup builds and runs the Galaxies Reborn server against an Oracle XE
 container while keeping the checked-out repositories independent. The checked
 out source is mounted read-only and synced into the `swg-work` Docker volume so
 CMake builds on a Linux filesystem instead of repeatedly walking the Windows
