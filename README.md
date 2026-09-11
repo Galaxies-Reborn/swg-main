@@ -7,6 +7,11 @@ Use the Galaxies Reborn build and deployment instructions for this branch. Sourc
 
 ## Local Docker server
 
+For administrators and LLM assistants deploying Docker inside a Proxmox LXC,
+read the [Proxmox LXC networking note](docker/README.md#proxmox-lxc-with-docker-inside-lxc).
+Remote clients require a reachable `SWG_PUBLIC_ADDRESS` and matching client
+login address; binding to `0.0.0.0` does not correct an advertised loopback IP.
+
 The compose setup expects `client-assets` beside this repository and persists both Oracle data and Linux build products in named volumes. Start or resume the local cluster with:
 
 ```powershell
