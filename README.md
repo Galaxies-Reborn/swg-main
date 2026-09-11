@@ -4,3 +4,7 @@ This repository houses the base of the Galaxies Reborn project.
 ## What Do You Need To Do To Get A Server Running?
 
 Use the Galaxies Reborn build and deployment instructions for this branch. Source dependencies must resolve to Galaxies-Reborn repositories.
+
+## Galaxies Reborn community
+
+Join the [Galaxies Reborn Discord](https://discord.gg/CEwKVvKxK5) for project discussion, support, and announcements.
