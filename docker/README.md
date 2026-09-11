@@ -7,7 +7,7 @@ CMake builds on a Linux filesystem instead of repeatedly walking the Windows
 bind mount.
 
 The sibling `client-assets` checkout is mounted read-only at `/client-assets`.
-At startup the container stages `/client-assets/swgsource_3.0.tre` into the
+At startup the container stages the client TRE specified in the startup script into the
 Linux `swg-work` volume and adds that staged TRE to the server's `[SharedFile]`
 tree search paths so runtime assets that only exist in the client TRE are
 available to the game servers.
@@ -73,9 +73,9 @@ docker compose -f docker-compose.precu.yml ps
 powershell -File restoration/scripts/Test-PrecuDockerNetwork.ps1
 ```
 
-The default bind mounts are the audited materialized source at
-`E:/SWG/SWGSource/Staging/swg-precu-runtime-source` and the sibling
-`pre-cu-reborn-assets` checkout. Override them with `SWG_PRECU_SOURCE_DIR` and
+The default bind mounts are the audited materialized source directory
+and the sibling `pre-cu-reborn-assets` checkout, as configured in
+`docker-compose.precu.yml`. Override them with `SWG_PRECU_SOURCE_DIR` and
 `SWG_PRECU_ASSETS_DIR` when needed. The local client connects to login port
 `45453`; ConnectionServer uses `45462` for ping, `45463` for its public client
 service, and `45464` for its private client service. Those three ports are
