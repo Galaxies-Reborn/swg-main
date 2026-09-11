@@ -7,7 +7,7 @@ CMake builds on a Linux filesystem instead of repeatedly walking the Windows
 bind mount.
 
 The sibling `client-assets` checkout is mounted read-only at `/client-assets`.
-At startup the container stages `/client-assets/swgsource_3.0.tre` into the
+At startup the container stages the client TRE specified in the startup script into the
 Linux `swg-work` volume and adds that staged TRE to the server's `[SharedFile]`
 tree search paths so runtime assets that only exist in the client TRE are
 available to the game servers.
