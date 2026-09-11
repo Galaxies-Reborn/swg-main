@@ -349,7 +349,7 @@ the last bank-terminal planet with intentionally zero coordinates, the complete
 local and remote residence request/response path, and account lots remaining
 from the authoritative configured cap plus account adjustment in the original
 response-field order. Core3 is a semantic behavior reference for these fields;
-the implementation deliberately retains the SWGSource network-message envelope
+the implementation deliberately retains the Galaxies Reborn network-message envelope
 and does not claim Core3 wire-format equivalence.
 
 The stat-migration gate requires authentic Publish 14.1 racial limits, racial
@@ -559,13 +559,13 @@ adapters remain separate vertical slices. Validate with:
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier2Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
 
 The first Doctor tier-II gameplay adapter restores the nonqueued Cure Poison
-command against the pinned Core3 behavior while retaining SWGSource medicine,
+command against the pinned Core3 behavior while retaining Galaxies Reborn medicine,
 DOT-strength, area-pack, charge, effect, and PvP-help paths. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CurePoisonCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
 
 The second Doctor tier-II gameplay adapter restores queued Heal Enhance
-against the pinned Core3 behavior while retaining SWGSource enhancement-pack,
+against the pinned Core3 behavior while retaining Galaxies Reborn enhancement-pack,
 battle-fatigue, buff-replacement, charge, PvP-help, and presentation paths.
 The adapter also exempts Publish 14 positive-duration medicine from the NGE
 consumable path that otherwise zeroes its crafted modifier. Protocol-26 client
@@ -638,7 +638,7 @@ cleanup. Validate with:
 
 Doctor Wound Speed IV's active Cure Disease command is now live accepted. The
 authentic optional-target, five-second nonqueued row enters a narrow adapter
-that preserves SWGSource disease DOTs, antidote selection and power, area
+that preserves Galaxies Reborn disease DOTs, antidote selection and power, area
 packs, charge use, effects, and PvP-help paths. Pinned Core3 supplies the
 seven-meter organic-patient and visibility gates, Focus-adjusted 100-Mind
 cost, shared condition-treatment recovery, and fixed other-player 50-XP
@@ -672,7 +672,7 @@ healthy. Validate with:
 Master Doctor hospital placement is now live certified across the retained
 production ownership path. Core3's `place_hospital` ability is not a slash
 command handler: its three city-hospital templates require city rank three and
-the placement certification. SWGSource preserves the equivalent gate through
+the placement certification. Galaxies Reborn preserves the equivalent gate through
 `tryEnterPlacementMode`, `canPlaceStructure`, and `canOwnStructure`; each
 hospital row requires `private_place_hospital=100` and uses
 `place_hospital` as its failure message. A protocol-29 identity-bound lifecycle
@@ -1298,7 +1298,7 @@ Skills window opened off-focus at the restored 250-point baseline. Validate:
 
 Weapon certification ownership restores the Core3/Publish 14.1 template
 contract to every exact weapon shared by the two baselines. The pinned import
-maps 314 non-empty Core3 declarations, materializes 293 exact SWGSource
+maps 314 non-empty Core3 declarations, materializes 293 exact Galaxies Reborn
 templates, and reports 21 absent ranged-melee variants without inventing
 substitutions. The production gate now requires every template declaration
 through command or skill ownership and no longer reads NGE profession
@@ -1686,7 +1686,7 @@ Restored combat commands now emit the Publish-era `cbt_spam` prose key selected
 by the pinned Core3 command stem and the authoritative hit, miss, evade,
 counter, or block result. Hit prose receives applied damage; defended prose
 receives the raw pre-defense value. Commands without a mapping retain the
-existing SWGSource fallback.
+existing Galaxies Reborn fallback.
 
 The live fixture also owns the CDEF rifle certification explicitly and
 reversibly. Empty-profession startup no longer makes the authenticated

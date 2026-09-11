@@ -26,7 +26,7 @@ location with a legacy facility fallback, keeps the last bank-terminal planet
 without inventing coordinates, reports the residence object's own scene, and
 sends account lots remaining from the authoritative configured cap plus the
 persisted per-account adjustment. It adapts Core3 field semantics to the
-retained SWGSource message envelope rather than claiming wire equivalence.
+retained Galaxies Reborn message envelope rather than claiming wire equivalence.
 
 `005-precu-three-pool-combat-runtime.patch` supplies the native M3 primitives:
 atomic strict-positive Health/Action/Mind cost drain, explicit primary-pool

@@ -214,7 +214,7 @@ commit remain on their production gameplay paths.
 reward boundary. A `DT_STAT_MIGRATION` transaction now reaches the authentic
 2,000 Image Designer XP branch even when no cosmetic hair, morph, index, or
 holo-emote field changed. The reward is granted directly to the dedicated
-`imagedesigner` pool because SWGSource's NGE social-style helper ignores that
+`imagedesigner` pool because Galaxies Reborn's NGE social-style helper ignores that
 pool and redirects rewards through the active expertise template.
 
 `013-p14-stat-migration-persistence-fixture.patch` adds a read-only,
@@ -498,7 +498,7 @@ production validation, grant, and XP deduction.
 
 `044-p14-heal-state-command.patch` completes that gameplay slice. It routes
 the authentic optional-target, five-second queued `healState` row through a
-narrow SWGSource adapter preserving the pinned Core3 six-meter organic-patient,
+narrow Galaxies Reborn adapter preserving the pinned Core3 six-meter organic-patient,
 line-of-sight, PvP-help, state-medicine, Focus-adjusted 20-Mind, injury-speed
 recovery, state-removal, charge, effect, and other-player-only 50-XP behavior.
 The command recognizes stunned, dizzy, blinded, and intimidated in retail
@@ -545,7 +545,7 @@ Medic-through-Doctor-Wound-Speed-II skill chain.
 
 `048-p14-heal-enhance-command.patch` completes the second Doctor tier-II
 gameplay slice. It routes the authentic optional-target, seven-second queued
-`healEnhance` row through a narrow adapter while retaining SWGSource's
+`healEnhance` row through a narrow adapter while retaining Galaxies Reborn's
 consumable certification, battle-fatigue scaling, modifier replacement,
 charge, PvP-help, and presentation paths. The pinned Core3 behavior supplies
 the seven-meter organic-patient, medical-location, combat, and line-of-sight
@@ -569,7 +569,7 @@ production validation and mutation.
 
 `050-p14-extinguish-fire-command.patch` completes the Doctor tier-III active
 gameplay slice. It routes the authentic optional-target, five-second nonqueued
-`extinguishFire` row through a narrow adapter while retaining SWGSource's fire
+`extinguishFire` row through a narrow adapter while retaining Galaxies Reborn's fire
 DOT, medicine, charge, effect, and PvP-help mechanics. The pinned Core3
 behavior supplies the seven-meter organic-patient and line-of-sight gates,
 Focus-adjusted 100-Mind cost, shared condition-treatment recovery,
@@ -598,7 +598,7 @@ through production validation, grant, and XP deduction.
 
 `053-p14-cure-disease-command.patch` completes the Doctor tier-IV Cure Disease
 gameplay slice. It binds the authentic optional-target, five-second nonqueued
-row to a narrow adapter while retaining SWGSource disease DOTs, antidote
+row to a narrow adapter while retaining Galaxies Reborn disease DOTs, antidote
 selection and power, area packs, charge use, effects, and PvP-help mechanics.
 The pinned Core3 behavior supplies the seven-meter organic-patient and
 line-of-sight gates, Focus-adjusted 100-Mind cost, shared condition-treatment
